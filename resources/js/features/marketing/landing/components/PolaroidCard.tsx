@@ -12,18 +12,18 @@ const rotateClasses = {
 };
 
 const toneClasses = {
-    kraft: 'from-[#c9a982] to-[#8d674b]',
-    olive: 'from-[#c8d0ad] to-[#8D9A72]',
-    rose: 'from-[#f1b9b4] to-[#C96F72]',
+    kraft: 'from-[#B78D5C] to-[#6F4226]',
+    olive: 'from-[#D7DEC3] to-[#7E8F68]',
+    rose: 'from-[#F2A79F] to-[#E66F65]',
 };
 
 export function PolaroidCard({ caption, className = '', rotate = 'left', tone = 'rose' }: PolaroidCardProps) {
     return (
         <div
-            className={`w-28 rounded-[4px] border border-[#ead8bf] bg-[#fffaf2] p-2 pb-4 shadow-[0_14px_24px_rgba(58,36,24,0.16)] sm:w-32 ${rotateClasses[rotate]} ${className}`}
+            className={`w-28 rounded-[4px] border border-[#E5D0B8] bg-[#FFF7EE] p-2 pb-4 shadow-[0_14px_24px_#221C1929] sm:w-32 ${rotateClasses[rotate]} ${className}`}
         >
             <div className={`aspect-square rounded-[3px] bg-gradient-to-br ${toneClasses[tone]}`} />
-            <p className="mt-2 truncate text-center font-hand text-lg leading-none text-[#6F4E37]">{caption}</p>
+            <p className="mt-2 truncate text-center font-hand text-lg leading-none text-[#42291D]">{caption}</p>
         </div>
     );
 }

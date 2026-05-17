@@ -11,7 +11,7 @@ export function ImageElement({ element, style }: ImageElementProps) {
     const alt = typeof element.alt === 'string' ? element.alt : '';
 
     if (!src) {
-        return <div className="absolute bg-[#f0d9ca]" style={style} />;
+        return <div className="absolute bg-[#EED8CC]" style={style} />;
     }
 
     return <img alt={alt} className="absolute h-full w-full object-cover" src={src} style={style} />;

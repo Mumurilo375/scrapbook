@@ -11,9 +11,9 @@ type CTAButtonProps = {
 
 const variantClasses = {
     primary:
-        'border-[#5f2c24] bg-[#8E2F2F] text-[#FFF8EC] shadow-[0_14px_30px_rgba(58,36,24,0.22)] hover:bg-[#742727]',
-    secondary: 'border-[#9b7657] bg-[#FFF8EC] text-[#3A2418] hover:bg-[#f4e5d2]',
-    light: 'border-[#f1d7b6] bg-[#FFF8EC] text-[#3A2418] hover:bg-white',
+        'border-[#8F211F] bg-[#D93632] text-[#FFF7EE] shadow-[0_14px_30px_#221C1938] hover:bg-[#B92827]',
+    secondary: 'border-[#B78D5C] bg-[#FFF7EE] text-[#1F150A] hover:bg-[#EFE0CF]',
+    light: 'border-[#E8CCAD] bg-[#FFF7EE] text-[#1F150A] hover:bg-white',
 };
 
 export function CTAButton({ children, href, variant = 'primary', icon = 'arrow', className = '' }: CTAButtonProps) {
@@ -21,7 +21,7 @@ export function CTAButton({ children, href, variant = 'primary', icon = 'arrow',
 
     return (
         <a
-            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8E2F2F] sm:px-6 ${variantClasses[variant]} ${className}`}
+            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D93632] sm:px-6 ${variantClasses[variant]} ${className}`}
             href={href}
         >
             <span>{children}</span>

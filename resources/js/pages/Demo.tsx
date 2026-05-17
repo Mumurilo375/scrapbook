@@ -11,10 +11,10 @@ export default function Demo() {
     return (
         <>
             <Head title="Demo interativa" />
-            <main className="scrapbook-background min-h-screen bg-[#F7F1E8] px-4 py-6 text-[#1F1A17] sm:px-6 lg:px-8">
+            <main className="scrapbook-background min-h-screen bg-[#F4E8D9] px-4 py-6 text-[#221C19] sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-6xl">
                     <a
-                        className="inline-flex items-center gap-2 rounded-full border border-[#d8b98e] bg-[#FFF8EC] px-4 py-2 text-sm font-semibold text-[#6F4E37] transition hover:bg-white"
+                        className="inline-flex items-center gap-2 rounded-full border border-[#CBA980] bg-[#FFF7EE] px-4 py-2 text-sm font-semibold text-[#42291D] transition hover:bg-white"
                         href="/"
                     >
                         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
@@ -24,10 +24,10 @@ export default function Demo() {
                     <section className="grid items-center gap-10 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:py-16">
                         <div>
                             <SectionBadge>Demo pública</SectionBadge>
-                            <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight text-[#3A2418] sm:text-5xl">
+                            <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight text-[#1F150A] sm:text-5xl">
                                 A demo interativa está sendo preparada para mostrar o presente por dentro.
                             </h1>
-                            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#6F4E37]">
+                            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#42291D]">
                                 Esta rota já está pronta para receber a experiência pública. Por enquanto, ela apresenta
                                 o visual e o caminho de conversão sem antecipar o editor completo.
                             </p>
@@ -51,16 +51,16 @@ export default function Demo() {
                             </div>
                             <PaperCard className="absolute bottom-0 left-1/2 w-full max-w-md -translate-x-1/2 p-5">
                                 <div className="flex items-center gap-4">
-                                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#8E2F2F] text-[#FFF8EC]">
+                                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#D93632] text-[#FFF7EE]">
                                         <PlayCircle aria-hidden="true" className="h-6 w-6" />
                                     </span>
                                     <div>
-                                        <p className="font-semibold text-[#3A2418]">Experiência pública em breve</p>
-                                        <p className="mt-1 text-sm leading-6 text-[#6F4E37]">
+                                        <p className="font-semibold text-[#1F150A]">Experiência pública em breve</p>
+                                        <p className="mt-1 text-sm leading-6 text-[#42291D]">
                                             O link definitivo vai abrir uma amostra navegável do scrapbook.
                                         </p>
                                     </div>
-                                    <Gift aria-hidden="true" className="ml-auto hidden h-5 w-5 text-[#C96F72] sm:block" />
+                                    <Gift aria-hidden="true" className="ml-auto hidden h-5 w-5 text-[#E66F65] sm:block" />
                                 </div>
                             </PaperCard>
                         </div>

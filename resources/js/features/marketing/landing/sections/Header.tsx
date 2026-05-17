@@ -25,10 +25,10 @@ export function Header() {
     }
 
     return (
-        <header className="sticky top-0 z-50 border-b border-[#ead8bf] bg-[#F7F1E8]/92 backdrop-blur">
+        <header className="sticky top-0 z-50 border-b border-[#E5D0B8] bg-[#F4E8D9]/92 backdrop-blur">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-                <a className="flex items-center gap-3 text-[#3A2418]" href="#topo" aria-label="Voltar ao início">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#caa77d] bg-[#FFF8EC] text-[#8E2F2F] shadow-sm">
+                <a className="flex items-center gap-3 text-[#1F150A]" href="#topo" aria-label="Voltar ao início">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#B78D5C] bg-[#FFF7EE] text-[#D93632] shadow-sm">
                         <Gift aria-hidden="true" className="h-5 w-5" />
                     </span>
                     <span className="font-editorial text-xl font-semibold tracking-wide">{brandName}</span>
@@ -37,7 +37,7 @@ export function Header() {
                 <nav aria-label="Navegação principal" className="hidden items-center gap-7 md:flex">
                     {navLinks.map((link) => (
                         <a
-                            className="text-sm font-medium text-[#6F4E37] transition hover:text-[#8E2F2F]"
+                            className="text-sm font-medium text-[#42291D] transition hover:text-[#D93632]"
                             href={link.href}
                             key={link.label}
                         >
@@ -50,14 +50,14 @@ export function Header() {
                     {user ? (
                         <>
                             <Link
-                                className="hidden min-h-10 items-center gap-2 rounded-full border border-[#d8b98e] bg-[#FFF8EC] px-4 text-sm font-semibold text-[#6F4E37] transition hover:bg-white sm:inline-flex"
+                                className="hidden min-h-10 items-center gap-2 rounded-full border border-[#CBA980] bg-[#FFF7EE] px-4 text-sm font-semibold text-[#42291D] transition hover:bg-white sm:inline-flex"
                                 href="/app/gifts"
                             >
                                 <UserCircle aria-hidden="true" className="h-4 w-4" />
                                 Meus presentes
                             </Link>
                             <button
-                                className="hidden min-h-10 items-center gap-2 rounded-full border border-[#d8b98e] bg-white px-4 text-sm font-semibold text-[#6F4E37] transition hover:bg-[#f4e2c6] sm:inline-flex"
+                                className="hidden min-h-10 items-center gap-2 rounded-full border border-[#CBA980] bg-white px-4 text-sm font-semibold text-[#42291D] transition hover:bg-[#EAD2B8] sm:inline-flex"
                                 onClick={logout}
                                 type="button"
                             >
@@ -67,7 +67,7 @@ export function Header() {
                         </>
                     ) : (
                         <Link
-                            className="hidden min-h-10 rounded-full border border-[#d8b98e] bg-[#FFF8EC] px-4 text-sm font-semibold text-[#6F4E37] transition hover:bg-white sm:inline-flex sm:items-center"
+                            className="hidden min-h-10 rounded-full border border-[#CBA980] bg-[#FFF7EE] px-4 text-sm font-semibold text-[#42291D] transition hover:bg-white sm:inline-flex sm:items-center"
                             href="/login"
                         >
                             Login
@@ -79,7 +79,7 @@ export function Header() {
                     <button
                         aria-expanded={isMenuOpen}
                         aria-label={isMenuOpen ? 'Fechar menu' : 'Abrir menu'}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d8b98e] bg-[#FFF8EC] text-[#6F4E37] md:hidden"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#CBA980] bg-[#FFF7EE] text-[#42291D] md:hidden"
                         onClick={() => setIsMenuOpen((current) => !current)}
                         type="button"
                     >
@@ -95,12 +95,12 @@ export function Header() {
             {isMenuOpen && (
                 <nav
                     aria-label="Navegação mobile"
-                    className="border-t border-[#ead8bf] bg-[#FFF8EC] px-4 py-3 shadow-[0_18px_30px_rgba(58,36,24,0.08)] md:hidden"
+                    className="border-t border-[#E5D0B8] bg-[#FFF7EE] px-4 py-3 shadow-[0_18px_30px_#221C1914] md:hidden"
                 >
                     <div className="mx-auto grid max-w-7xl gap-2">
                         {navLinks.map((link) => (
                             <a
-                                className="rounded-[6px] px-3 py-2 text-sm font-semibold text-[#6F4E37] hover:bg-[#f4e2c6] hover:text-[#8E2F2F]"
+                                className="rounded-[6px] px-3 py-2 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8] hover:text-[#D93632]"
                                 href={link.href}
                                 key={link.label}
                                 onClick={() => setIsMenuOpen(false)}
@@ -111,14 +111,14 @@ export function Header() {
                         {user ? (
                             <>
                                 <Link
-                                    className="rounded-[6px] px-3 py-2 text-sm font-semibold text-[#6F4E37] hover:bg-[#f4e2c6] hover:text-[#8E2F2F]"
+                                    className="rounded-[6px] px-3 py-2 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8] hover:text-[#D93632]"
                                     href="/app/gifts"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
                                     Meus presentes
                                 </Link>
                                 <button
-                                    className="rounded-[6px] px-3 py-2 text-left text-sm font-semibold text-[#6F4E37] hover:bg-[#f4e2c6] hover:text-[#8E2F2F]"
+                                    className="rounded-[6px] px-3 py-2 text-left text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8] hover:text-[#D93632]"
                                     onClick={() => {
                                         setIsMenuOpen(false);
                                         logout();
@@ -130,7 +130,7 @@ export function Header() {
                             </>
                         ) : (
                             <Link
-                                className="rounded-[6px] px-3 py-2 text-sm font-semibold text-[#6F4E37] hover:bg-[#f4e2c6] hover:text-[#8E2F2F]"
+                                className="rounded-[6px] px-3 py-2 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8] hover:text-[#D93632]"
                                 href="/login"
                                 onClick={() => setIsMenuOpen(false)}
                             >

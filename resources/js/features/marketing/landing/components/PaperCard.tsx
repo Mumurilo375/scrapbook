@@ -8,7 +8,7 @@ type PaperCardProps = {
 export function PaperCard({ children, className = '' }: PaperCardProps) {
     return (
         <div
-            className={`paper-texture rounded-[8px] border border-[#dfc7a7] bg-[#FFF8EC] shadow-[0_16px_40px_rgba(58,36,24,0.09)] ${className}`}
+            className={`paper-texture rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] shadow-[0_16px_40px_#221C1917] ${className}`}
         >
             {children}
         </div>

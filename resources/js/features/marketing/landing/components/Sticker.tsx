@@ -7,17 +7,17 @@ type StickerProps = {
 };
 
 const toneClasses = {
-    gold: 'border-[#c99a4a] bg-[#f6deb0] text-[#5d3a1e]',
-    kraft: 'border-[#a77b55] bg-[#d6b58d] text-[#3A2418]',
-    olive: 'border-[#8D9A72] bg-[#e2e6d1] text-[#465234]',
-    rose: 'border-[#C96F72] bg-[#f4d2cf] text-[#8E2F2F]',
-    wine: 'border-[#8E2F2F] bg-[#8E2F2F] text-[#FFF8EC]',
+    gold: 'border-[#BD8558] bg-[#EBC493] text-[#42291D]',
+    kraft: 'border-[#AD7948] bg-[#C49A70] text-[#1F150A]',
+    olive: 'border-[#7E8F68] bg-[#E7EBD8] text-[#48573A]',
+    rose: 'border-[#E66F65] bg-[#F8D8D3] text-[#D93632]',
+    wine: 'border-[#D93632] bg-[#D93632] text-[#FFF7EE]',
 };
 
 export function Sticker({ children, className = '', tone = 'kraft' }: StickerProps) {
     return (
         <span
-            className={`inline-flex items-center rounded-[6px] border px-3 py-1.5 font-hand text-lg leading-none shadow-[0_8px_16px_rgba(58,36,24,0.12)] ${toneClasses[tone]} ${className}`}
+            className={`inline-flex items-center rounded-[6px] border px-3 py-1.5 font-hand text-lg leading-none shadow-[0_8px_16px_#221C191F] ${toneClasses[tone]} ${className}`}
         >
             {children}
         </span>

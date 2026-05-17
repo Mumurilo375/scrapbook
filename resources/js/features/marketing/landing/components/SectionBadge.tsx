@@ -9,8 +9,8 @@ type SectionBadgeProps = {
 export function SectionBadge({ children, tone = 'light' }: SectionBadgeProps) {
     const toneClasses =
         tone === 'dark'
-            ? 'border-[#d9b783] bg-[#5c3528] text-[#FFF8EC]'
-            : 'border-[#d7b98d] bg-[#f3e1c8] text-[#6F4E37]';
+            ? 'border-[#BD8558] bg-[#42291D] text-[#FFF7EE]'
+            : 'border-[#C49A70] bg-[#E8D3BB] text-[#42291D]';
 
     return (
         <span

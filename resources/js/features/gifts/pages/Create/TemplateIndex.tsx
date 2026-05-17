@@ -13,16 +13,16 @@ export default function TemplateIndex({ occasion, templates }: TemplateIndexProp
     return (
         <>
             <Head title={`Templates para ${occasion.name}`} />
-            <main className="scrapbook-background min-h-screen bg-[#F7F1E8] text-[#1F1A17]">
-                <header className="border-b border-[#ead8bf] bg-[#F7F1E8]/92">
+            <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
+                <header className="border-b border-[#E5D0B8] bg-[#F4E8D9]/92">
                     <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-                        <Link className="flex items-center gap-3 text-[#3A2418]" href="/">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#caa77d] bg-[#FFF8EC] text-[#8E2F2F]">
+                        <Link className="flex items-center gap-3 text-[#1F150A]" href="/">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#B78D5C] bg-[#FFF7EE] text-[#D93632]">
                                 <Gift aria-hidden="true" className="h-5 w-5" />
                             </span>
                             <span className="font-editorial text-xl font-semibold">Scrapbook</span>
                         </Link>
-                        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-[#6F4E37]" href="/criar">
+                        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-[#42291D]" href="/criar">
                             <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                             Ocasiões
                         </Link>
@@ -31,11 +31,11 @@ export default function TemplateIndex({ occasion, templates }: TemplateIndexProp
 
                 <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                     <div className="max-w-3xl">
-                        <p className="font-editorial text-xs font-semibold uppercase text-[#8E2F2F]">Templates publicados</p>
-                        <h1 className="mt-4 text-4xl font-semibold leading-tight text-[#3A2418] sm:text-5xl">
+                        <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Templates publicados</p>
+                        <h1 className="mt-4 text-4xl font-semibold leading-tight text-[#1F150A] sm:text-5xl">
                             {occasion.name}
                         </h1>
-                        <p className="mt-5 text-lg leading-8 text-[#6F4E37]">
+                        <p className="mt-5 text-lg leading-8 text-[#42291D]">
                             {occasion.description ?? 'Escolha um modelo ativo para criar seu scrapbook.'}
                         </p>
                     </div>
@@ -47,7 +47,7 @@ export default function TemplateIndex({ occasion, templates }: TemplateIndexProp
                             ))}
                         </div>
                     ) : (
-                        <div className="mt-10 rounded-[8px] border border-[#dfc7a7] bg-[#FFF8EC] p-6 text-[#6F4E37]">
+                        <div className="mt-10 rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-6 text-[#42291D]">
                             Ainda não existem templates publicados para esta ocasião.
                         </div>
                     )}
