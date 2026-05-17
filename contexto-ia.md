@@ -15,58 +15,42 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: branding e landing page
+## Prioridade atual: domínio e banco real
 
-Neste momento, a prioridade principal do projeto NÃO é o editor completo e nem o fluxo de criação interno.
+A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
-A prioridade atual é:
+Neste momento, a prioridade principal é voltar para a fundação real do sistema:
 
-1. definir o branding da marca;
-2. construir uma landing page de alta conversão;
-3. apresentar o produto de forma emocional e profissional;
-4. exibir mockups e previews bonitos dos templates;
-5. criar uma seção de demo interativa;
-6. transmitir valor e desejo antes do usuário entrar no fluxo de criação.
+1. backend Laravel;
+2. banco PostgreSQL;
+3. domínio em `app/Domain`;
+4. models, relações, casts e policies;
+5. templates e temas versionados vindos do banco;
+6. gifts copiando versões publicadas de templates;
+7. mídia segura e sem vídeo no MVP;
+8. pedidos/pagamentos como estrutura local, sem checkout real ainda;
+9. seeders e testes de segurança;
+10. base para admin Filament.
 
-A home deve ser uma landing page comercial, inspiradora e altamente visual, voltada para conversão. Ela não deve virar builder, onboarding, dashboard, seleção de ocasião ou interface interna do produto.
+A IA deve seguir o roadmap e não continuar refinando front, landing, demo pública, editor, checkout ou viewer sem solicitação explícita. A próxima sequência esperada é:
 
-A identidade visual atual deve seguir uma estética kraft/scrapbook/vintage:
+1. domínio e banco real;
+2. admin inicial;
+3. fluxo de criação;
+4. editor MVP;
+5. viewer público;
+6. checkout/publicação;
+7. demo pública refinada e landing final baseada no produto real.
 
-- fundo creme/off-white;
-- papel kraft;
-- marrom escuro e marrom médio;
-- rosa queimado;
-- vermelho vinho;
-- dourado envelhecido;
-- verde oliva suave;
-- texturas de papel, recortes, polaroids, fitas, envelopes, adesivos, papel rasgado, jornal e rabiscos manuais.
+### Restrições atuais
 
-A IA NÃO deve antecipar fluxo interno, editor, builder, dashboard, checkout ou telas internas sem autorização explícita. Qualquer tela interna do produto deve vir depois da landing aprovada.
-
-### Estrutura obrigatória da landing
-
-A landing deve conter, no mínimo:
-
-1. top bar com prova social;
-2. header com CTA;
-3. hero principal com mockups de celular;
-4. seção "como funciona";
-5. showcase de templates / módulos do presente;
-6. seção de benefícios;
-7. bloco de demo interativa com CTA forte;
-8. seção de depoimentos;
-9. bloco de preço ou proposta comercial simples;
-10. FAQ;
-11. footer.
-
-### Restrições
-
-- Não usar home como fluxo do builder.
-- Não criar UI genérica de dashboard.
-- Não criar layout seco ou excessivamente técnico.
-- Não copiar visual de marcas terceiras de forma literal.
-- Não usar Spotify como identidade visual do produto.
-- Pode usar referências de estruturas inspiradas em landing pages emocionais e modernas.
+- Não refinar visualmente a landing page sem pedido explícito.
+- Não criar demo pública agora.
+- Não criar editor drag-and-drop agora.
+- Não criar checkout real ou integração com provider de pagamento agora.
+- Não integrar Spotify, streaming ou hospedagem real de música.
+- Não hardcodear templates ou temas finais no frontend.
+- Não assumir que a landing atual é definitiva.
 
 ## 2. Regras de negócio não negociáveis
 

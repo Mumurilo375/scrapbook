@@ -2,9 +2,20 @@
 
 > Este documento é uma lista de execução em ordem recomendada. A ideia é você usar como backlog/todo técnico. Não precisa fazer tudo em uma sprint. O objetivo é evitar começar por uma parte bonita e depois descobrir que faltou base de segurança, banco, versionamento ou fluxo de pagamento.
 
+## Status atual
+
+- Landing v1 criada como rascunho inicial de branding/marketing, não como versão final do produto.
+- Prioridade atual: domínio e banco real.
+- Próximo passo depois desta fundação: admin inicial para temas, templates, assets, planos e gifts.
+- Depois: fluxo de criação a partir de ocasião/template.
+- Depois: editor MVP.
+- Depois: viewer público.
+- Depois: checkout/publicação.
+- Só depois: demo pública refinada e landing final baseada no produto real.
+
 ## Fase 0 — Branding, posicionamento e landing page
 
-Antes de avançar no editor e nas telas internas do produto, a prioridade é aprovar a primeira impressão comercial do produto.
+Esta fase gerou uma landing v1 como rascunho visual inicial. Ela não deve ser tratada como versão final, nem como referência definitiva do produto.
 
 1. Definir branding visual.
 2. Definir paleta.
@@ -12,7 +23,7 @@ Antes de avançar no editor e nas telas internas do produto, a prioridade é apr
 4. Criar landing page.
 5. Criar seção de demo interativa.
 6. Criar showcase de templates.
-7. Aprovar landing antes de avançar no editor.
+7. Revisitar landing final somente depois que o produto real tiver fluxo validável.
 
 ## Fase 0.1 - Decisões congeladas antes de codar
 
@@ -43,7 +54,7 @@ Antes de avançar no editor e nas telas internas do produto, a prioridade é apr
 
 ## Detalhamento da Fase 0 — Branding, posicionamento e landing page
 
-Antes de avançar no editor e nas telas internas do produto, deve ser definida a base de comunicação e apresentação comercial da marca.
+A landing v1 cumpriu o papel de explorar direção visual. A prioridade saiu de refinamento de marketing e voltou para backend, domínio, banco e admin.
 
 ## Etapas da fase 0
 
@@ -62,11 +73,11 @@ Antes de avançar no editor e nas telas internas do produto, deve ser definida a
 13. Definir prova social.
 14. Definir FAQ.
 15. Criar versão 1 da landing page.
-16. Aprovar a landing page antes de avançar para o fluxo principal do produto.
+16. Revisar a landing final com base em produto real, depois de fluxo, viewer e checkout estarem encaminhados.
 
 ## Regra de dependência
 
-Nenhuma implementação mais profunda do front principal (builder/editor/onboarding) deve continuar antes da aprovação da landing page v1.
+Não continuar refinando landing, demo pública ou front avançado sem solicitação explícita. A próxima dependência real é concluir domínio e banco, depois admin inicial.
 
 ## Fase 1 - Repositório e ambiente
 

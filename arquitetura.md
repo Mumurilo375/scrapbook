@@ -1507,3 +1507,43 @@ Importante:
 - Storage S3-compatible.
 - Jobs para processamento de imagens.
 - Segurança desde o primeiro commit.
+
+## 17. Modelo de domínio implementado nesta fase
+
+O domínio real foi estruturado em `app/Domain`, mantendo `App\Models\User` como model de autenticação do starter kit. As entidades principais de produto usam ULID e ficam separadas por domínio:
+
+- Catálogo e criação: `Occasion`, `Template`, `TemplateVersion`, `TemplatePage`, `Theme`, `ThemeVersion`, `Asset`, `Plan`.
+- Presente: `Gift`, `GiftPage`, `MediaItem`, `MusicSelection`.
+- Pagamento: `Order`, `Payment`.
+- Analytics: `GiftVisit`, `GiftEvent`.
+
+### Templates, temas e gifts
+
+- `templates` e `themes` representam conceitos comerciais/editáveis.
+- `template_versions` e `theme_versions` representam versões publicáveis com status `draft`, `published` ou `archived`.
+- Gifts são criados a partir de uma `template_version` publicada e apontam para a `theme_version` usada no momento.
+- Ao criar um gift, as `template_pages` são copiadas para `gift_pages`; gifts antigos não dependem da versão mutável do template.
+- `canvas`, `config`, `editable_schema`, `constraints`, `settings`, `metadata`, `features` e snapshots são `jsonb` e devem conter `schemaVersion` quando definirem contrato de renderização.
+
+### Link público
+
+- O link público não usa ID incremental.
+- `gifts.slug` é apenas estético e pode ser nulo.
+- `gifts.public_code` é o token forte usado para resolver acesso público.
+- Gift público precisa estar `published`, com `visibility = public_link`, `public_code` preenchido e sem expiração vencida.
+- Gifts `disabled` ou `expired` não devem ser resolvidos publicamente.
+
+### Mídia e música
+
+- `media_items` guarda mídia enviada pelo usuário, principalmente imagens no MVP.
+- Não aceitar vídeos no MVP.
+- Não aceitar URL arbitrária como mídia enviada pelo usuário.
+- Mídia deve pertencer ao usuário ou ao gift dele para poder ser usada no canvas.
+- Música fica em `music_selections` como metadata externa; não hospedar áudio protegido.
+
+### Orders e payments
+
+- `plans.price_cents`, `orders.amount_cents` e `payments.amount_cents` usam inteiro em centavos, nunca float.
+- `orders` pertencem a `user`, `gift` e `plan`.
+- `payments` pertencem a `orders` e guardam eventos/transações do provider.
+- Checkout e webhooks reais dependem de provider futuro; a estrutura local já preserva snapshots de preço/limites em metadata.
