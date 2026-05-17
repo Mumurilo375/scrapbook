@@ -1,0 +1,187 @@
+<?php
+
+namespace App\Http\Controllers\Gifts;
+
+use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
+use App\Domain\Gifts\Models\Gift;
+use App\Domain\Payments\Models\Plan;
+use App\Domain\Templates\Models\TemplateVersion;
+use App\Domain\Themes\Enums\ThemeVersionStatus;
+use App\Domain\Themes\Models\ThemeVersion;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Gifts\StoreGiftFromTemplateRequest;
+use App\Http\Requests\Gifts\UpdateGiftRequest;
+use BackedEnum;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class GiftController extends Controller
+{
+    public function store(StoreGiftFromTemplateRequest $request, CreateGiftFromTemplate $createGift): RedirectResponse
+    {
+        $templateVersion = $request->templateVersion();
+        $themeVersion = $this->resolveThemeVersion($request, $templateVersion);
+        $plan = $this->resolvePlan($request, $templateVersion);
+        $data = $request->validated();
+
+        $gift = $createGift->handle($request->user(), $templateVersion, $plan, [
+            'theme_version_id' => $themeVersion->id,
+            'title' => $data['title'] ?? null,
+            'recipient_name' => $data['recipient_name'] ?? null,
+            'sender_name' => $data['sender_name'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('app.gifts.edit', $gift)
+            ->with('status', 'Rascunho criado.');
+    }
+
+    public function edit(Request $request, Gift $gift): Response
+    {
+        Gate::forUser($request->user())->authorize('view', $gift);
+
+        $gift->load([
+            'occasion',
+            'plan',
+            'templateVersion.template',
+            'themeVersion.theme',
+            'pages',
+        ]);
+
+        return Inertia::render('gifts/Edit/GiftEdit', [
+            'gift' => $this->giftPayload($gift),
+            'pages' => $gift->pages->map(fn ($page): array => [
+                'id' => $page->id,
+                'name' => $page->name,
+                'page_type' => $this->enumValue($page->page_type),
+                'sort_order' => $page->sort_order,
+                'canvas' => $page->canvas,
+                'is_visible' => $page->is_visible,
+                'locked' => $page->locked,
+                'update_url' => route('app.gifts.pages.update', [$gift, $page]),
+            ])->values(),
+        ]);
+    }
+
+    public function update(UpdateGiftRequest $request, Gift $gift): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $gift->forceFill([
+            'title' => $data['title'] ?? $gift->title,
+            'recipient_name' => array_key_exists('recipient_name', $data) ? $data['recipient_name'] : $gift->recipient_name,
+            'sender_name' => array_key_exists('sender_name', $data) ? $data['sender_name'] : $gift->sender_name,
+            'settings' => array_key_exists('settings', $data) ? $data['settings'] : $gift->settings,
+            'last_edited_at' => now(),
+        ])->save();
+
+        return back()->with('status', 'Rascunho salvo.');
+    }
+
+    private function resolveThemeVersion(StoreGiftFromTemplateRequest $request, TemplateVersion $templateVersion): ThemeVersion
+    {
+        if ($request->filled('theme_version_id')) {
+            $themeVersion = ThemeVersion::query()
+                ->with('theme')
+                ->find($request->validated('theme_version_id'));
+        } else {
+            $templateVersion->loadMissing('themeVersion.theme');
+            $themeVersion = $templateVersion->themeVersion;
+        }
+
+        if ($themeVersion instanceof ThemeVersion
+            && $this->enumValue($themeVersion->status) === ThemeVersionStatus::Published->value
+            && $themeVersion->theme?->is_active
+        ) {
+            return $themeVersion;
+        }
+
+        $fallback = ThemeVersion::query()
+            ->where('status', ThemeVersionStatus::Published->value)
+            ->whereHas('theme', fn ($query) => $query->where('is_active', true))
+            ->with('theme')
+            ->orderByDesc('published_at')
+            ->orderByDesc('version_number')
+            ->first();
+
+        if ($fallback instanceof ThemeVersion) {
+            return $fallback;
+        }
+
+        throw ValidationException::withMessages([
+            'theme_version_id' => 'Nenhum tema publicado está disponível.',
+        ]);
+    }
+
+    private function resolvePlan(StoreGiftFromTemplateRequest $request, TemplateVersion $templateVersion): ?Plan
+    {
+        if ($request->filled('plan_id')) {
+            return Plan::query()
+                ->whereKey($request->validated('plan_id'))
+                ->where('is_active', true)
+                ->firstOrFail();
+        }
+
+        $planId = data_get($templateVersion->default_config, 'plan_id');
+
+        if (is_string($planId)) {
+            $plan = Plan::query()
+                ->whereKey($planId)
+                ->where('is_active', true)
+                ->first();
+
+            if ($plan instanceof Plan) {
+                return $plan;
+            }
+        }
+
+        return Plan::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('price_cents')
+            ->first();
+    }
+
+    private function giftPayload(Gift $gift): array
+    {
+        return [
+            'id' => $gift->id,
+            'title' => $gift->title,
+            'status' => $this->enumValue($gift->status),
+            'recipient_name' => $gift->recipient_name,
+            'sender_name' => $gift->sender_name,
+            'settings' => $gift->settings,
+            'updated_at' => $gift->updated_at?->toIso8601String(),
+            'last_edited_at' => $gift->last_edited_at?->toIso8601String(),
+            'occasion' => $gift->occasion ? [
+                'id' => $gift->occasion->id,
+                'name' => $gift->occasion->name,
+                'slug' => $gift->occasion->slug,
+            ] : null,
+            'template' => $gift->templateVersion?->template ? [
+                'id' => $gift->templateVersion->template->id,
+                'name' => $gift->templateVersion->template->name,
+                'slug' => $gift->templateVersion->template->slug,
+            ] : null,
+            'theme' => $gift->themeVersion?->theme ? [
+                'id' => $gift->themeVersion->theme->id,
+                'name' => $gift->themeVersion->theme->name,
+            ] : null,
+            'plan' => $gift->plan ? [
+                'id' => $gift->plan->id,
+                'name' => $gift->plan->name,
+            ] : null,
+            'update_url' => route('app.gifts.update', $gift),
+            'dashboard_url' => route('app.gifts.index'),
+        ];
+    }
+
+    private function enumValue(mixed $value): string
+    {
+        return $value instanceof BackedEnum ? $value->value : (string) $value;
+    }
+}

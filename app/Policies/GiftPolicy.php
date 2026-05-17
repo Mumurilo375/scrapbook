@@ -10,7 +10,7 @@ class GiftPolicy
 {
     public function view(User $user, Gift $gift): bool
     {
-        return $this->isStaff($user) || $gift->user_id === $user->id;
+        return $gift->user_id === $user->id;
     }
 
     public function update(User $user, Gift $gift): bool

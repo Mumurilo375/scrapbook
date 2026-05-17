@@ -55,6 +55,58 @@ final class UpdateGiftPageCanvas
                 'canvas.elements' => 'Canvas elements must be an array.',
             ]);
         }
+
+        $this->validateUnsafeStrings($canvas);
+    }
+
+    /**
+     * @param  array<string, mixed>  $canvas
+     */
+    private function validateUnsafeStrings(array $canvas): void
+    {
+        $error = null;
+        $this->inspectCanvasStrings($canvas, $error);
+
+        if ($error !== null) {
+            throw ValidationException::withMessages([
+                'canvas' => $error,
+            ]);
+        }
+    }
+
+    private function inspectCanvasStrings(mixed $value, ?string &$error, string $key = ''): void
+    {
+        if ($error !== null) {
+            return;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $childKey => $child) {
+                $this->inspectCanvasStrings($child, $error, strtolower((string) $childKey));
+            }
+
+            return;
+        }
+
+        if (! is_string($value)) {
+            return;
+        }
+
+        if (preg_match('/https?:\/\//i', $value) === 1) {
+            $error = 'Canvas cannot reference external URLs at this stage.';
+
+            return;
+        }
+
+        if (in_array($key, ['html', 'innerhtml'], true)) {
+            $error = 'Canvas cannot contain arbitrary HTML.';
+
+            return;
+        }
+
+        if ($key === 'text' && preg_match('/<[^>]+>/', $value) === 1) {
+            $error = 'Canvas text must be plain text.';
+        }
     }
 
     /**

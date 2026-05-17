@@ -11,7 +11,10 @@ use App\Domain\Templates\Enums\TemplateVersionStatus;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Templates\Models\TemplatePage;
 use App\Domain\Templates\Models\TemplateVersion;
+use App\Domain\Themes\Enums\ThemeVersionStatus;
+use App\Domain\Themes\Models\ThemeVersion;
 use App\Models\User;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,14 +27,19 @@ final class CreateGiftFromTemplate
      */
     public function handle(?User $user, TemplateVersion $templateVersion, ?Plan $plan = null, array $attributes = []): Gift
     {
-        $status = $templateVersion->getAttribute('status');
-        $status = $status instanceof TemplateVersionStatus ? $status : TemplateVersionStatus::from((string) $status);
-
-        if ($status !== TemplateVersionStatus::Published) {
+        if ($this->enumValue($templateVersion->getAttribute('status')) !== TemplateVersionStatus::Published->value) {
             throw ValidationException::withMessages([
                 'template_version_id' => 'Only published template versions can be used to create gifts.',
             ]);
         }
+
+        if ($plan !== null && ! $plan->is_active) {
+            throw ValidationException::withMessages([
+                'plan_id' => 'Only active plans can be used to create gifts.',
+            ]);
+        }
+
+        $themeVersion = $this->resolveThemeVersion($templateVersion, $attributes['theme_version_id'] ?? null);
 
         $title = (string) ($attributes['title'] ?? $templateVersion->name);
 
@@ -41,13 +49,13 @@ final class CreateGiftFromTemplate
         /** @var Collection<int, TemplatePage> $pages */
         $pages = $templateVersion->pages()->get();
 
-        return DB::transaction(function () use ($attributes, $pages, $plan, $template, $templateVersion, $title, $user): Gift {
+        return DB::transaction(function () use ($attributes, $pages, $plan, $template, $templateVersion, $themeVersion, $title, $user): Gift {
             $gift = Gift::query()->create([
                 'user_id' => $user?->id,
                 'plan_id' => $plan?->id,
                 'occasion_id' => $template?->occasion_id,
                 'template_version_id' => $templateVersion->id,
-                'theme_version_id' => $attributes['theme_version_id'] ?? $templateVersion->theme_version_id,
+                'theme_version_id' => $themeVersion->id,
                 'title' => $title,
                 'slug' => Str::slug((string) ($attributes['slug'] ?? $title)) ?: null,
                 'status' => GiftStatus::Draft,
@@ -80,5 +88,33 @@ final class CreateGiftFromTemplate
 
             return $gift->load(['pages', 'templateVersion', 'themeVersion']);
         });
+    }
+
+    private function resolveThemeVersion(TemplateVersion $templateVersion, mixed $themeVersionId): ThemeVersion
+    {
+        $themeVersion = null;
+
+        if (is_string($themeVersionId) && $themeVersionId !== '') {
+            $themeVersion = ThemeVersion::query()->with('theme')->find($themeVersionId);
+        } else {
+            $templateVersion->loadMissing('themeVersion.theme');
+            $themeVersion = $templateVersion->themeVersion;
+        }
+
+        if (! $themeVersion instanceof ThemeVersion
+            || $this->enumValue($themeVersion->getAttribute('status')) !== ThemeVersionStatus::Published->value
+            || ! $themeVersion->theme?->is_active
+        ) {
+            throw ValidationException::withMessages([
+                'theme_version_id' => 'Only published theme versions can be used to create gifts.',
+            ]);
+        }
+
+        return $themeVersion;
+    }
+
+    private function enumValue(mixed $value): string
+    {
+        return $value instanceof BackedEnum ? $value->value : (string) $value;
     }
 }
