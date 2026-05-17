@@ -15,25 +15,26 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: fluxo de criação do cliente
+## Prioridade atual: autenticação real mínima
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
-O domínio, banco real e admin inicial em Filament já foram implementados. O projeto já consegue operar ocasiões, planos, temas, templates, versões, páginas, gifts, mídia, pedidos, pagamentos e analytics sem hardcode administrativo.
+O domínio, banco real e admin inicial em Filament já foram implementados. O projeto já consegue operar ocasiões, planos, temas, templates, versões, páginas, gifts, mídia, pedidos, pagamentos e analytics sem hardcode administrativo. O fluxo inicial de criação do cliente também já existe: o visitante escolhe ocasião, escolhe template publicado e o usuário autenticado consegue criar um `Gift` draft com páginas copiadas do template.
 
-Neste momento, a prioridade principal é o primeiro fluxo real do cliente:
+Neste momento, a prioridade principal é permitir que um usuário real use esse início do produto com autenticação mínima:
 
-1. visitante escolhe uma ocasião ativa em `/criar`;
-2. visitante escolhe um template ativo com `TemplateVersion` publicada;
-3. visitante vê detalhes do template, páginas, tema sugerido e plano padrão;
-4. para criar o `Gift` draft, o usuário precisa estar autenticado;
-5. `CreateGiftFromTemplate` cria o gift e copia `TemplatePage` para `GiftPage`;
-6. usuário acessa `/app/gifts/{gift}/edit` para edição básica de metadados/canvas JSON;
-7. usuário vê seus rascunhos em `/app/gifts`.
+1. visitante pode explorar `/criar` sem login até o template;
+2. ao criar o `Gift` draft, precisa entrar ou criar conta;
+3. login/cadastro/logout usam sessão Laravel/Inertia real;
+4. cadastro público atribui role `customer`;
+5. depois do login/cadastro, o usuário volta ao contexto do template escolhido;
+6. `CreateGiftFromTemplate` cria o gift para o usuário autenticado e copia `TemplatePage` para `GiftPage`;
+7. usuário acessa `/app/gifts/{gift}/edit` para edição básica de metadados/canvas JSON;
+8. usuário volta depois e vê seus próprios rascunhos em `/app/gifts`.
 
 A IA deve seguir o roadmap e não continuar refinando front, landing, demo pública, editor, checkout ou viewer sem solicitação explícita. A próxima sequência esperada é:
 
-1. fluxo de criação de gift a partir de template publicado;
+1. autenticação real mínima do cliente;
 2. editor MVP;
 3. viewer público;
 4. checkout/publicação;
@@ -51,6 +52,7 @@ A IA deve seguir o roadmap e não continuar refinando front, landing, demo públ
 - Não avançar para editor visual completo, viewer público, demo pública ou checkout real sem solicitação explícita.
 - Não criar demo pública a partir do fluxo de criação atual.
 - Não tratar a tela inicial de rascunho como editor final.
+- Não recolocar placeholders de auth no lugar das páginas reais de login/cadastro.
 
 ## 2. Regras de negócio não negociáveis
 

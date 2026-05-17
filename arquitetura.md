@@ -1632,3 +1632,47 @@ O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/a
 - `GiftPage` só pode ser alterada pelo dono do gift e enquanto o gift está em `draft`.
 - Form Requests validam versões publicadas, plano ativo, ownership da página e canvas sem HTML/URLs externas arbitrárias.
 - Dados enviados às páginas Inertia são resumos mínimos, sem payloads de pagamento, hashes ou dados de outros usuários.
+
+## 20. Autenticação real mínima do cliente
+
+A autenticação do cliente usa sessão Laravel padrão com Inertia, sem autenticação paralela. As telas públicas de auth são:
+
+- `GET /login` e `POST /login`.
+- `GET /cadastro` e `POST /cadastro`.
+- `POST /logout`.
+
+### Regras de cadastro e login
+
+- Cadastro cria `User` com `name`, `email` único e `password` com hash.
+- O usuário público nunca escolhe role.
+- Todo usuário cadastrado pelo fluxo público recebe a role `customer` via Spatie Permission.
+- `admin` e `support` continuam reservados a seed/admin interno.
+- Login usa `Auth::attempt`, erro genérico de credenciais, regeneração de sessão e rate limit.
+- Logout encerra o guard web, invalida a sessão e regenera o token CSRF.
+- Rotas `guest` redirecionam usuários já autenticados para `/app/gifts`.
+
+### Integração com criação
+
+O visitante pode explorar `/criar`, `/criar/{occasion}` e `/criar/{occasion}/{template}` sem login. Para executar `POST /gifts`, a rota continua protegida por `auth`.
+
+Se um visitante tentar criar gift sem sessão, o backend preserva a intenção usando o `template_version_id` enviado e redireciona para `/login?return_to=/criar/{occasion}/{template}`. Depois de login ou cadastro, o usuário volta para o template escolhido e pode concluir a criação do draft com segurança.
+
+### Rotas autenticadas do cliente
+
+- `POST /gifts`: cria o draft com `CreateGiftFromTemplate`.
+- `GET /app/gifts`: lista somente gifts do usuário autenticado.
+- `GET /app/gifts/{gift}/edit`: abre a tela inicial de rascunho.
+- `PATCH /app/gifts/{gift}`: salva metadados básicos.
+- `PATCH /app/gifts/{gift}/pages/{giftPage}`: salva canvas JSON da página.
+
+### Dados globais no Inertia
+
+`HandleInertiaRequests` compartilha apenas dados seguros do usuário autenticado:
+
+- `id`;
+- `name`;
+- `email`;
+- lista simples de `roles`;
+- flag `isAdmin`.
+
+Esses dados são usados pela landing/header para alternar entre Login, Meus presentes, Sair e Criar presente, sem transformar a landing em dashboard.
