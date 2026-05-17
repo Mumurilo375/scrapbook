@@ -15,13 +15,13 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: autenticação real mínima
+## Prioridade atual: upload/mídia básica
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
 O domínio, banco real e admin inicial em Filament já foram implementados. O projeto já consegue operar ocasiões, planos, temas, templates, versões, páginas, gifts, mídia, pedidos, pagamentos e analytics sem hardcode administrativo. O fluxo inicial de criação do cliente também já existe: o visitante escolhe ocasião, escolhe template publicado e o usuário autenticado consegue criar um `Gift` draft com páginas copiadas do template.
 
-Neste momento, a prioridade principal é permitir que um usuário real use esse início do produto com autenticação mínima:
+Autenticação real mínima e Editor MVP já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, edita textos existentes, salva canvas e edita metadados básicos do Gift. Neste momento, a prioridade principal é permitir fotos reais no editor, sem transformar a etapa em editor visual avançado:
 
 1. visitante pode explorar `/criar` sem login até o template;
 2. ao criar o `Gift` draft, precisa entrar ou criar conta;
@@ -29,16 +29,18 @@ Neste momento, a prioridade principal é permitir que um usuário real use esse 
 4. cadastro público atribui role `customer`;
 5. depois do login/cadastro, o usuário volta ao contexto do template escolhido;
 6. `CreateGiftFromTemplate` cria o gift para o usuário autenticado e copia `TemplatePage` para `GiftPage`;
-7. usuário acessa `/app/gifts/{gift}/edit` para edição básica de metadados/canvas JSON;
-8. usuário volta depois e vê seus próprios rascunhos em `/app/gifts`.
+7. usuário acessa `/app/gifts/{gift}/edit` para selecionar páginas, ver preview, editar textos existentes e salvar canvas;
+8. usuário edita metadados básicos do gift: `title`, `recipient_name` e `sender_name`;
+9. usuário envia imagens próprias para o Gift draft;
+10. usuário aplica uma imagem enviada em elementos `image` existentes no canvas;
+11. usuário volta depois e vê seus próprios rascunhos em `/app/gifts`.
 
-A IA deve seguir o roadmap e não continuar refinando front, landing, demo pública, editor, checkout ou viewer sem solicitação explícita. A próxima sequência esperada é:
+A IA deve seguir o roadmap e não continuar refinando landing, demo pública, checkout, publicação ou viewer sem solicitação explícita. A sequência esperada é:
 
-1. autenticação real mínima do cliente;
-2. editor MVP;
-3. viewer público;
-4. checkout/publicação;
-5. demo pública refinada e landing final baseada no produto real.
+1. upload/mídia básica;
+2. viewer público simples ou fluxo draft/published, a decidir;
+3. checkout/publicação;
+4. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 
@@ -51,7 +53,7 @@ A IA deve seguir o roadmap e não continuar refinando front, landing, demo públ
 - Não assumir que a landing atual é definitiva.
 - Não avançar para editor visual completo, viewer público, demo pública ou checkout real sem solicitação explícita.
 - Não criar demo pública a partir do fluxo de criação atual.
-- Não tratar a tela inicial de rascunho como editor final.
+- Não tratar o Editor MVP como editor visual completo.
 - Não recolocar placeholders de auth no lugar das páginas reais de login/cadastro.
 
 ## 2. Regras de negócio não negociáveis
@@ -393,19 +395,19 @@ Elementos customizados pelo usuário não devem sumir ao trocar tema.
 
 ## 12. Mídia
 
-Upload de imagem:
+Upload de imagem do editor:
 
 1. Validar request.
-2. Criar registro `gift_media`.
-3. Salvar original.
-4. Disparar job de processamento.
-5. Gerar versão otimizada.
-6. Gerar thumbnail.
-7. Remover EXIF.
-8. Atualizar status.
-9. Permitir uso no canvas.
+2. Confirmar usuário autenticado, dono do Gift e Gift em `draft`.
+3. Aceitar apenas JPG/JPEG, PNG e WebP.
+4. Bloquear SVG, GIF, vídeo, PDF, executáveis e MIME/extensão inconsistentes.
+5. Processar com Intervention Image, limitar dimensões, gerar WebP otimizado e thumbnail.
+6. Remover metadados sensíveis quando possível por reencode/strip.
+7. Criar registro `media_items` com `user_id`, `gift_id`, tipo `image`, storage, dimensões, tamanho, variantes e status `processed`.
+8. Servir imagens no editor por rota autenticada do Laravel.
+9. Permitir uso no canvas somente por `mediaItemId` pertencente ao mesmo Gift.
 
-Nunca permitir que usuário associe mídia de outro gift.
+Nunca permitir que usuário associe mídia de outro usuário ou de outro Gift. O canvas não deve aceitar `src` externo ou relativo arbitrário; o backend deve gerar o `src` seguro a partir do `MediaItem`.
 
 ## 13. Música
 

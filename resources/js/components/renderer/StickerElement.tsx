@@ -10,7 +10,7 @@ export function StickerElement({ element, style }: StickerElementProps) {
     const label = typeof element.label === 'string' ? element.label : '';
 
     return (
-        <div className="absolute flex items-center justify-center text-center" style={style}>
+        <div className="absolute flex items-center justify-center rounded-[4px] bg-[#F8D8D3] px-2 text-center text-[#7A2634]" style={style}>
             {label}
         </div>
     );

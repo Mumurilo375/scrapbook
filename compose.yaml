@@ -47,9 +47,11 @@ services:
 
     vite:
         image: node:22-alpine
+        user: "${UID:-1000}:${GID:-1000}"
         working_dir: /var/www/html
         command: sh -c "npm ci && rm -f public/hot && npm run build && npx vite preview --host 0.0.0.0 --port $${VITE_PORT:-5173}"
         environment:
+            NPM_CONFIG_CACHE: /tmp/.npm
             VITE_APP_NAME: Scrapbook
             VITE_PORT: "${VITE_PORT:-5173}"
         ports:

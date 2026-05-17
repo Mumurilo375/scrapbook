@@ -47,5 +47,11 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('register', fn (Request $request): Limit => Limit::perMinute(5)->by($request->ip()));
+
+        RateLimiter::for('media-upload', function (Request $request): Limit {
+            $userKey = $request->user()?->getAuthIdentifier() ?? 'guest';
+
+            return Limit::perMinute(10)->by($userKey.'|'.$request->ip());
+        });
     }
 }

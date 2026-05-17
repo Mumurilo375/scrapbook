@@ -8,13 +8,13 @@ export const artboardSchema = z.object({
         right: z.number().min(0),
         bottom: z.number().min(0),
         left: z.number().min(0),
-    }),
+    }).optional(),
 });
 
 export const canvasElementSchema = z
     .object({
         id: z.string().min(1),
-        type: z.enum(['text', 'image', 'sticker', 'music', 'interactive']),
+        type: z.string().min(1),
         x: z.number(),
         y: z.number(),
         w: z.number().positive(),

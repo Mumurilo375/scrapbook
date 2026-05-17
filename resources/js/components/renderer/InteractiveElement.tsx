@@ -10,7 +10,7 @@ export function InteractiveElement({ element, style }: InteractiveElementProps) 
     const label = typeof element.label === 'string' ? element.label : '';
 
     return (
-        <button className="absolute rounded-md border border-current px-3" style={style} type="button">
+        <button className="absolute rounded-[4px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-[#42291D]" style={style} type="button">
             {label}
         </button>
     );

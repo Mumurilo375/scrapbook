@@ -1,3 +1,5 @@
+import type { Canvas } from '../../domain/canvas/schema';
+
 export type OccasionSummary = {
     id: string;
     name: string;
@@ -78,8 +80,6 @@ export type EditableGift = {
     status: string;
     recipient_name: string | null;
     sender_name: string | null;
-    settings: Record<string, unknown> | null;
-    updated_at: string | null;
     last_edited_at: string | null;
     occasion: {
         id: string;
@@ -95,11 +95,9 @@ export type EditableGift = {
         id: string;
         name: string;
     } | null;
-    plan: {
-        id: string;
-        name: string;
-    } | null;
     update_url: string;
+    media_index_url: string;
+    media_store_url: string;
     dashboard_url: string;
 };
 
@@ -108,8 +106,9 @@ export type GiftPageSummary = {
     name: string;
     page_type: string;
     sort_order: number;
-    canvas: Record<string, unknown>;
+    canvas: Record<string, unknown> | Canvas;
     is_visible: boolean;
     locked: boolean;
+    text_max_length: number;
     update_url: string;
 };

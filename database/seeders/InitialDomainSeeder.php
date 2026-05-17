@@ -146,7 +146,7 @@ class InitialDomainSeeder extends Seeder
                 [
                     'page_type' => $pageType,
                     'name' => $name,
-                    'canvas' => $this->canvas($text),
+                    'canvas' => $this->canvas($text, $pageType),
                     'editable_schema' => [
                         'schemaVersion' => 1,
                         'fields' => ['main_text'],
@@ -164,8 +164,43 @@ class InitialDomainSeeder extends Seeder
     /**
      * @return array<string, mixed>
      */
-    private function canvas(string $text): array
+    private function canvas(string $text, PageType $pageType): array
     {
+        $elements = [
+            [
+                'id' => 'main_text',
+                'type' => 'text',
+                'slotKey' => 'main_text',
+                'text' => $text,
+                'x' => 32,
+                'y' => 96,
+                'w' => 326,
+                'h' => 160,
+                'rotation' => 0,
+                'z' => 10,
+                'style' => [
+                    'fontToken' => 'title',
+                    'fontSize' => 32,
+                    'color' => 'var(--ink)',
+                    'align' => 'center',
+                ],
+            ],
+        ];
+
+        if ($pageType === PageType::Gallery) {
+            $elements[] = [
+                'id' => 'photo_1',
+                'type' => 'image',
+                'slotKey' => 'photo_1',
+                'x' => 45,
+                'y' => 320,
+                'w' => 300,
+                'h' => 260,
+                'rotation' => -2,
+                'z' => 20,
+            ];
+        }
+
         return [
             'schemaVersion' => 1,
             'artboard' => [
@@ -177,26 +212,7 @@ class InitialDomainSeeder extends Seeder
                 'type' => 'themeToken',
                 'value' => 'paper',
             ],
-            'elements' => [
-                [
-                    'id' => 'main_text',
-                    'type' => 'text',
-                    'slotKey' => 'main_text',
-                    'text' => $text,
-                    'x' => 32,
-                    'y' => 96,
-                    'w' => 326,
-                    'h' => 160,
-                    'rotation' => 0,
-                    'z' => 10,
-                    'style' => [
-                        'fontToken' => 'title',
-                        'fontSize' => 32,
-                        'color' => 'var(--ink)',
-                        'align' => 'center',
-                    ],
-                ],
-            ],
+            'elements' => $elements,
         ];
     }
 }

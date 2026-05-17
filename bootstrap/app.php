@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+
         $middleware->redirectGuestsTo(function (Request $request): string {
             if ($request->isMethod('POST') && $request->routeIs('gifts.store')) {
                 $returnTo = PreserveGiftCreationIntent::returnUrlFor($request);

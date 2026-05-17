@@ -14,6 +14,7 @@ use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Models\ThemeVersion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -150,14 +151,163 @@ class CustomerGiftFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_user_can_update_own_draft_page_canvas_without_external_urls(): void
+    public function test_authenticated_user_can_open_own_gift_editor(): void
     {
         $user = User::factory()->create();
         $gift = Gift::factory()->create(['user_id' => $user->id]);
         $page = GiftPage::factory()->create([
             'gift_id' => $gift->id,
             'source_template_page_id' => null,
+            'name' => 'Carta',
             'sort_order' => 10,
+            'settings' => ['constraints' => ['maxTextLength' => 240]],
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('app.gifts.edit', $gift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $pageAssert) => $pageAssert
+                ->component('gifts/Edit/GiftEdit', false)
+                ->where('gift.id', $gift->id)
+                ->missing('gift.settings')
+                ->missing('gift.plan')
+                ->has('pages', 1)
+                ->where('pages.0.id', $page->id)
+                ->where('pages.0.text_max_length', 240));
+    }
+
+    public function test_guest_cannot_open_gift_editor(): void
+    {
+        $gift = Gift::factory()->create();
+
+        $this
+            ->get(route('app.gifts.edit', $gift))
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_user_can_update_own_draft_gift_metadata(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $editedAt = Carbon::parse('2026-05-17 12:00:00');
+
+        Carbon::setTestNow($editedAt);
+
+        try {
+            $this
+                ->actingAs($user)
+                ->patch(route('app.gifts.update', $gift), [
+                    'title' => 'Novo presente',
+                    'recipient_name' => 'Ana',
+                    'sender_name' => 'João',
+                ])
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        $gift->refresh();
+
+        $this->assertSame('Novo presente', $gift->title);
+        $this->assertSame('Ana', $gift->recipient_name);
+        $this->assertSame('João', $gift->sender_name);
+        $this->assertTrue($gift->last_edited_at?->equalTo($editedAt));
+    }
+
+    public function test_user_cannot_update_forbidden_gift_fields_from_editor(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $originalPlan = Plan::factory()->create();
+        $newPlan = Plan::factory()->create();
+        $gift = Gift::factory()->create([
+            'user_id' => $user->id,
+            'plan_id' => $originalPlan->id,
+            'public_code' => null,
+            'settings' => ['schemaVersion' => 1],
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patch(route('app.gifts.update', $gift), [
+                'title' => 'Título permitido',
+                'status' => GiftStatus::Published->value,
+                'user_id' => $otherUser->id,
+                'plan_id' => $newPlan->id,
+                'public_code' => 'codigo-publico',
+                'settings' => ['schemaVersion' => 999],
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $gift->refresh();
+
+        $this->assertSame('Título permitido', $gift->title);
+        $this->assertSame($user->id, $gift->user_id);
+        $this->assertSame($originalPlan->id, $gift->plan_id);
+        $this->assertSame(GiftStatus::Draft, $gift->status);
+        $this->assertNull($gift->public_code);
+        $this->assertSame(['schemaVersion' => 1], $gift->settings);
+    }
+
+    public function test_user_can_update_own_draft_page_canvas_without_external_urls(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create([
+            'user_id' => $user->id,
+            'last_edited_at' => Carbon::parse('2026-05-16 12:00:00'),
+        ]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+            'sort_order' => 10,
+        ]);
+        $editedAt = Carbon::parse('2026-05-17 12:00:00');
+
+        Carbon::setTestNow($editedAt);
+
+        try {
+            $this
+                ->actingAs($user)
+                ->patch(route('app.gifts.pages.update', [$gift, $page]), [
+                    'canvas' => [
+                        'schemaVersion' => 1,
+                        'artboard' => ['width' => 390, 'height' => 844],
+                        'elements' => [
+                            [
+                                'id' => 'main_text',
+                                'type' => 'text',
+                                'text' => 'Novo texto',
+                                'x' => 32,
+                                'y' => 96,
+                                'w' => 326,
+                                'h' => 120,
+                                'rotation' => 0,
+                                'z' => 10,
+                            ],
+                        ],
+                    ],
+                ])
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        $this->assertSame('Novo texto', $page->refresh()->canvas['elements'][0]['text']);
+        $this->assertTrue($gift->refresh()->last_edited_at?->equalTo($editedAt));
+    }
+
+    public function test_user_cannot_update_page_from_another_gift(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $otherGift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $otherGift->id,
+            'source_template_page_id' => null,
         ]);
 
         $this
@@ -169,9 +319,29 @@ class CustomerGiftFlowTest extends TestCase
                     'elements' => [],
                 ],
             ])
-            ->assertRedirect();
+            ->assertForbidden();
+    }
 
-        $this->assertSame(1, $page->refresh()->canvas['schemaVersion']);
+    public function test_user_cannot_update_page_from_another_user(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $owner->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($otherUser)
+            ->patch(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 390, 'height' => 844],
+                    'elements' => [],
+                ],
+            ])
+            ->assertForbidden();
     }
 
     public function test_page_canvas_rejects_external_urls(): void
@@ -197,6 +367,80 @@ class CustomerGiftFlowTest extends TestCase
             ])
             ->assertRedirect(route('app.gifts.edit', $gift))
             ->assertSessionHasErrors('canvas');
+    }
+
+    public function test_page_canvas_rejects_html_in_text_or_content(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->from(route('app.gifts.edit', $gift))
+            ->patch(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 390, 'height' => 844],
+                    'elements' => [
+                        ['id' => 'main', 'type' => 'text', 'content' => '<script>alert(1)</script>'],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('app.gifts.edit', $gift))
+            ->assertSessionHasErrors('canvas');
+    }
+
+    public function test_page_canvas_rejects_insecure_protocols(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->from(route('app.gifts.edit', $gift))
+            ->patch(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 390, 'height' => 844],
+                    'elements' => [
+                        ['id' => 'main', 'type' => 'text', 'text' => 'javascript:alert(1)'],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('app.gifts.edit', $gift))
+            ->assertSessionHasErrors('canvas');
+    }
+
+    public function test_locked_page_cannot_be_edited(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+            'locked' => true,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->from(route('app.gifts.edit', $gift))
+            ->patch(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 390, 'height' => 844],
+                    'elements' => [],
+                ],
+            ])
+            ->assertRedirect(route('app.gifts.edit', $gift))
+            ->assertSessionHasErrors('page');
     }
 
     /**

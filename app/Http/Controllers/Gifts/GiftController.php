@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
 use App\Domain\Gifts\Models\Gift;
+use App\Domain\Media\Enums\MediaStatus;
+use App\Domain\Media\Enums\MediaType;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
@@ -11,6 +14,7 @@ use App\Domain\Themes\Models\ThemeVersion;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Gifts\StoreGiftFromTemplateRequest;
 use App\Http\Requests\Gifts\UpdateGiftRequest;
+use App\Http\Resources\EditorMediaItemResource;
 use BackedEnum;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,20 +44,24 @@ class GiftController extends Controller
             ->with('status', 'Rascunho criado.');
     }
 
-    public function edit(Request $request, Gift $gift): Response
+    public function edit(Request $request, Gift $gift, CanvasSecurity $canvasSecurity): Response
     {
         Gate::forUser($request->user())->authorize('view', $gift);
 
         $gift->load([
             'occasion',
-            'plan',
             'templateVersion.template',
             'themeVersion.theme',
             'pages',
+            'mediaItems' => fn ($query) => $query
+                ->where('type', MediaType::Image->value)
+                ->where('status', MediaStatus::Processed->value)
+                ->latest(),
         ]);
 
         return Inertia::render('gifts/Edit/GiftEdit', [
             'gift' => $this->giftPayload($gift),
+            'media' => EditorMediaItemResource::collection($gift->mediaItems)->resolve(),
             'pages' => $gift->pages->map(fn ($page): array => [
                 'id' => $page->id,
                 'name' => $page->name,
@@ -62,6 +70,7 @@ class GiftController extends Controller
                 'canvas' => $page->canvas,
                 'is_visible' => $page->is_visible,
                 'locked' => $page->locked,
+                'text_max_length' => $canvasSecurity->textMaxLengthForPage($page),
                 'update_url' => route('app.gifts.pages.update', [$gift, $page]),
             ])->values(),
         ]);
@@ -75,7 +84,6 @@ class GiftController extends Controller
             'title' => $data['title'] ?? $gift->title,
             'recipient_name' => array_key_exists('recipient_name', $data) ? $data['recipient_name'] : $gift->recipient_name,
             'sender_name' => array_key_exists('sender_name', $data) ? $data['sender_name'] : $gift->sender_name,
-            'settings' => array_key_exists('settings', $data) ? $data['settings'] : $gift->settings,
             'last_edited_at' => now(),
         ])->save();
 
@@ -154,8 +162,6 @@ class GiftController extends Controller
             'status' => $this->enumValue($gift->status),
             'recipient_name' => $gift->recipient_name,
             'sender_name' => $gift->sender_name,
-            'settings' => $gift->settings,
-            'updated_at' => $gift->updated_at?->toIso8601String(),
             'last_edited_at' => $gift->last_edited_at?->toIso8601String(),
             'occasion' => $gift->occasion ? [
                 'id' => $gift->occasion->id,
@@ -171,11 +177,9 @@ class GiftController extends Controller
                 'id' => $gift->themeVersion->theme->id,
                 'name' => $gift->themeVersion->theme->name,
             ] : null,
-            'plan' => $gift->plan ? [
-                'id' => $gift->plan->id,
-                'name' => $gift->plan->name,
-            ] : null,
             'update_url' => route('app.gifts.update', $gift),
+            'media_index_url' => route('app.gifts.media.index', $gift),
+            'media_store_url' => route('app.gifts.media.store', $gift),
             'dashboard_url' => route('app.gifts.index'),
         ];
     }

@@ -3,6 +3,8 @@
 namespace App\Policies;
 
 use App\Domain\Gifts\Models\Gift;
+use App\Domain\Media\Enums\MediaStatus;
+use App\Domain\Media\Enums\MediaType;
 use App\Domain\Media\Models\MediaItem;
 use App\Models\User;
 
@@ -11,7 +13,8 @@ class MediaItemPolicy
     public function view(User $user, MediaItem $mediaItem): bool
     {
         return $mediaItem->user_id === $user->id
-            || $mediaItem->gift()->where('user_id', $user->id)->exists();
+            && $mediaItem->gift()->where('user_id', $user->id)->exists()
+            && $this->isProcessedImage($mediaItem);
     }
 
     public function useMedia(User $user, MediaItem $mediaItem): bool
@@ -26,6 +29,19 @@ class MediaItemPolicy
         }
 
         return $mediaItem->user_id === $user->id
-            || $mediaItem->gift_id === $gift->id;
+            && $mediaItem->gift_id === $gift->id
+            && $this->isProcessedImage($mediaItem);
+    }
+
+    public function delete(User $user, MediaItem $mediaItem): bool
+    {
+        return $this->view($user, $mediaItem);
+    }
+
+    private function isProcessedImage(MediaItem $mediaItem): bool
+    {
+        return $mediaItem->type === MediaType::Image
+            && $mediaItem->status === MediaStatus::Processed
+            && $mediaItem->deleted_at === null;
     }
 }

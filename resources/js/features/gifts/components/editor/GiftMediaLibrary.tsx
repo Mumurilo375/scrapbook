@@ -1,0 +1,147 @@
+import { ImageIcon, LoaderCircle, Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
+
+import type { EditorMediaItem } from './editorTypes';
+
+type GiftMediaLibraryProps = {
+    disabled: boolean;
+    mediaItems: EditorMediaItem[];
+    onUploaded: (mediaItem: EditorMediaItem) => void;
+    onSelectMedia: (mediaItemId: string) => void;
+    selectedMediaId: string | null;
+    uploadUrl: string;
+};
+
+type UploadResponse = {
+    data?: EditorMediaItem;
+    message?: string;
+    errors?: Record<string, string[] | string>;
+};
+
+export function GiftMediaLibrary({
+    disabled,
+    mediaItems,
+    onSelectMedia,
+    onUploaded,
+    selectedMediaId,
+    uploadUrl,
+}: GiftMediaLibraryProps) {
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    async function uploadSelectedFile(file: File | null) {
+        if (!file || disabled) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        setUploading(true);
+        setError(null);
+
+        try {
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                },
+            });
+            const payload = (await response.json().catch(() => ({}))) as UploadResponse;
+
+            if (!response.ok || !payload.data) {
+                setError(errorMessage(payload));
+
+                return;
+            }
+
+            onUploaded(payload.data);
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        } catch {
+            setError('Não foi possível enviar a imagem.');
+        } finally {
+            setUploading(false);
+        }
+    }
+
+    return (
+        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-4 text-[#1F150A] shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-sm font-semibold uppercase text-[#7A2634]">Biblioteca de imagens</h2>
+                    <p className="mt-1 text-sm text-[#6F5A4A]">{mediaItems.length} imagem(ns) neste presente</p>
+                </div>
+                <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] shadow-sm hover:bg-[#F6E4CF] has-disabled:cursor-not-allowed has-disabled:opacity-50">
+                    {uploading ? <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" /> : <Upload aria-hidden="true" className="h-5 w-5" />}
+                    <span>Enviar imagem</span>
+                    <input
+                        ref={fileInputRef}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="sr-only"
+                        disabled={disabled || uploading}
+                        onChange={(event) => uploadSelectedFile(event.target.files?.[0] ?? null)}
+                        type="file"
+                    />
+                </label>
+            </div>
+
+            {error ? (
+                <p className="mt-3 rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]">{error}</p>
+            ) : null}
+
+            {mediaItems.length > 0 ? (
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                    {mediaItems.map((mediaItem) => (
+                        <button
+                            className={`aspect-square overflow-hidden rounded-[6px] border bg-[#EAD2B8] text-left shadow-sm transition ${
+                                selectedMediaId === mediaItem.id
+                                    ? 'border-[#7A2634] ring-2 ring-[#7A26344D]'
+                                    : 'border-[#D8B991] hover:border-[#A86F55]'
+                            }`}
+                            disabled={disabled}
+                            key={mediaItem.id}
+                            onClick={() => onSelectMedia(mediaItem.id)}
+                            type="button"
+                        >
+                            {mediaItem.thumbnailUrl ?? mediaItem.url ? (
+                                <img
+                                    alt={mediaItem.originalFilename ?? 'Imagem enviada'}
+                                    className="h-full w-full object-cover"
+                                    src={mediaItem.thumbnailUrl ?? mediaItem.url}
+                                />
+                            ) : (
+                                <span className="flex h-full w-full items-center justify-center text-[#7A5A43]">
+                                    <ImageIcon aria-hidden="true" className="h-6 w-6" />
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            ) : (
+                <div className="mt-4 flex min-h-28 items-center justify-center rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] px-4 text-center text-sm font-semibold text-[#6F5A4A]">
+                    Nenhuma imagem enviada.
+                </div>
+            )}
+        </section>
+    );
+}
+
+function csrfToken(): string {
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function errorMessage(payload: UploadResponse): string {
+    const firstError = payload.errors
+        ? Object.values(payload.errors)
+              .flat()
+              .find((message): message is string => typeof message === 'string' && message !== '')
+        : null;
+
+    return firstError ?? payload.message ?? 'Não foi possível enviar a imagem.';
+}

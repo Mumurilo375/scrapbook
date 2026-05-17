@@ -982,38 +982,34 @@ Exemplo simplificado:
 
 ### 7.8 Mídia
 
-#### `gift_media`
+#### `media_items`
 
 ```txt
 id ulid pk
-gift_id fk gifts
-uploaded_by_user_id fk users nullable
+user_id fk users nullable
+gift_id fk gifts nullable
 type varchar -- image
-role varchar -- user_photo, cover, secret_photo
 original_filename varchar nullable
-mime_type varchar
-extension varchar
 size_bytes bigint
 width int nullable
 height int nullable
 storage_disk varchar
-original_path text
-processed_path text nullable
-thumbnail_path text nullable
-blurhash varchar nullable
-sha256 varchar nullable
-status varchar -- uploaded, processing, ready, failed, deleted
-moderation_status varchar default 'not_checked'
+storage_path text
+mime_type varchar
+variants jsonb -- thumbnail e futuras versões
 metadata jsonb
+status varchar -- pending, processing, processed, failed, deleted
 timestamps
 soft_deletes
 ```
 
-#### `media_variants`
+No MVP de mídia do editor, cada upload gera apenas imagem processada em WebP e thumbnail, sem guardar o arquivo bruto original. O arquivo é sempre associado a `user_id` e `gift_id`.
+
+#### `media_variants` conceitual
 
 ```txt
-id ulid pk
-media_id fk gift_media
+id ulid pk -- futuro, se sair de variants jsonb
+media_id fk media_items
 variant_key varchar -- thumb, preview, large, webp
 storage_disk varchar
 path text
@@ -1607,9 +1603,14 @@ Rotas autenticadas:
 
 - `POST /gifts`: cria o `Gift` draft a partir de uma `TemplateVersion` publicada.
 - `GET /app/gifts`: lista gifts do usuário autenticado.
-- `GET /app/gifts/{gift}/edit`: mostra a tela inicial de rascunho.
+- `GET /app/gifts/{gift}/edit`: abre o Editor MVP do rascunho.
 - `PATCH /app/gifts/{gift}`: atualiza metadados básicos do draft.
 - `PATCH /app/gifts/{gift}/pages/{giftPage}`: atualiza o canvas JSON de uma página com `UpdateGiftPageCanvas`.
+- `GET /app/gifts/{gift}/media`: lista imagens processadas do Gift.
+- `POST /app/gifts/{gift}/media`: recebe upload de imagem do Gift draft.
+- `GET /app/gifts/{gift}/media/{mediaItem}`: serve imagem por rota autenticada.
+- `GET /app/gifts/{gift}/media/{mediaItem}/thumbnail`: serve thumbnail por rota autenticada.
+- `DELETE /app/gifts/{gift}/media/{mediaItem}`: desativa mídia própria do Gift.
 
 ### Regras do draft
 
@@ -1619,19 +1620,71 @@ Rotas autenticadas:
 - O plano padrão vem de `template_versions.default_config.plan_id` ou do primeiro `Plan` ativo do banco.
 - O `Gift` nasce como `draft`, privado, associado ao usuário autenticado, com `last_edited_at` preenchido.
 - As `TemplatePage` da versão publicada são copiadas para `GiftPage`, preservando `sort_order`, `page_type`, `name` e `canvas`.
-- O fluxo não gera publicação, checkout, viewer público, upload final nem editor visual avançado.
+- O fluxo não gera publicação, checkout, viewer público nem editor visual avançado.
 
 ### Área do usuário
 
-O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é uma ponte para o editor futuro: permite salvar metadados e editar o canvas JSON de páginas do rascunho, validando estrutura básica no servidor.
+O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é o Editor MVP: permite navegar entre páginas copiadas do template, visualizar preview via renderer compartilhado, editar textos existentes, enviar imagens do Gift, aplicar imagens em elementos `image` existentes no canvas e salvar metadados básicos do gift.
 
 ### Segurança aplicada
 
 - Rotas que criam ou alteram gifts usam middleware `auth`.
 - Policies bloqueiam visualização/edição de gifts de outro usuário.
 - `GiftPage` só pode ser alterada pelo dono do gift e enquanto o gift está em `draft`.
-- Form Requests validam versões publicadas, plano ativo, ownership da página e canvas sem HTML/URLs externas arbitrárias.
+- Form Requests validam versões publicadas, plano ativo, ownership da página, upload seguro e canvas sem HTML/URLs externas arbitrárias.
+- Mídias só podem ser listadas, servidas, excluídas ou usadas no canvas quando pertencem ao mesmo usuário e ao mesmo Gift.
 - Dados enviados às páginas Inertia são resumos mínimos, sem payloads de pagamento, hashes ou dados de outros usuários.
+
+## 21. Editor MVP de drafts
+
+O Editor MVP é uma camada de produto sobre drafts já existentes. Ele não é um editor livre estilo Canva; nesta etapa o usuário edita conteúdo textual e troca imagens em elementos já presentes no canvas.
+
+### Fluxo de edição
+
+- O usuário autenticado abre `/app/gifts/{gift}/edit`.
+- A policy garante que o gift pertence ao usuário.
+- O backend envia somente resumo seguro do gift, páginas ordenadas, canvas, mídias processadas do Gift, flags `is_visible`/`locked`, URLs de update/upload e limite de texto.
+- O frontend mantém estado local para página selecionada, canvas local, dirty state, salvamento e metadados básicos.
+- O usuário seleciona uma página, vê o preview, edita elementos `type: text`, envia imagens, aplica mídia em elementos `type: image` e salva manualmente.
+- `PATCH /app/gifts/{gift}/pages/{giftPage}` persiste o canvas por `UpdateGiftPageCanvas`.
+
+### Separação renderer/editor
+
+- `resources/js/components/renderer` é a base compartilhada de renderização para editor e futuro viewer público.
+- O editor não duplica regras visuais do renderer; ele monta UI de navegação e propriedades ao redor do preview.
+- O renderer aceita fallback seguro para canvas simples, elementos desconhecidos e mídia ainda não disponível.
+
+### Metadados permitidos
+
+`PATCH /app/gifts/{gift}` aceita somente:
+
+- `title`;
+- `recipient_name`;
+- `sender_name`.
+
+O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de template/tema, expiração, publicação ou dados de pagamento.
+
+### Segurança do canvas
+
+- Canvas é dado não confiável e sempre passa por validação server-side.
+- `schemaVersion` precisa ser `1` e `elements` precisa ser uma lista.
+- Textos são tratados como texto puro, sem HTML, `script`, `innerHTML`, URLs externas ou protocolos inseguros.
+- O limite de texto vem de `constraints.maxTextLength` quando existir, com fallback seguro.
+- Páginas `locked` podem ser visualizadas, mas não editadas.
+- Referências de mídia são autorizadas por `user_id`, `gift_id`, tipo `image` e status `processed` antes de salvar.
+- Elementos `image` não podem persistir `src` externo ou relativo arbitrário; quando `mediaItemId` é válido, o backend substitui `src` pela rota segura do app.
+
+### Upload/mídia básica
+
+- `GiftMediaController` lista, recebe upload, serve imagem/thumbnail autenticadas e desativa mídia.
+- `StoreGiftMediaRequest` aceita apenas um arquivo por upload, com MIME/extensão de JPG/JPEG, PNG ou WebP, tamanho e dimensões máximas centralizados em `config/scrapbook.php`.
+- `ProcessUploadedImage` é a action central: valida Gift próprio em `draft`, checa limites do plano/config, reprocessa com Intervention Image, salva WebP otimizado e thumbnail no disco configurado e cria `MediaItem` `processed`.
+- O editor recebe somente `id`, tipo, nome original, URL segura, thumbnail, dimensões, tamanho, status e data; não recebe `storage_path` nem metadata interna.
+- Storage continua S3-compatible/MinIO em desenvolvimento via `FILESYSTEM_DISK=s3`, mas o browser usa rotas autenticadas do Laravel.
+
+### Limites desta etapa
+
+Não entram neste MVP: drag-and-drop, redimensionamento, rotação livre, crop/filtros, publicação, checkout, viewer público, demo pública, integração musical externa e builder visual de templates no admin.
 
 ## 20. Autenticação real mínima do cliente
 
@@ -1661,9 +1714,12 @@ Se um visitante tentar criar gift sem sessão, o backend preserva a intenção u
 
 - `POST /gifts`: cria o draft com `CreateGiftFromTemplate`.
 - `GET /app/gifts`: lista somente gifts do usuário autenticado.
-- `GET /app/gifts/{gift}/edit`: abre a tela inicial de rascunho.
+- `GET /app/gifts/{gift}/edit`: abre o Editor MVP do rascunho.
 - `PATCH /app/gifts/{gift}`: salva metadados básicos.
 - `PATCH /app/gifts/{gift}/pages/{giftPage}`: salva canvas JSON da página.
+- `GET|POST /app/gifts/{gift}/media`: lista e envia imagens do Gift draft.
+- `GET /app/gifts/{gift}/media/{mediaItem}` e `/thumbnail`: servem mídia autenticada.
+- `DELETE /app/gifts/{gift}/media/{mediaItem}`: desativa mídia própria.
 
 ### Dados globais no Inertia
 

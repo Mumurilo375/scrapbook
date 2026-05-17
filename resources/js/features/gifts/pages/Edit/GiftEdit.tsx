@@ -1,92 +1,291 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Gift, Lock, LogOut } from 'lucide-react';
+import type { FormDataConvertible } from '@inertiajs/core';
+import { Head, router } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 
+import { CanvasElementInspector } from '../../components/editor/CanvasElementInspector';
+import { GiftImageElementEditor } from '../../components/editor/GiftImageElementEditor';
+import { GiftEditorLayout } from '../../components/editor/GiftEditorLayout';
+import { GiftEditorSaveBar } from '../../components/editor/GiftEditorSaveBar';
+import { GiftEditorTopBar } from '../../components/editor/GiftEditorTopBar';
+import { GiftMediaLibrary } from '../../components/editor/GiftMediaLibrary';
+import { GiftMetadataPanel, type GiftMetadataDraft } from '../../components/editor/GiftMetadataPanel';
+import { GiftPagePreview } from '../../components/editor/GiftPagePreview';
+import { GiftPageSidebar } from '../../components/editor/GiftPageSidebar';
+import { GiftTextElementEditor } from '../../components/editor/GiftTextElementEditor';
+import type { EditorMediaItem, EditorPage, EditorSaveState, EditableTextElement } from '../../components/editor/editorTypes';
+import {
+    applyMediaToImageElement,
+    canvasesAreEqual,
+    cloneCanvas,
+    imageElementsFromCanvas,
+    normalizeCanvas,
+    textElementsFromCanvas,
+    updateCanvasText,
+} from '../../components/editor/editorUtils';
 import { formatDate } from '../../components/formatters';
-import { GiftMetadataForm } from '../../components/GiftMetadataForm';
-import { GiftPageList } from '../../components/GiftPageList';
-import { GiftStatusBadge } from '../../components/GiftStatusBadge';
 import type { EditableGift, GiftPageSummary } from '../../types';
 
 type GiftEditProps = {
     gift: EditableGift;
+    media: EditorMediaItem[];
     pages: GiftPageSummary[];
 };
 
-export default function GiftEdit({ gift, pages }: GiftEditProps) {
-    function logout() {
-        router.post('/logout');
+export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
+    const editorPages = useMemo<EditorPage[]>(
+        () =>
+            pages.map((page) => ({
+                ...page,
+                canvas: normalizeCanvas(page.canvas),
+            })),
+        [pages],
+    );
+    const [selectedPageId, setSelectedPageId] = useState<string | null>(editorPages[0]?.id ?? null);
+    const [pageCanvases, setPageCanvases] = useState<Record<string, EditorPage['canvas']>>(() =>
+        Object.fromEntries(editorPages.map((page) => [page.id, cloneCanvas(page.canvas)])),
+    );
+    const [savedCanvases, setSavedCanvases] = useState<Record<string, EditorPage['canvas']>>(() =>
+        Object.fromEntries(editorPages.map((page) => [page.id, cloneCanvas(page.canvas)])),
+    );
+    const [pageSaveState, setPageSaveState] = useState<EditorSaveState>('idle');
+    const [pageError, setPageError] = useState<string | null>(null);
+    const [mediaItems, setMediaItems] = useState<EditorMediaItem[]>(media);
+    const [selectedMediaId, setSelectedMediaId] = useState<string | null>(media[0]?.id ?? null);
+    const [selectedImageElementId, setSelectedImageElementId] = useState<string | null>(null);
+
+    const initialMetadata = metadataFromGift(gift);
+    const [metadata, setMetadata] = useState<GiftMetadataDraft>(initialMetadata);
+    const [savedMetadata, setSavedMetadata] = useState<GiftMetadataDraft>(initialMetadata);
+    const [metadataSaving, setMetadataSaving] = useState(false);
+    const [metadataSaved, setMetadataSaved] = useState(false);
+    const [metadataErrors, setMetadataErrors] = useState<Partial<Record<keyof GiftMetadataDraft, string>>>({});
+
+    const selectedPageIndex = editorPages.findIndex((page) => page.id === selectedPageId);
+    const selectedPage = selectedPageIndex >= 0 ? editorPages[selectedPageIndex] : null;
+    const selectedCanvas = selectedPage ? pageCanvases[selectedPage.id] ?? selectedPage.canvas : null;
+    const savedCanvas = selectedPage ? savedCanvases[selectedPage.id] ?? selectedPage.canvas : null;
+    const pageIsDirty = Boolean(selectedCanvas && savedCanvas && !canvasesAreEqual(selectedCanvas, savedCanvas));
+    const effectivePageSaveState = pageSaveState === 'idle' && pageIsDirty ? 'dirty' : pageSaveState;
+    const textElements = selectedCanvas && selectedPage
+        ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length)
+        : [];
+    const imageElements = selectedCanvas ? imageElementsFromCanvas(selectedCanvas) : [];
+    const activeImageElementId = selectedImageElementId && imageElements.some((element) => element.id === selectedImageElementId)
+        ? selectedImageElementId
+        : imageElements[0]?.id ?? null;
+    const metadataDirty = !metadataEquals(metadata, savedMetadata);
+    const canSavePage = Boolean(selectedPage && selectedCanvas && !selectedPage.locked && pageIsDirty);
+    const editorDisabled = Boolean(selectedPage?.locked || gift.status !== 'draft');
+
+    function selectPage(pageId: string) {
+        setSelectedPageId(pageId);
+        setPageError(null);
+        setPageSaveState('idle');
+        setSelectedImageElementId(null);
+    }
+
+    function goToPage(offset: number) {
+        const nextPage = editorPages[selectedPageIndex + offset];
+
+        if (nextPage) {
+            selectPage(nextPage.id);
+        }
+    }
+
+    function changeText(element: EditableTextElement, value: string) {
+        if (!selectedPage || !selectedCanvas) {
+            return;
+        }
+
+        setPageCanvases((current) => ({
+            ...current,
+            [selectedPage.id]: updateCanvasText(selectedCanvas, element.id, element.field, value),
+        }));
+        setPageError(null);
+        setPageSaveState('dirty');
+    }
+
+    function applySelectedMediaToImage() {
+        if (!selectedPage || !activeImageElementId) {
+            return;
+        }
+
+        const mediaItem = mediaItems.find((item) => item.id === selectedMediaId);
+
+        if (!mediaItem) {
+            return;
+        }
+
+        setPageCanvases((current) => ({
+            ...current,
+            [selectedPage.id]: applyMediaToImageElement(current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas, activeImageElementId, mediaItem),
+        }));
+        setPageError(null);
+        setPageSaveState('dirty');
+    }
+
+    function addUploadedMedia(mediaItem: EditorMediaItem) {
+        setMediaItems((current) => [mediaItem, ...current.filter((item) => item.id !== mediaItem.id)]);
+        setSelectedMediaId(mediaItem.id);
+
+        if (!selectedPage || !activeImageElementId) {
+            return;
+        }
+
+        setPageCanvases((current) => ({
+            ...current,
+            [selectedPage.id]: applyMediaToImageElement(current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas, activeImageElementId, mediaItem),
+        }));
+        setPageError(null);
+        setPageSaveState('dirty');
+    }
+
+    function savePage() {
+        if (!selectedPage || !selectedCanvas || selectedPage.locked) {
+            return;
+        }
+
+        setPageSaveState('saving');
+        setPageError(null);
+
+        router.patch(
+            selectedPage.update_url,
+            { canvas: selectedCanvas as unknown as FormDataConvertible },
+            {
+                preserveScroll: true,
+                onError: (errors) => {
+                    setPageError(firstError(errors) ?? 'Não foi possível salvar esta página.');
+                    setPageSaveState('error');
+                },
+                onSuccess: () => {
+                    setSavedCanvases((current) => ({
+                        ...current,
+                        [selectedPage.id]: cloneCanvas(selectedCanvas),
+                    }));
+                    setPageSaveState('saved');
+                },
+            },
+        );
+    }
+
+    function changeMetadata(field: keyof GiftMetadataDraft, value: string) {
+        setMetadata((current) => ({ ...current, [field]: value }));
+        setMetadataErrors({});
+        setMetadataSaved(false);
+    }
+
+    function saveMetadata() {
+        setMetadataSaving(true);
+        setMetadataSaved(false);
+        setMetadataErrors({});
+
+        router.patch(gift.update_url, metadata, {
+            preserveScroll: true,
+            onError: (errors) => {
+                setMetadataErrors({
+                    title: typeof errors.title === 'string' ? errors.title : undefined,
+                    recipient_name: typeof errors.recipient_name === 'string' ? errors.recipient_name : undefined,
+                    sender_name: typeof errors.sender_name === 'string' ? errors.sender_name : undefined,
+                });
+            },
+            onFinish: () => setMetadataSaving(false),
+            onSuccess: () => {
+                setSavedMetadata(metadata);
+                setMetadataSaved(true);
+            },
+        });
     }
 
     return (
         <>
-            <Head title={`Editar ${gift.title}`} />
+            <Head title={`Editar ${metadata.title}`} />
             <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
-                <header className="border-b border-[#E5D0B8] bg-[#F4E8D9]/92">
-                    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-                        <Link className="flex items-center gap-3 text-[#1F150A]" href="/">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#B78D5C] bg-[#FFF7EE] text-[#D93632]">
-                                <Gift aria-hidden="true" className="h-5 w-5" />
-                            </span>
-                            <span className="font-editorial text-xl font-semibold">Scrapbook</span>
-                        </Link>
-                        <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
-                            <Link
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-[#42291D]"
-                                href={gift.dashboard_url}
-                            >
-                                <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-                                Meus gifts
-                            </Link>
-                            <button
-                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-4 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
-                                onClick={logout}
-                                type="button"
-                            >
-                                <LogOut aria-hidden="true" className="h-4 w-4" />
-                                Sair
-                            </button>
+                <GiftEditorTopBar
+                    dashboardUrl={gift.dashboard_url}
+                    pageSaveState={effectivePageSaveState}
+                    status={gift.status}
+                    title={metadata.title}
+                />
+
+                <GiftEditorLayout
+                    left={<GiftPageSidebar onSelectPage={selectPage} pages={editorPages} selectedPageId={selectedPageId} />}
+                    center={
+                        <GiftPagePreview
+                            canGoNext={selectedPageIndex < editorPages.length - 1}
+                            canGoPrevious={selectedPageIndex > 0}
+                            canvas={selectedCanvas}
+                            onNext={() => goToPage(1)}
+                            onPrevious={() => goToPage(-1)}
+                            onSelectImageElement={setSelectedImageElementId}
+                            page={selectedPage}
+                            selectedImageElementId={activeImageElementId}
+                        />
+                    }
+                    right={
+                        <div className="grid gap-4 lg:sticky lg:top-24">
+                            <GiftMetadataPanel
+                                dirty={metadataDirty}
+                                disabled={gift.status !== 'draft'}
+                                errors={metadataErrors}
+                                metadata={metadata}
+                                onChange={changeMetadata}
+                                onSave={saveMetadata}
+                                saved={metadataSaved}
+                                saving={metadataSaving}
+                            />
+                            <GiftTextElementEditor
+                                disabled={editorDisabled}
+                                elements={textElements}
+                                onChangeText={changeText}
+                            />
+                            <GiftMediaLibrary
+                                disabled={editorDisabled}
+                                mediaItems={mediaItems}
+                                onSelectMedia={setSelectedMediaId}
+                                onUploaded={addUploadedMedia}
+                                selectedMediaId={selectedMediaId}
+                                uploadUrl={gift.media_store_url}
+                            />
+                            <GiftImageElementEditor
+                                disabled={editorDisabled}
+                                elements={imageElements}
+                                mediaItems={mediaItems}
+                                onApplyMedia={applySelectedMediaToImage}
+                                onSelectElement={setSelectedImageElementId}
+                                selectedElementId={activeImageElementId}
+                                selectedMediaId={selectedMediaId}
+                            />
+                            <GiftEditorSaveBar
+                                disabled={!canSavePage}
+                                error={pageError}
+                                onSave={savePage}
+                                saveState={effectivePageSaveState}
+                            />
+                            <GiftSummary gift={gift} />
+                            <CanvasElementInspector canvas={selectedCanvas} />
                         </div>
-                    </div>
-                </header>
-
-                <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[360px_1fr] lg:px-8">
-                    <aside className="space-y-5">
-                        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 shadow-sm">
-                            <GiftStatusBadge status={gift.status} />
-                            <h1 className="mt-4 text-3xl font-semibold leading-tight text-[#1F150A]">{gift.title}</h1>
-                            <dl className="mt-5 grid gap-3 text-sm text-[#42291D]">
-                                <Info label="Ocasião" value={gift.occasion?.name ?? 'Sem ocasião'} />
-                                <Info label="Template" value={gift.template?.name ?? 'Sem template'} />
-                                <Info label="Tema" value={gift.theme?.name ?? 'Sem tema'} />
-                                <Info label="Plano" value={gift.plan?.name ?? 'Sem plano'} />
-                                <Info label="Última edição" value={formatDate(gift.last_edited_at)} />
-                            </dl>
-                            <button
-                                className="mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#EAD2B8] px-4 text-sm font-semibold text-[#42291D] opacity-70"
-                                disabled
-                                type="button"
-                            >
-                                <Lock aria-hidden="true" className="h-4 w-4" />
-                                Publicar em etapa futura
-                            </button>
-                        </section>
-                    </aside>
-
-                    <div className="space-y-6">
-                        <GiftMetadataForm gift={gift} />
-                        <section>
-                            <div className="mb-4">
-                                <h2 className="text-2xl font-semibold text-[#1F150A]">Páginas do rascunho</h2>
-                                <p className="mt-2 text-sm leading-6 text-[#42291D]">
-                                    As páginas abaixo foram copiadas da versão publicada do template.
-                                </p>
-                            </div>
-                            <GiftPageList pages={pages} />
-                        </section>
-                    </div>
-                </section>
+                    }
+                />
             </main>
         </>
+    );
+}
+
+type GiftSummaryProps = {
+    gift: EditableGift;
+};
+
+function GiftSummary({ gift }: GiftSummaryProps) {
+    return (
+        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-4 text-sm text-[#42291D] shadow-sm">
+            <h2 className="text-sm font-semibold uppercase text-[#7A2634]">Resumo</h2>
+            <dl className="mt-3 grid gap-2">
+                <Info label="Ocasião" value={gift.occasion?.name ?? 'Sem ocasião'} />
+                <Info label="Template" value={gift.template?.name ?? 'Sem template'} />
+                <Info label="Tema" value={gift.theme?.name ?? 'Sem tema'} />
+                <Info label="Última edição" value={formatDate(gift.last_edited_at)} />
+            </dl>
+        </section>
     );
 }
 
@@ -99,7 +298,25 @@ function Info({ label, value }: InfoProps) {
     return (
         <div>
             <dt className="font-semibold text-[#1F150A]">{label}</dt>
-            <dd className="mt-1">{value}</dd>
+            <dd className="mt-0.5">{value}</dd>
         </div>
     );
+}
+
+function metadataFromGift(gift: EditableGift): GiftMetadataDraft {
+    return {
+        title: gift.title,
+        recipient_name: gift.recipient_name ?? '',
+        sender_name: gift.sender_name ?? '',
+    };
+}
+
+function metadataEquals(left: GiftMetadataDraft, right: GiftMetadataDraft): boolean {
+    return left.title === right.title
+        && left.recipient_name === right.recipient_name
+        && left.sender_name === right.sender_name;
+}
+
+function firstError(errors: Record<string, string>): string | null {
+    return Object.values(errors).find(Boolean) ?? null;
 }

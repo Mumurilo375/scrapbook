@@ -7,12 +7,19 @@
 - Landing v1 criada como rascunho inicial de branding/marketing, não como versão final do produto.
 - Domínio e banco real implementados em `app/Domain`, com migrations, models, enums, relações, casts, policies, factories, seeders, actions prioritárias e testes de domínio.
 - Admin inicial em Filament implementado para operar temas, templates, assets, planos, gifts, mídia, pedidos, pagamentos e analytics.
-- Fluxo de criação inicial implementado: `/criar`, escolha de ocasião, escolha de template publicado, criação de `Gift` draft, cópia de páginas, dashboard simples e tela inicial de rascunho.
-- Fase atual: autenticação real mínima do cliente, com login, cadastro, logout, role `customer`, proteção de `/app/*` e integração com a criação de draft.
-- Próxima fase depois disso: editor MVP.
-- Depois: viewer público.
+- Fluxo de criação inicial implementado: `/criar`, escolha de ocasião, escolha de template publicado, criação de `Gift` draft, cópia de páginas e dashboard simples.
+- Autenticação real mínima implementada: login, cadastro, logout, role `customer`, proteção de `/app/*` e integração com criação/retomada de draft.
+- Editor MVP implementado em `/app/gifts/{gift}/edit`, com seleção de páginas, preview, edição de textos existentes, metadados básicos e salvamento seguro de canvas.
+- Fase atual: upload/mídia básica no editor, com upload seguro de imagens, `media_items`, biblioteca simples e aplicação em elementos `image` existentes.
+- Próxima fase depois disso: viewer público simples ou fluxo draft/published, a decidir.
 - Depois: checkout/publicação.
 - Só depois: demo pública refinada e landing final baseada no produto real.
+
+## Nota técnica de ambiente
+
+- O erro local de `npm run build` em `public/build/assets` ocorre quando o serviço `vite` do Docker escreve artefatos como `root`.
+- O `compose.yaml` deve rodar o serviço `vite` com `${UID:-1000}:${GID:-1000}` para novos builds não recriarem artefatos root-owned.
+- Se o diretório já estiver root-owned, a correção recomendada é uma limpeza pontual de `public/build` ou `chown` apenas nesse diretório ignorado pelo Git, nunca uma mudança ampla de permissão no projeto.
 
 ## Fase 0 — Branding, posicionamento e landing page
 

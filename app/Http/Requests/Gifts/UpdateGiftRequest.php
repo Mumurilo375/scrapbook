@@ -28,7 +28,6 @@ class UpdateGiftRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:120'],
             'recipient_name' => ['sometimes', 'nullable', 'string', 'max:80'],
             'sender_name' => ['sometimes', 'nullable', 'string', 'max:80'],
-            'settings' => ['sometimes', 'array'],
         ];
     }
 
