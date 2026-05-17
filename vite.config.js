@@ -4,6 +4,9 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+const externalVitePort = Number(process.env.VITE_PORT ?? 5173);
+const viteDevServerUrl = process.env.VITE_DEV_SERVER_URL ?? `http://localhost:${externalVitePort}`;
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -25,6 +28,14 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        host: '0.0.0.0',
+        port: externalVitePort,
+        strictPort: true,
+        origin: viteDevServerUrl,
+        hmr: {
+            host: 'localhost',
+            clientPort: externalVitePort,
+        },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
