@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Analytics\Models;
 
+use App\Domain\Gifts\Models\Gift;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,11 +14,9 @@ class GiftEvent extends Model
 
     protected $fillable = [
         'gift_id',
-        'gift_visit_id',
-        'gift_page_id',
+        'user_id',
         'event_type',
-        'page_position',
-        'payload_json',
+        'payload',
         'occurred_at',
     ];
 
@@ -25,21 +25,15 @@ class GiftEvent extends Model
         return $this->belongsTo(Gift::class);
     }
 
-    public function giftVisit(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(GiftVisit::class);
-    }
-
-    public function giftPage(): BelongsTo
-    {
-        return $this->belongsTo(GiftPage::class);
+        return $this->belongsTo(User::class);
     }
 
     protected function casts(): array
     {
         return [
-            'page_position' => 'integer',
-            'payload_json' => 'array',
+            'payload' => 'array',
             'occurred_at' => 'datetime',
         ];
     }

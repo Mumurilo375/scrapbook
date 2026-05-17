@@ -1,24 +1,26 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Templates\Models;
 
+use App\Domain\Gifts\Models\Gift;
+use Database\Factories\OccasionFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Occasion extends Model
 {
-    use HasUlids, SoftDeletes;
+    /** @use HasFactory<OccasionFactory> */
+    use HasFactory, HasUlids;
 
     protected $fillable = [
-        'slug',
         'name',
+        'slug',
         'description',
-        'icon',
-        'sort_order',
         'is_active',
-        'settings',
+        'sort_order',
+        'metadata',
     ];
 
     public function templates(): HasMany
@@ -31,12 +33,17 @@ class Occasion extends Model
         return $this->hasMany(Gift::class);
     }
 
+    protected static function newFactory(): OccasionFactory
+    {
+        return OccasionFactory::new();
+    }
+
     protected function casts(): array
     {
         return [
-            'sort_order' => 'integer',
             'is_active' => 'boolean',
-            'settings' => 'array',
+            'sort_order' => 'integer',
+            'metadata' => 'array',
         ];
     }
 }

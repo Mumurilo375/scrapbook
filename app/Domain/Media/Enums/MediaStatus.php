@@ -8,4 +8,5 @@ enum MediaStatus: string
     case Processing = 'processing';
     case Processed = 'processed';
     case Failed = 'failed';
+    case Deleted = 'deleted';
 }

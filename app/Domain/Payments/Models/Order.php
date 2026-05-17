@@ -1,36 +1,35 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Payments\Models;
 
+use App\Domain\Gifts\Models\Gift;
 use App\Domain\Payments\Enums\OrderStatus;
+use App\Models\User;
+use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    use HasUlids;
+    /** @use HasFactory<OrderFactory> */
+    use HasFactory, HasUlids;
 
     protected $fillable = [
         'user_id',
         'gift_id',
         'plan_id',
-        'number',
         'status',
+        'amount_cents',
+        'currency',
         'provider',
         'provider_reference',
-        'currency',
-        'subtotal_cents',
-        'discount_cents',
-        'total_cents',
-        'price_snapshot',
-        'limits_snapshot',
+        'checkout_url',
         'metadata',
-        'expires_at',
         'paid_at',
-        'cancelled_at',
-        'refunded_at',
+        'expires_at',
     ];
 
     public function user(): BelongsTo
@@ -53,20 +52,19 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    protected static function newFactory(): OrderFactory
+    {
+        return OrderFactory::new();
+    }
+
     protected function casts(): array
     {
         return [
             'status' => OrderStatus::class,
-            'subtotal_cents' => 'integer',
-            'discount_cents' => 'integer',
-            'total_cents' => 'integer',
-            'price_snapshot' => 'array',
-            'limits_snapshot' => 'array',
+            'amount_cents' => 'integer',
             'metadata' => 'array',
-            'expires_at' => 'datetime',
             'paid_at' => 'datetime',
-            'cancelled_at' => 'datetime',
-            'refunded_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 }

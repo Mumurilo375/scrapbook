@@ -1,24 +1,24 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Themes\Models;
 
+use Database\Factories\ThemeFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Theme extends Model
 {
-    use HasUlids, SoftDeletes;
+    /** @use HasFactory<ThemeFactory> */
+    use HasFactory, HasUlids;
 
     protected $fillable = [
-        'slug',
         'name',
+        'slug',
         'description',
-        'preview_image_url',
-        'sort_order',
         'is_active',
-        'settings',
+        'sort_order',
     ];
 
     public function versions(): HasMany
@@ -26,22 +26,16 @@ class Theme extends Model
         return $this->hasMany(ThemeVersion::class);
     }
 
-    public function assets(): HasMany
+    protected static function newFactory(): ThemeFactory
     {
-        return $this->hasMany(Asset::class);
-    }
-
-    public function templates(): HasMany
-    {
-        return $this->hasMany(Template::class, 'default_theme_id');
+        return ThemeFactory::new();
     }
 
     protected function casts(): array
     {
         return [
-            'sort_order' => 'integer',
             'is_active' => 'boolean',
-            'settings' => 'array',
+            'sort_order' => 'integer',
         ];
     }
 }

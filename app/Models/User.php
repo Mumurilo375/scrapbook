@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Gifts\Models\Gift;
+use App\Domain\Media\Models\MediaItem;
+use App\Domain\Payments\Models\Order;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -33,7 +36,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function media(): HasMany
     {
-        return $this->hasMany(Media::class);
+        return $this->hasMany(MediaItem::class);
     }
 
     public function orders(): HasMany

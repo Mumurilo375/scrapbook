@@ -2,6 +2,17 @@
 
 namespace App\Providers;
 
+use App\Domain\Gifts\Models\Gift;
+use App\Domain\Gifts\Models\GiftPage;
+use App\Domain\Media\Models\MediaItem;
+use App\Domain\Templates\Models\Template;
+use App\Domain\Themes\Models\Theme;
+use App\Policies\GiftPagePolicy;
+use App\Policies\GiftPolicy;
+use App\Policies\MediaItemPolicy;
+use App\Policies\TemplatePolicy;
+use App\Policies\ThemePolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Gift::class, GiftPolicy::class);
+        Gate::policy(GiftPage::class, GiftPagePolicy::class);
+        Gate::policy(MediaItem::class, MediaItemPolicy::class);
+        Gate::policy(Template::class, TemplatePolicy::class);
+        Gate::policy(Theme::class, ThemePolicy::class);
     }
 }

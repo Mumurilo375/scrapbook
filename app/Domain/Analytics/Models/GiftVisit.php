@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Analytics\Models;
 
+use App\Domain\Gifts\Models\Gift;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GiftVisit extends Model
 {
@@ -13,11 +13,11 @@ class GiftVisit extends Model
 
     protected $fillable = [
         'gift_id',
-        'visitor_hash',
+        'session_hash',
         'ip_hash',
         'user_agent_hash',
         'referrer',
-        'country',
+        'opened_at',
         'metadata',
     ];
 
@@ -26,14 +26,10 @@ class GiftVisit extends Model
         return $this->belongsTo(Gift::class);
     }
 
-    public function events(): HasMany
-    {
-        return $this->hasMany(GiftEvent::class);
-    }
-
     protected function casts(): array
     {
         return [
+            'opened_at' => 'datetime',
             'metadata' => 'array',
         ];
     }

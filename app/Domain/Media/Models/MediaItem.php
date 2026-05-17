@@ -1,38 +1,37 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Media\Models;
 
+use App\Domain\Gifts\Models\Gift;
 use App\Domain\Media\Enums\MediaStatus;
+use App\Domain\Media\Enums\MediaType;
+use App\Models\User;
+use Database\Factories\MediaItemFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Media extends Model
+class MediaItem extends Model
 {
-    use HasUlids, SoftDeletes;
-
-    protected $table = 'media';
+    /** @use HasFactory<MediaItemFactory> */
+    use HasFactory, HasUlids, SoftDeletes;
 
     protected $fillable = [
         'user_id',
         'gift_id',
-        'gift_page_id',
         'type',
-        'status',
-        'disk',
-        'path',
-        'original_path',
-        'thumbnail_path',
+        'original_filename',
+        'storage_disk',
+        'storage_path',
         'mime_type',
-        'extension',
+        'size_bytes',
         'width',
         'height',
-        'size_bytes',
-        'alt_text',
-        'variants_json',
+        'variants',
         'metadata',
-        'processed_at',
+        'status',
     ];
 
     public function user(): BelongsTo
@@ -45,21 +44,21 @@ class Media extends Model
         return $this->belongsTo(Gift::class);
     }
 
-    public function giftPage(): BelongsTo
+    protected static function newFactory(): MediaItemFactory
     {
-        return $this->belongsTo(GiftPage::class);
+        return MediaItemFactory::new();
     }
 
     protected function casts(): array
     {
         return [
+            'type' => MediaType::class,
             'status' => MediaStatus::class,
+            'size_bytes' => 'integer',
             'width' => 'integer',
             'height' => 'integer',
-            'size_bytes' => 'integer',
-            'variants_json' => 'array',
+            'variants' => 'array',
             'metadata' => 'array',
-            'processed_at' => 'datetime',
         ];
     }
 }
