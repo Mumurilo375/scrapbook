@@ -5,9 +5,9 @@
 ## Status atual
 
 - Landing v1 criada como rascunho inicial de branding/marketing, não como versão final do produto.
-- Prioridade atual: domínio e banco real.
-- Próximo passo depois desta fundação: admin inicial para temas, templates, assets, planos e gifts.
-- Depois: fluxo de criação a partir de ocasião/template.
+- Domínio e banco real implementados em `app/Domain`, com migrations, models, enums, relações, casts, policies, factories, seeders, actions prioritárias e testes de domínio.
+- Prioridade atual: admin inicial em Filament para operar temas, templates, assets, planos, gifts, mídia, pedidos, pagamentos e analytics.
+- Próxima fase depois do admin: fluxo de criação de gift a partir de `TemplateVersion` publicada.
 - Depois: editor MVP.
 - Depois: viewer público.
 - Depois: checkout/publicação.
@@ -77,7 +77,7 @@ A landing v1 cumpriu o papel de explorar direção visual. A prioridade saiu de 
 
 ## Regra de dependência
 
-Não continuar refinando landing, demo pública ou front avançado sem solicitação explícita. A próxima dependência real é concluir domínio e banco, depois admin inicial.
+Não continuar refinando landing, demo pública ou front avançado sem solicitação explícita. A fundação de domínio/banco já foi criada; a dependência real agora é concluir e usar o admin inicial, depois avançar para o fluxo de criação de gift.
 
 ## Fase 1 - Repositório e ambiente
 

@@ -1547,3 +1547,46 @@ O domínio real foi estruturado em `app/Domain`, mantendo `App\Models\User` como
 - `orders` pertencem a `user`, `gift` e `plan`.
 - `payments` pertencem a `orders` e guardam eventos/transações do provider.
 - Checkout e webhooks reais dependem de provider futuro; a estrutura local já preserva snapshots de preço/limites em metadata.
+
+## 18. Painel administrativo inicial
+
+O painel administrativo usa Filament em `/admin` e opera diretamente os models reais de `app/Domain`. Ele não substitui o domínio por models em `app/Models` e não cria dados hardcoded no frontend.
+
+### Papel do Filament
+
+- Administrar dados de catálogo, visual, templates, operação, pagamentos e analytics.
+- Permitir que ocasiões, planos, temas, assets e templates existam no banco antes do fluxo público.
+- Operar gifts, mídia, orders, payments, visitas e eventos sem criar checkout real, viewer público ou editor visual nesta fase.
+- Manter autenticação por sessão e restrição por role via `User::canAccessPanel`.
+
+### Resources principais
+
+O admin inicial possui resources para:
+
+- Produto: `Occasion`, `Plan`.
+- Visual: `Theme`, `ThemeVersion`, `Asset`.
+- Templates: `Template`, `TemplateVersion`, `TemplatePage`.
+- Operação: `Gift`, `GiftPage`, `MediaItem`.
+- Pagamentos: `Order`, `Payment`.
+- Analytics: `GiftVisit`, `GiftEvent`.
+
+`GiftPage` existe como resource auxiliar e fica fora da navegação principal, priorizando o uso pelo relation manager dentro de `Gift`.
+
+### Relação com o domínio
+
+- Resources usam os models de `app/Domain`.
+- `admin` acessa todos os resources.
+- `support` acessa recursos operacionais, pagamentos e analytics.
+- `customer` e usuários não autenticados não acessam o painel.
+- `/horizon` continua protegido por Gate para `admin` e `support`.
+
+### JSON administrável
+
+Campos como `metadata`, `config`, `preview_config`, `default_config`, `canvas`, `editable_schema`, `constraints`, `settings`, `variants`, `raw_payload`, `payload` e `features` são editados/visualizados como JSON e recebem validação mínima de JSON válido no formulário.
+
+### Cuidado com versionamento
+
+- `ThemeVersion` e `TemplateVersion` têm ações administrativas de publicar e arquivar.
+- Publicar uma versão arquiva versões publicadas conflitantes do mesmo tema/template.
+- `TemplateVersion` pode ser duplicada para criar um novo draft com cópia das páginas.
+- Gifts continuam apontando para as versões usadas no momento de criação/publicação; o admin não deve criar lógica que faça gifts dependerem de versões mutáveis.

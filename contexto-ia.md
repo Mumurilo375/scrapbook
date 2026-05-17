@@ -15,32 +15,27 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: domínio e banco real
+## Prioridade atual: admin inicial em Filament
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
-Neste momento, a prioridade principal é voltar para a fundação real do sistema:
+O domínio e banco real já foram implementados em `app/Domain`. Neste momento, a prioridade principal é operar essa base pelo painel administrativo em Filament:
 
-1. backend Laravel;
-2. banco PostgreSQL;
-3. domínio em `app/Domain`;
-4. models, relações, casts e policies;
-5. templates e temas versionados vindos do banco;
-6. gifts copiando versões publicadas de templates;
-7. mídia segura e sem vídeo no MVP;
-8. pedidos/pagamentos como estrutura local, sem checkout real ainda;
-9. seeders e testes de segurança;
-10. base para admin Filament.
+1. resources Filament para as entidades centrais;
+2. navegação organizada por Produto, Visual, Templates, Operação, Pagamentos e Analytics;
+3. CRUD seguro para catálogo, temas, assets e templates;
+4. views operacionais para gifts, mídia, orders, payments, visitas e eventos;
+5. validação mínima de JSON nos campos administráveis;
+6. ações administrativas de publicação/arquivamento de versões e operação de gifts.
 
 A IA deve seguir o roadmap e não continuar refinando front, landing, demo pública, editor, checkout ou viewer sem solicitação explícita. A próxima sequência esperada é:
 
-1. domínio e banco real;
-2. admin inicial;
-3. fluxo de criação;
-4. editor MVP;
-5. viewer público;
-6. checkout/publicação;
-7. demo pública refinada e landing final baseada no produto real.
+1. admin inicial;
+2. fluxo de criação de gift a partir de template publicado;
+3. editor MVP;
+4. viewer público;
+5. checkout/publicação;
+6. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 
@@ -51,6 +46,7 @@ A IA deve seguir o roadmap e não continuar refinando front, landing, demo públ
 - Não integrar Spotify, streaming ou hospedagem real de música.
 - Não hardcodear templates ou temas finais no frontend.
 - Não assumir que a landing atual é definitiva.
+- Não avançar para fluxo do cliente, editor, viewer público, demo pública ou checkout real sem solicitação explícita.
 
 ## 2. Regras de negócio não negociáveis
 
