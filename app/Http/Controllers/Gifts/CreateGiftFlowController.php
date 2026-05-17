@@ -96,6 +96,7 @@ class CreateGiftFlowController extends Controller
             'plan' => $plan instanceof Plan ? $this->planSummary($plan) : null,
             'createUrl' => route('gifts.store'),
             'loginUrl' => route('login', ['return_to' => $returnTo]),
+            'registerUrl' => route('register', ['return_to' => $returnTo]),
             'isAuthenticated' => $request->user() !== null,
         ]);
     }

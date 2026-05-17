@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { Gift, Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Gift, LogOut, Plus } from 'lucide-react';
 
 import { formatDate } from '../../components/formatters';
 import { GiftStatusBadge } from '../../components/GiftStatusBadge';
@@ -11,25 +11,39 @@ type GiftIndexProps = {
 };
 
 export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
+    function logout() {
+        router.post('/logout');
+    }
+
     return (
         <>
             <Head title="Meus gifts" />
             <main className="scrapbook-background min-h-screen bg-[#F7F1E8] text-[#1F1A17]">
                 <header className="border-b border-[#ead8bf] bg-[#F7F1E8]/92">
-                    <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+                    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
                         <Link className="flex items-center gap-3 text-[#3A2418]" href="/">
                             <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#caa77d] bg-[#FFF8EC] text-[#8E2F2F]">
                                 <Gift aria-hidden="true" className="h-5 w-5" />
                             </span>
                             <span className="font-editorial text-xl font-semibold">Scrapbook</span>
                         </Link>
-                        <Link
-                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#5f2c24] bg-[#8E2F2F] px-4 text-sm font-semibold text-[#FFF8EC] hover:bg-[#742727]"
-                            href={createUrl}
-                        >
-                            <Plus aria-hidden="true" className="h-4 w-4" />
-                            Criar novo
-                        </Link>
+                        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+                            <button
+                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#d8b98e] bg-white px-4 text-sm font-semibold text-[#6F4E37] hover:bg-[#f4e2c6]"
+                                onClick={logout}
+                                type="button"
+                            >
+                                <LogOut aria-hidden="true" className="h-4 w-4" />
+                                Sair
+                            </button>
+                            <Link
+                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#5f2c24] bg-[#8E2F2F] px-4 text-sm font-semibold text-[#FFF8EC] hover:bg-[#742727]"
+                                href={createUrl}
+                            >
+                                <Plus aria-hidden="true" className="h-4 w-4" />
+                                Criar novo
+                            </Link>
+                        </div>
                     </div>
                 </header>
 
@@ -43,12 +57,16 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                         {gifts.length > 0 ? (
                             <div className="divide-y divide-[#ead8bf]">
                                 {gifts.map((gift) => (
-                                    <article className="grid gap-4 p-5 lg:grid-cols-[1.2fr_0.8fr_0.8fr_auto]" key={gift.id}>
+                                    <article
+                                        className="grid gap-4 p-5 lg:grid-cols-[1.2fr_0.8fr_0.8fr_auto]"
+                                        key={gift.id}
+                                    >
                                         <div>
                                             <GiftStatusBadge status={gift.status} />
                                             <h2 className="mt-3 text-lg font-semibold text-[#3A2418]">{gift.title}</h2>
                                             <p className="mt-1 text-sm text-[#6F4E37]">
-                                                {gift.occasion?.name ?? 'Sem ocasião'} · {gift.template?.name ?? 'Sem template'}
+                                                {gift.occasion?.name ?? 'Sem ocasião'} ·{' '}
+                                                {gift.template?.name ?? 'Sem template'}
                                             </p>
                                         </div>
                                         <div className="text-sm text-[#6F4E37]">

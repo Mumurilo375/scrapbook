@@ -18,6 +18,7 @@ type TemplateShowProps = {
     plan: PlanSummary | null;
     createUrl: string;
     loginUrl: string;
+    registerUrl: string;
     isAuthenticated: boolean;
 };
 
@@ -29,6 +30,7 @@ export default function TemplateShow({
     plan,
     createUrl,
     loginUrl,
+    registerUrl,
     isAuthenticated,
 }: TemplateShowProps) {
     const { data, setData, post, processing, errors } = useForm({
@@ -74,12 +76,21 @@ export default function TemplateShow({
                             {template.name}
                         </h1>
                         <p className="mt-5 max-w-2xl text-lg leading-8 text-[#6F4E37]">
-                            {template.description ?? 'Este template publicado cria um rascunho com páginas copiadas para o seu gift.'}
+                            {template.description ??
+                                'Este template publicado cria um rascunho com páginas copiadas para o seu gift.'}
                         </p>
 
                         <div className="mt-8 grid gap-4 md:grid-cols-3">
-                            <InfoTile icon={<Sparkles aria-hidden="true" className="h-5 w-5" />} label="Tema" value={theme.name} />
-                            <InfoTile icon={<CheckCircle2 aria-hidden="true" className="h-5 w-5" />} label="Páginas" value={`${templateVersion.page_count}`} />
+                            <InfoTile
+                                icon={<Sparkles aria-hidden="true" className="h-5 w-5" />}
+                                label="Tema"
+                                value={theme.name}
+                            />
+                            <InfoTile
+                                icon={<CheckCircle2 aria-hidden="true" className="h-5 w-5" />}
+                                label="Páginas"
+                                value={`${templateVersion.page_count}`}
+                            />
                             <InfoTile
                                 icon={<Gift aria-hidden="true" className="h-5 w-5" />}
                                 label="Plano"
@@ -91,9 +102,14 @@ export default function TemplateShow({
                             <h2 className="text-xl font-semibold text-[#3A2418]">Páginas incluídas</h2>
                             <div className="mt-4 grid gap-3 sm:grid-cols-2">
                                 {templateVersion.pages.map((page) => (
-                                    <div className="rounded-[6px] border border-[#ead8bf] bg-[#fffdf8] p-4" key={page.id}>
+                                    <div
+                                        className="rounded-[6px] border border-[#ead8bf] bg-[#fffdf8] p-4"
+                                        key={page.id}
+                                    >
                                         <p className="text-sm font-semibold text-[#3A2418]">{page.name}</p>
-                                        <p className="mt-1 text-xs font-semibold uppercase text-[#8E2F2F]">{page.page_type}</p>
+                                        <p className="mt-1 text-xs font-semibold uppercase text-[#8E2F2F]">
+                                            {page.page_type}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
@@ -146,13 +162,21 @@ export default function TemplateShow({
                                 </button>
                             </form>
                         ) : (
-                            <Link
-                                className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[6px] border border-[#5f2c24] bg-[#8E2F2F] px-5 text-sm font-semibold text-[#FFF8EC] transition hover:bg-[#742727]"
-                                href={loginUrl}
-                            >
-                                <Lock aria-hidden="true" className="h-4 w-4" />
-                                Entrar para criar
-                            </Link>
+                            <div className="mt-5 grid gap-3">
+                                <Link
+                                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[6px] border border-[#5f2c24] bg-[#8E2F2F] px-5 text-sm font-semibold text-[#FFF8EC] transition hover:bg-[#742727]"
+                                    href={loginUrl}
+                                >
+                                    <Lock aria-hidden="true" className="h-4 w-4" />
+                                    Entrar para criar
+                                </Link>
+                                <Link
+                                    className="inline-flex min-h-11 w-full items-center justify-center rounded-[6px] border border-[#d8b98e] bg-white px-5 text-sm font-semibold text-[#6F4E37] transition hover:bg-[#f4e2c6]"
+                                    href={registerUrl}
+                                >
+                                    Criar conta
+                                </Link>
+                            </div>
                         )}
                     </aside>
                 </section>
