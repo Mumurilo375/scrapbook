@@ -1,0 +1,821 @@
+<?php
+
+namespace App\Filament\Support;
+
+use App\Domain\Analytics\Models\GiftEvent;
+use App\Domain\Assets\Enums\AssetType;
+use App\Domain\Assets\Models\Asset;
+use App\Domain\Gifts\Enums\GiftStatus;
+use App\Domain\Gifts\Enums\GiftVisibility;
+use App\Domain\Gifts\Models\Gift;
+use App\Domain\Media\Enums\MediaStatus;
+use App\Domain\Media\Enums\MediaType;
+use App\Domain\Media\Models\MediaItem;
+use App\Domain\Payments\Enums\OrderStatus;
+use App\Domain\Payments\Enums\PaymentStatus;
+use App\Domain\Payments\Models\Order;
+use App\Domain\Payments\Models\Payment;
+use App\Domain\Templates\Enums\PageType;
+use App\Domain\Templates\Enums\TemplateVersionStatus;
+use App\Domain\Templates\Models\TemplatePage;
+use App\Domain\Templates\Models\TemplateVersion;
+use App\Domain\Themes\Enums\ThemeVersionStatus;
+use App\Domain\Themes\Models\ThemeVersion;
+use App\Filament\Resources\Gifts\RelationManagers\EventsRelationManager;
+use App\Filament\Resources\Gifts\RelationManagers\MediaItemsRelationManager;
+use App\Filament\Resources\Gifts\RelationManagers\OrdersRelationManager;
+use App\Filament\Resources\Gifts\RelationManagers\VisitsRelationManager;
+use App\Filament\Resources\Orders\RelationManagers\PaymentsRelationManager;
+use App\Filament\Resources\TemplateVersions\RelationManagers\PagesRelationManager;
+use App\Filament\Resources\Themes\RelationManagers\VersionsRelationManager;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\CodeEditor;
+use Filament\Forms\Components\CodeEditor\Enums\Language;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\CodeEntry;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\TrashedFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Throwable;
+
+class AdminResourceRegistry
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public static function resourceOptions(string $key): array
+    {
+        return self::resources()[$key] ?? [];
+    }
+
+    public static function form(string $class, Schema $schema): Schema
+    {
+        return $schema
+            ->components(self::formComponents(self::keyFromClass($class)))
+            ->columns(2);
+    }
+
+    public static function infolist(string $class, Schema $schema): Schema
+    {
+        return $schema
+            ->components(self::infolistComponents(self::keyFromClass($class)))
+            ->columns(2);
+    }
+
+    public static function table(string $class, Table $table): Table
+    {
+        return self::configureTable(self::keyFromClass($class), $table);
+    }
+
+    /**
+     * @return array<class-string>
+     */
+    public static function relations(string $resourceClass): array
+    {
+        return match (self::keyFromClass($resourceClass)) {
+            'Theme' => [
+                VersionsRelationManager::class,
+            ],
+            'Template' => [
+                \App\Filament\Resources\Templates\RelationManagers\VersionsRelationManager::class,
+            ],
+            'TemplateVersion' => [
+                PagesRelationManager::class,
+            ],
+            'Gift' => [
+                \App\Filament\Resources\Gifts\RelationManagers\PagesRelationManager::class,
+                MediaItemsRelationManager::class,
+                OrdersRelationManager::class,
+                VisitsRelationManager::class,
+                EventsRelationManager::class,
+            ],
+            'Order' => [
+                PaymentsRelationManager::class,
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function resources(): array
+    {
+        return [
+            'Occasion' => ['group' => 'Produto', 'sort' => 10, 'label' => 'ocasião', 'pluralLabel' => 'Occasions', 'icon' => Heroicon::OutlinedTag, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'Plan' => ['group' => 'Produto', 'sort' => 20, 'label' => 'plano', 'pluralLabel' => 'Plans', 'icon' => Heroicon::OutlinedBanknotes, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'Theme' => ['group' => 'Visual', 'sort' => 10, 'label' => 'tema', 'pluralLabel' => 'Themes', 'icon' => Heroicon::OutlinedPaintBrush, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'ThemeVersion' => ['group' => 'Visual', 'sort' => 20, 'label' => 'versão de tema', 'pluralLabel' => 'Theme Versions', 'icon' => Heroicon::OutlinedSparkles, 'adminOnly' => true, 'delete' => true],
+            'Asset' => ['group' => 'Visual', 'sort' => 30, 'label' => 'asset', 'pluralLabel' => 'Assets', 'icon' => Heroicon::OutlinedPhoto, 'adminOnly' => true, 'delete' => true],
+            'Template' => ['group' => 'Templates', 'sort' => 10, 'label' => 'template', 'pluralLabel' => 'Templates', 'icon' => Heroicon::OutlinedDocumentDuplicate, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'TemplateVersion' => ['group' => 'Templates', 'sort' => 20, 'label' => 'versão de template', 'pluralLabel' => 'Template Versions', 'icon' => Heroicon::OutlinedDocumentCheck, 'adminOnly' => true, 'delete' => true],
+            'TemplatePage' => ['group' => 'Templates', 'sort' => 30, 'label' => 'página de template', 'pluralLabel' => 'Template Pages', 'icon' => Heroicon::OutlinedRectangleStack, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'Gift' => ['group' => 'Operação', 'sort' => 10, 'label' => 'gift', 'pluralLabel' => 'Gifts', 'icon' => Heroicon::OutlinedGift, 'create' => false, 'edit' => true, 'delete' => false],
+            'GiftPage' => ['group' => 'Operação', 'sort' => 11, 'label' => 'página do gift', 'pluralLabel' => 'Gift Pages', 'icon' => Heroicon::OutlinedRectangleStack, 'navigation' => false, 'create' => false, 'edit' => true, 'delete' => false, 'reorder' => true],
+            'MediaItem' => ['group' => 'Operação', 'sort' => 20, 'label' => 'mídia', 'pluralLabel' => 'Media Items', 'icon' => Heroicon::OutlinedPhoto, 'create' => false, 'edit' => false, 'delete' => false],
+            'Order' => ['group' => 'Pagamentos', 'sort' => 10, 'label' => 'pedido', 'pluralLabel' => 'Orders', 'icon' => Heroicon::OutlinedShoppingBag, 'create' => false, 'edit' => false, 'delete' => false],
+            'Payment' => ['group' => 'Pagamentos', 'sort' => 20, 'label' => 'pagamento', 'pluralLabel' => 'Payments', 'icon' => Heroicon::OutlinedCreditCard, 'create' => false, 'edit' => false, 'delete' => false],
+            'GiftVisit' => ['group' => 'Analytics', 'sort' => 10, 'label' => 'visita', 'pluralLabel' => 'Gift Visits', 'icon' => Heroicon::OutlinedEye, 'create' => false, 'edit' => false, 'delete' => false],
+            'GiftEvent' => ['group' => 'Analytics', 'sort' => 20, 'label' => 'evento', 'pluralLabel' => 'Gift Events', 'icon' => Heroicon::OutlinedChartBar, 'create' => false, 'edit' => false, 'delete' => false],
+        ];
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected static function formComponents(string $key): array
+    {
+        return match ($key) {
+            'Occasion' => [
+                self::nameField(),
+                self::slugField(),
+                Textarea::make('description')->columnSpanFull(),
+                Toggle::make('is_active')->default(true),
+                self::integerField('sort_order')->default(0),
+                self::jsonField('metadata'),
+            ],
+            'Plan' => [
+                self::nameField(),
+                self::slugField(),
+                Textarea::make('description')->columnSpanFull(),
+                self::integerField('price_cents')->label('Preço em centavos')->required()->minValue(0),
+                TextInput::make('currency')->required()->default('BRL')->maxLength(3),
+                self::integerField('max_pages')->minValue(0),
+                self::integerField('max_photos')->minValue(0),
+                self::integerField('max_storage_mb')->minValue(0),
+                self::integerField('gift_lifetime_days')->minValue(0),
+                Toggle::make('can_use_qr_code')->default(false),
+                Toggle::make('can_edit_after_publish')->default(false),
+                Toggle::make('is_active')->default(true),
+                self::integerField('sort_order')->default(0),
+                self::jsonField('features'),
+            ],
+            'Theme' => [
+                self::nameField(),
+                self::slugField(),
+                Textarea::make('description')->columnSpanFull(),
+                Toggle::make('is_active')->default(true),
+                self::integerField('sort_order')->default(0),
+            ],
+            'ThemeVersion' => [
+                Select::make('theme_id')->relationship('theme', 'name')->searchable()->preload()->required(),
+                self::integerField('version_number')->required()->minValue(1),
+                self::enumSelect('status', ThemeVersionStatus::class)->required()->default(ThemeVersionStatus::Draft->value),
+                self::nameField(),
+                DateTimePicker::make('published_at'),
+                self::jsonField('config', required: true, default: ['schemaVersion' => 1]),
+            ],
+            'Asset' => [
+                self::nameField(),
+                self::slugField(required: false),
+                self::enumSelect('type', AssetType::class)->required(),
+                TextInput::make('storage_disk')->required()->default('public')->maxLength(255),
+                TextInput::make('storage_path')->required()->maxLength(255)->columnSpanFull(),
+                TextInput::make('public_url')->url()->maxLength(2048)->columnSpanFull(),
+                TextInput::make('mime_type')->maxLength(255),
+                self::integerField('size_bytes')->minValue(0),
+                self::integerField('width')->minValue(0),
+                self::integerField('height')->minValue(0),
+                Toggle::make('is_active')->default(true),
+                self::jsonField('metadata'),
+            ],
+            'Template' => [
+                Select::make('occasion_id')->relationship('occasion', 'name')->searchable()->preload()->required(),
+                self::nameField(),
+                self::slugField(),
+                Textarea::make('description')->columnSpanFull(),
+                Toggle::make('is_active')->default(true),
+                self::integerField('sort_order')->default(0),
+                self::jsonField('metadata'),
+            ],
+            'TemplateVersion' => [
+                Select::make('template_id')->relationship('template', 'name')->searchable()->preload()->required(),
+                Select::make('theme_version_id')->relationship('themeVersion', 'name')->searchable()->preload(),
+                self::integerField('version_number')->required()->minValue(1),
+                self::enumSelect('status', TemplateVersionStatus::class)->required()->default(TemplateVersionStatus::Draft->value),
+                self::nameField(),
+                DateTimePicker::make('published_at'),
+                self::jsonField('preview_config'),
+                self::jsonField('default_config'),
+            ],
+            'TemplatePage' => [
+                Select::make('template_version_id')->relationship('templateVersion', 'name')->searchable()->preload()->required(),
+                self::enumSelect('page_type', PageType::class)->required()->default(PageType::Generic->value),
+                self::nameField(),
+                self::integerField('sort_order')->required()->default(0)->minValue(0),
+                self::jsonField('canvas', required: true, default: ['schemaVersion' => 1, 'elements' => []]),
+                self::jsonField('editable_schema'),
+                self::jsonField('constraints'),
+                self::jsonField('metadata'),
+            ],
+            'Gift' => [
+                TextInput::make('title')->required()->maxLength(255)->columnSpanFull(),
+                TextInput::make('recipient_name')->maxLength(255),
+                TextInput::make('sender_name')->maxLength(255),
+                self::enumSelect('visibility', GiftVisibility::class)->required(),
+                Select::make('user_id')->relationship('user', 'email')->searchable()->preload(),
+                Select::make('plan_id')->relationship('plan', 'name')->searchable()->preload(),
+                Select::make('occasion_id')->relationship('occasion', 'name')->searchable()->preload(),
+                Select::make('template_version_id')->relationship('templateVersion', 'name')->searchable()->preload(),
+                Select::make('theme_version_id')->relationship('themeVersion', 'name')->searchable()->preload(),
+                TextInput::make('public_code')->disabled()->dehydrated(false),
+                DateTimePicker::make('published_at'),
+                DateTimePicker::make('expires_at'),
+                DateTimePicker::make('last_edited_at'),
+                self::jsonField('settings'),
+                self::jsonField('limits_snapshot')->disabled()->dehydrated(false),
+            ],
+            'GiftPage' => [
+                Select::make('gift_id')->relationship('gift', 'title')->searchable()->preload()->required(),
+                Select::make('source_template_page_id')->relationship('sourceTemplatePage', 'name')->searchable()->preload(),
+                self::enumSelect('page_type', PageType::class)->required(),
+                self::nameField(),
+                self::integerField('sort_order')->required()->default(0)->minValue(0),
+                Toggle::make('is_visible')->default(true),
+                Toggle::make('locked')->default(false),
+                self::jsonField('canvas', required: true, default: ['schemaVersion' => 1, 'elements' => []]),
+                self::jsonField('settings'),
+            ],
+            'MediaItem' => [
+                Select::make('user_id')->relationship('user', 'email')->searchable()->preload()->disabled()->dehydrated(false),
+                Select::make('gift_id')->relationship('gift', 'title')->searchable()->preload()->disabled()->dehydrated(false),
+                self::enumSelect('type', MediaType::class)->disabled()->dehydrated(false),
+                self::enumSelect('status', MediaStatus::class)->disabled()->dehydrated(false),
+                TextInput::make('original_filename')->disabled()->dehydrated(false),
+                TextInput::make('storage_disk')->disabled()->dehydrated(false),
+                TextInput::make('storage_path')->disabled()->dehydrated(false)->columnSpanFull(),
+                self::jsonField('variants')->disabled()->dehydrated(false),
+                self::jsonField('metadata')->disabled()->dehydrated(false),
+            ],
+            'Order' => [
+                self::readonlyNotice('Pedidos são operacionais nesta fase. A edição direta fica desativada para evitar inconsistência com o futuro gateway.'),
+            ],
+            'Payment' => [
+                self::readonlyNotice('Pagamentos são somente consulta nesta fase. O payload bruto não deve ser tratado como campo comum editável.'),
+            ],
+            'GiftVisit', 'GiftEvent' => [
+                self::readonlyNotice('Analytics é somente consulta nesta fase.'),
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected static function infolistComponents(string $key): array
+    {
+        return match ($key) {
+            'Occasion' => [
+                TextEntry::make('name'), TextEntry::make('slug')->copyable(), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('sort_order'), TextEntry::make('description')->columnSpanFull(), self::jsonEntry('metadata'),
+                ...self::timestamps(),
+            ],
+            'Plan' => [
+                TextEntry::make('name'), TextEntry::make('slug')->copyable(), TextEntry::make('price_cents')->label('Preço')->money('BRL', divideBy: 100, locale: 'pt_BR'),
+                TextEntry::make('currency'), TextEntry::make('max_pages'), TextEntry::make('max_photos'), TextEntry::make('max_storage_mb'),
+                TextEntry::make('gift_lifetime_days'), IconEntry::make('can_use_qr_code')->boolean(), IconEntry::make('can_edit_after_publish')->boolean(),
+                IconEntry::make('is_active')->boolean(), self::jsonEntry('features'), ...self::timestamps(),
+            ],
+            'Theme' => [
+                TextEntry::make('name'), TextEntry::make('slug')->copyable(), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('versions_count')->counts('versions')->label('Versões'), TextEntry::make('published_version')->getStateUsing(fn ($record): string => self::publishedVersionLabel($record->versions))->label('Versão publicada'),
+                TextEntry::make('description')->columnSpanFull(), ...self::timestamps(),
+            ],
+            'ThemeVersion' => [
+                TextEntry::make('theme.name'), TextEntry::make('version_number'), self::statusEntry('status'), TextEntry::make('name'), TextEntry::make('published_at')->dateTime(), self::jsonEntry('config'), ...self::timestamps(),
+            ],
+            'Asset' => [
+                ImageEntry::make('preview')->label('Preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(140),
+                TextEntry::make('name'), TextEntry::make('slug')->copyable(), self::statusEntry('type'), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('storage_disk'), TextEntry::make('storage_path')->copyable(), TextEntry::make('public_url')->copyable(),
+                TextEntry::make('mime_type'), TextEntry::make('size_bytes')->numeric(), TextEntry::make('width'), TextEntry::make('height'), self::jsonEntry('metadata'), ...self::timestamps(),
+            ],
+            'Template' => [
+                TextEntry::make('occasion.name'), TextEntry::make('name'), TextEntry::make('slug')->copyable(), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('versions_count')->counts('versions')->label('Versões'), TextEntry::make('published_version')->getStateUsing(fn ($record): string => self::publishedVersionLabel($record->versions))->label('Versão publicada'),
+                TextEntry::make('description')->columnSpanFull(), self::jsonEntry('metadata'), ...self::timestamps(),
+            ],
+            'TemplateVersion' => [
+                TextEntry::make('template.name'), TextEntry::make('themeVersion.name'), TextEntry::make('version_number'), self::statusEntry('status'), TextEntry::make('name'), TextEntry::make('published_at')->dateTime(),
+                self::jsonEntry('preview_config'), self::jsonEntry('default_config'), ...self::timestamps(),
+            ],
+            'TemplatePage' => [
+                TextEntry::make('templateVersion.name'), self::statusEntry('page_type'), TextEntry::make('name'), TextEntry::make('sort_order'), self::jsonEntry('canvas'), self::jsonEntry('editable_schema'), self::jsonEntry('constraints'), self::jsonEntry('metadata'), ...self::timestamps(),
+            ],
+            'Gift' => [
+                TextEntry::make('id')->copyable(), TextEntry::make('user.email'), TextEntry::make('title'), TextEntry::make('recipient_name'), TextEntry::make('sender_name'),
+                self::statusEntry('status'), self::statusEntry('visibility'), TextEntry::make('occasion.name'), TextEntry::make('templateVersion.name'), TextEntry::make('themeVersion.name'), TextEntry::make('plan.name'),
+                TextEntry::make('public_code')->copyable(), TextEntry::make('published_at')->dateTime(), TextEntry::make('expires_at')->dateTime(), TextEntry::make('last_edited_at')->dateTime(),
+                self::jsonEntry('settings'), self::jsonEntry('limits_snapshot'), ...self::timestamps(),
+            ],
+            'GiftPage' => [
+                TextEntry::make('gift.title'), self::statusEntry('page_type'), TextEntry::make('name'), TextEntry::make('sort_order'), IconEntry::make('is_visible')->boolean(), IconEntry::make('locked')->boolean(),
+                self::jsonEntry('canvas'), self::jsonEntry('settings'), ...self::timestamps(),
+            ],
+            'MediaItem' => [
+                ImageEntry::make('preview')->label('Preview')->getStateUsing(fn (MediaItem $record): ?string => self::storageUrl($record))->imageHeight(140),
+                TextEntry::make('user.email'), TextEntry::make('gift.title'), self::statusEntry('type'), self::statusEntry('status'), TextEntry::make('original_filename'),
+                TextEntry::make('storage_disk'), TextEntry::make('storage_path')->copyable(), TextEntry::make('mime_type'), TextEntry::make('size_bytes')->numeric(), TextEntry::make('width'), TextEntry::make('height'),
+                self::jsonEntry('variants'), self::jsonEntry('metadata'), ...self::timestamps(),
+            ],
+            'Order' => [
+                TextEntry::make('user.email'), TextEntry::make('gift.title'), TextEntry::make('plan.name'), self::statusEntry('status'), TextEntry::make('amount_cents')->label('Valor')->money('BRL', divideBy: 100, locale: 'pt_BR'),
+                TextEntry::make('currency'), TextEntry::make('provider'), TextEntry::make('provider_reference')->copyable(), TextEntry::make('checkout_url')->copyable(), TextEntry::make('paid_at')->dateTime(), TextEntry::make('expires_at')->dateTime(), self::jsonEntry('metadata'), ...self::timestamps(),
+            ],
+            'Payment' => [
+                TextEntry::make('order.provider_reference'), self::statusEntry('status'), TextEntry::make('provider'), TextEntry::make('provider_payment_id')->copyable(), TextEntry::make('amount_cents')->label('Valor')->money('BRL', divideBy: 100, locale: 'pt_BR'),
+                TextEntry::make('currency'), TextEntry::make('processed_at')->dateTime(), self::jsonEntry('raw_payload'), ...self::timestamps(),
+            ],
+            'GiftVisit' => [
+                TextEntry::make('gift.title'), TextEntry::make('session_hash')->copyable(), TextEntry::make('ip_hash')->copyable(), TextEntry::make('user_agent_hash')->copyable(), TextEntry::make('referrer')->columnSpanFull(), TextEntry::make('opened_at')->dateTime(), self::jsonEntry('metadata'), ...self::timestamps(),
+            ],
+            'GiftEvent' => [
+                TextEntry::make('gift.title'), TextEntry::make('user.email'), TextEntry::make('event_type'), TextEntry::make('occurred_at')->dateTime(), self::jsonEntry('payload'), ...self::timestamps(),
+            ],
+            default => [],
+        };
+    }
+
+    protected static function configureTable(string $key, Table $table): Table
+    {
+        $table = match ($key) {
+            'Occasion' => $table
+                ->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable(), TextColumn::make('templates_count')->counts('templates')->label('Templates')])
+                ->filters([TernaryFilter::make('is_active')])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
+            'Plan' => $table
+                ->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), TextColumn::make('price_cents')->label('Preço')->money('BRL', divideBy: 100, locale: 'pt_BR')->sortable(), TextColumn::make('currency'), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable()])
+                ->filters([TernaryFilter::make('is_active')])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
+            'Theme' => $table
+                ->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), IconColumn::make('is_active')->boolean(), TextColumn::make('versions_count')->counts('versions')->label('Versões'), TextColumn::make('published_version')->getStateUsing(fn ($record): string => self::publishedVersionLabel($record->versions))->label('Publicada'), TextColumn::make('sort_order')->sortable()])
+                ->filters([TernaryFilter::make('is_active')])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
+            'ThemeVersion' => $table
+                ->columns([TextColumn::make('theme.name')->searchable()->sortable(), TextColumn::make('version_number')->sortable(), self::statusColumn('status'), TextColumn::make('name')->searchable(), TextColumn::make('published_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('theme_id')->relationship('theme', 'name')->searchable()->preload(), SelectFilter::make('status')->options(self::enumOptions(ThemeVersionStatus::class))])
+                ->defaultSort('created_at', 'desc'),
+            'Asset' => $table
+                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), IconColumn::make('is_active')->boolean(), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable()])
+                ->filters([SelectFilter::make('type')->options(self::enumOptions(AssetType::class)), TernaryFilter::make('is_active')])
+                ->defaultSort('created_at', 'desc'),
+            'Template' => $table
+                ->columns([TextColumn::make('occasion.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), IconColumn::make('is_active')->boolean(), TextColumn::make('versions_count')->counts('versions')->label('Versões'), TextColumn::make('published_version')->getStateUsing(fn ($record): string => self::publishedVersionLabel($record->versions))->label('Publicada'), TextColumn::make('sort_order')->sortable()])
+                ->filters([SelectFilter::make('occasion_id')->relationship('occasion', 'name')->searchable()->preload(), TernaryFilter::make('is_active')])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
+            'TemplateVersion' => $table
+                ->columns([TextColumn::make('template.name')->searchable()->sortable(), TextColumn::make('themeVersion.name')->label('Theme version')->searchable(), TextColumn::make('version_number')->sortable(), self::statusColumn('status'), TextColumn::make('name')->searchable(), TextColumn::make('published_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('template_id')->relationship('template', 'name')->searchable()->preload(), SelectFilter::make('theme_version_id')->relationship('themeVersion', 'name')->searchable()->preload(), SelectFilter::make('status')->options(self::enumOptions(TemplateVersionStatus::class))])
+                ->defaultSort('created_at', 'desc'),
+            'TemplatePage' => $table
+                ->columns([TextColumn::make('templateVersion.name')->searchable(), self::statusColumn('page_type'), TextColumn::make('name')->searchable(), TextColumn::make('sort_order')->sortable()])
+                ->filters([SelectFilter::make('template_version_id')->relationship('templateVersion', 'name')->searchable()->preload()])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
+            'Gift' => $table
+                ->columns([TextColumn::make('id')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('user.email')->searchable(), TextColumn::make('title')->searchable()->sortable(), TextColumn::make('recipient_name')->searchable(), TextColumn::make('sender_name')->searchable(), self::statusColumn('status'), self::statusColumn('visibility'), TextColumn::make('occasion.name'), TextColumn::make('plan.name'), TextColumn::make('public_code')->searchable()->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('published_at')->dateTime()->sortable(), TextColumn::make('expires_at')->dateTime()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()->toggleable()])
+                ->filters([SelectFilter::make('status')->options(self::enumOptions(GiftStatus::class)), SelectFilter::make('visibility')->options(self::enumOptions(GiftVisibility::class)), SelectFilter::make('plan_id')->relationship('plan', 'name')->searchable()->preload(), SelectFilter::make('occasion_id')->relationship('occasion', 'name')->searchable()->preload(), TrashedFilter::make()])
+                ->defaultSort('created_at', 'desc'),
+            'GiftPage' => $table
+                ->columns([TextColumn::make('gift.title')->searchable(), self::statusColumn('page_type'), TextColumn::make('name')->searchable(), TextColumn::make('sort_order')->sortable(), IconColumn::make('is_visible')->boolean(), IconColumn::make('locked')->boolean()])
+                ->filters([SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload()])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
+            'MediaItem' => $table
+                ->columns([ImageColumn::make('preview')->getStateUsing(fn (MediaItem $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('original_filename')->searchable(), TextColumn::make('user.email')->searchable(), TextColumn::make('gift.title')->searchable(), self::statusColumn('type'), self::statusColumn('status'), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('type')->options(self::enumOptions(MediaType::class)), SelectFilter::make('status')->options(self::enumOptions(MediaStatus::class)), TrashedFilter::make()])
+                ->defaultSort('created_at', 'desc'),
+            'Order' => $table
+                ->columns([TextColumn::make('user.email')->searchable(), TextColumn::make('gift.title')->searchable(), TextColumn::make('plan.name'), self::statusColumn('status'), TextColumn::make('amount_cents')->label('Valor')->money('BRL', divideBy: 100, locale: 'pt_BR')->sortable(), TextColumn::make('currency'), TextColumn::make('provider')->searchable(), TextColumn::make('provider_reference')->searchable()->copyable(), TextColumn::make('paid_at')->dateTime()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('status')->options(self::enumOptions(OrderStatus::class)), SelectFilter::make('provider')->options(fn (): array => Order::query()->whereNotNull('provider')->distinct()->pluck('provider', 'provider')->all())])
+                ->defaultSort('created_at', 'desc'),
+            'Payment' => $table
+                ->columns([TextColumn::make('order.provider_reference')->searchable(), self::statusColumn('status'), TextColumn::make('provider')->searchable(), TextColumn::make('provider_payment_id')->searchable()->copyable(), TextColumn::make('amount_cents')->label('Valor')->money('BRL', divideBy: 100, locale: 'pt_BR')->sortable(), TextColumn::make('currency'), TextColumn::make('processed_at')->dateTime()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('status')->options(self::enumOptions(PaymentStatus::class)), SelectFilter::make('provider')->options(fn (): array => Payment::query()->whereNotNull('provider')->distinct()->pluck('provider', 'provider')->all())])
+                ->defaultSort('created_at', 'desc'),
+            'GiftVisit' => $table
+                ->columns([TextColumn::make('gift.title')->searchable(), TextColumn::make('session_hash')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('ip_hash')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('referrer')->searchable()->limit(40), TextColumn::make('opened_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload(), self::dateRangeFilter('opened_at')])
+                ->defaultSort('opened_at', 'desc'),
+            'GiftEvent' => $table
+                ->columns([TextColumn::make('gift.title')->searchable(), TextColumn::make('user.email')->searchable(), TextColumn::make('event_type')->searchable()->badge(), TextColumn::make('occurred_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('event_type')->options(fn (): array => GiftEvent::query()->distinct()->pluck('event_type', 'event_type')->all()), SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload(), self::dateRangeFilter('occurred_at')])
+                ->defaultSort('occurred_at', 'desc'),
+            default => $table,
+        };
+
+        return $table
+            ->recordActions(self::recordActions($key))
+            ->toolbarActions(self::toolbarActions($key));
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected static function recordActions(string $key): array
+    {
+        $actions = [ViewAction::make()];
+
+        if (self::resourceOptions($key)['edit'] ?? true) {
+            $actions[] = EditAction::make();
+        }
+
+        if ($key === 'ThemeVersion') {
+            array_push($actions, self::publishThemeVersionAction(), self::archiveThemeVersionAction());
+        }
+
+        if ($key === 'TemplateVersion') {
+            array_push($actions, self::publishTemplateVersionAction(), self::archiveTemplateVersionAction(), self::duplicateTemplateVersionAction());
+        }
+
+        if ($key === 'Gift') {
+            array_push($actions, self::disableGiftAction(), self::reactivateGiftAction(), self::expireGiftAction());
+        }
+
+        if (self::resourceOptions($key)['delete'] ?? false) {
+            $actions[] = DeleteAction::make();
+        }
+
+        return $actions;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected static function toolbarActions(string $key): array
+    {
+        if (! (self::resourceOptions($key)['delete'] ?? false)) {
+            return [];
+        }
+
+        return [
+            BulkActionGroup::make([
+                DeleteBulkAction::make(),
+            ]),
+        ];
+    }
+
+    protected static function publishThemeVersionAction(): Action
+    {
+        return Action::make('publish')
+            ->label('Publicar')
+            ->icon(Heroicon::OutlinedRocketLaunch)
+            ->color('success')
+            ->requiresConfirmation()
+            ->visible(fn (ThemeVersion $record): bool => $record->status !== ThemeVersionStatus::Published)
+            ->action(function (ThemeVersion $record): void {
+                DB::transaction(function () use ($record): void {
+                    ThemeVersion::query()
+                        ->where('theme_id', $record->theme_id)
+                        ->whereKeyNot($record->getKey())
+                        ->where('status', ThemeVersionStatus::Published->value)
+                        ->update(['status' => ThemeVersionStatus::Archived->value]);
+
+                    $record->forceFill([
+                        'status' => ThemeVersionStatus::Published,
+                        'published_at' => now(),
+                    ])->save();
+                });
+            });
+    }
+
+    protected static function archiveThemeVersionAction(): Action
+    {
+        return Action::make('archive')
+            ->label('Arquivar')
+            ->icon(Heroicon::OutlinedArchiveBox)
+            ->color('gray')
+            ->requiresConfirmation()
+            ->visible(fn (ThemeVersion $record): bool => $record->status !== ThemeVersionStatus::Archived)
+            ->action(fn (ThemeVersion $record) => $record->forceFill(['status' => ThemeVersionStatus::Archived])->save());
+    }
+
+    protected static function publishTemplateVersionAction(): Action
+    {
+        return Action::make('publish')
+            ->label('Publicar')
+            ->icon(Heroicon::OutlinedRocketLaunch)
+            ->color('success')
+            ->requiresConfirmation()
+            ->visible(fn (TemplateVersion $record): bool => $record->status !== TemplateVersionStatus::Published)
+            ->action(function (TemplateVersion $record): void {
+                DB::transaction(function () use ($record): void {
+                    TemplateVersion::query()
+                        ->where('template_id', $record->template_id)
+                        ->whereKeyNot($record->getKey())
+                        ->where('status', TemplateVersionStatus::Published->value)
+                        ->update(['status' => TemplateVersionStatus::Archived->value]);
+
+                    $record->forceFill([
+                        'status' => TemplateVersionStatus::Published,
+                        'published_at' => now(),
+                    ])->save();
+                });
+            });
+    }
+
+    protected static function archiveTemplateVersionAction(): Action
+    {
+        return Action::make('archive')
+            ->label('Arquivar')
+            ->icon(Heroicon::OutlinedArchiveBox)
+            ->color('gray')
+            ->requiresConfirmation()
+            ->visible(fn (TemplateVersion $record): bool => $record->status !== TemplateVersionStatus::Archived)
+            ->action(fn (TemplateVersion $record) => $record->forceFill(['status' => TemplateVersionStatus::Archived])->save());
+    }
+
+    protected static function duplicateTemplateVersionAction(): Action
+    {
+        return Action::make('duplicate')
+            ->label('Duplicar')
+            ->icon(Heroicon::OutlinedDocumentDuplicate)
+            ->color('gray')
+            ->requiresConfirmation()
+            ->action(function (TemplateVersion $record): void {
+                DB::transaction(function () use ($record): void {
+                    $copy = $record->replicate(['id', 'status', 'version_number', 'published_at', 'created_at', 'updated_at']);
+                    $copy->version_number = ((int) TemplateVersion::query()->where('template_id', $record->template_id)->max('version_number')) + 1;
+                    $copy->status = TemplateVersionStatus::Draft;
+                    $copy->published_at = null;
+                    $copy->name = "{$record->name} (cópia)";
+                    $copy->save();
+
+                    $record->pages()->get()->each(function (TemplatePage $page) use ($copy): void {
+                        $pageCopy = $page->replicate(['id', 'template_version_id', 'created_at', 'updated_at']);
+                        $pageCopy->template_version_id = $copy->id;
+                        $pageCopy->save();
+                    });
+                });
+            });
+    }
+
+    protected static function disableGiftAction(): Action
+    {
+        return Action::make('disable')
+            ->label('Desativar')
+            ->icon(Heroicon::OutlinedNoSymbol)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->visible(fn (Gift $record): bool => $record->status !== GiftStatus::Disabled)
+            ->action(fn (Gift $record) => $record->forceFill(['status' => GiftStatus::Disabled])->save());
+    }
+
+    protected static function reactivateGiftAction(): Action
+    {
+        return Action::make('reactivate')
+            ->label('Reativar')
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('success')
+            ->requiresConfirmation()
+            ->visible(fn (Gift $record): bool => $record->status === GiftStatus::Disabled && ($record->expires_at === null || $record->expires_at->isFuture()))
+            ->action(function (Gift $record): void {
+                $record->forceFill([
+                    'status' => $record->published_at ? GiftStatus::Published : GiftStatus::Draft,
+                ])->save();
+            });
+    }
+
+    protected static function expireGiftAction(): Action
+    {
+        return Action::make('expire')
+            ->label('Expirar')
+            ->icon(Heroicon::OutlinedClock)
+            ->color('warning')
+            ->requiresConfirmation()
+            ->visible(fn (Gift $record): bool => $record->status !== GiftStatus::Expired)
+            ->action(fn (Gift $record) => $record->forceFill(['status' => GiftStatus::Expired, 'expires_at' => now()])->save());
+    }
+
+    protected static function nameField(): TextInput
+    {
+        return TextInput::make('name')->required()->maxLength(255);
+    }
+
+    protected static function slugField(bool $required = true): TextInput
+    {
+        $field = TextInput::make('slug')
+            ->maxLength(255)
+            ->unique(ignoreRecord: true);
+
+        return $required ? $field->required() : $field;
+    }
+
+    protected static function integerField(string $name): TextInput
+    {
+        return TextInput::make($name)->integer();
+    }
+
+    /**
+     * @param  class-string<BackedEnum>  $enum
+     */
+    protected static function enumSelect(string $name, string $enum): Select
+    {
+        return Select::make($name)->options(self::enumOptions($enum));
+    }
+
+    /**
+     * @param  class-string<BackedEnum>  $enum
+     * @return array<string, string>
+     */
+    protected static function enumOptions(string $enum): array
+    {
+        return collect($enum::cases())
+            ->mapWithKeys(fn (BackedEnum $case): array => [$case->value => Str::of($case->value)->replace('_', ' ')->headline()->toString()])
+            ->all();
+    }
+
+    protected static function jsonField(string $name, bool $required = false, mixed $default = null): CodeEditor
+    {
+        $field = CodeEditor::make($name)
+            ->language(Language::Json)
+            ->formatStateUsing(fn (mixed $state): ?string => self::jsonForEditing($state))
+            ->dehydrateStateUsing(fn (?string $state): mixed => self::jsonFromEditing($state))
+            ->rules([$required ? 'required' : 'nullable', 'json'])
+            ->columnSpanFull();
+
+        if ($default !== null) {
+            $field->default(self::jsonForEditing($default));
+        }
+
+        if ($required) {
+            $field->required();
+        }
+
+        return $field;
+    }
+
+    protected static function readonlyNotice(string $message): Textarea
+    {
+        return Textarea::make('notice')
+            ->label('Observação')
+            ->default($message)
+            ->disabled()
+            ->dehydrated(false)
+            ->columnSpanFull();
+    }
+
+    protected static function statusColumn(string $name): TextColumn
+    {
+        return TextColumn::make($name)
+            ->badge()
+            ->formatStateUsing(fn (mixed $state): string => self::formatEnumState($state));
+    }
+
+    protected static function statusEntry(string $name): TextEntry
+    {
+        return TextEntry::make($name)
+            ->badge()
+            ->formatStateUsing(fn (mixed $state): string => self::formatEnumState($state));
+    }
+
+    protected static function jsonEntry(string $name): CodeEntry
+    {
+        return CodeEntry::make($name)
+            ->copyable()
+            ->columnSpanFull()
+            ->placeholder('Sem dados');
+    }
+
+    /**
+     * @return array<int, TextEntry>
+     */
+    protected static function timestamps(): array
+    {
+        return [
+            TextEntry::make('created_at')->dateTime(),
+            TextEntry::make('updated_at')->dateTime(),
+        ];
+    }
+
+    protected static function dateRangeFilter(string $column): Filter
+    {
+        return Filter::make($column)
+            ->schema([
+                DatePicker::make('from')->label('De'),
+                DatePicker::make('until')->label('Até'),
+            ])
+            ->query(fn (Builder $query, array $data): Builder => $query
+                ->when($data['from'] ?? null, fn (Builder $query, string $date): Builder => $query->whereDate($column, '>=', $date))
+                ->when($data['until'] ?? null, fn (Builder $query, string $date): Builder => $query->whereDate($column, '<=', $date)));
+    }
+
+    protected static function keyFromClass(string $class): string
+    {
+        $base = class_basename($class);
+
+        if (str_ends_with($base, 'Resource')) {
+            return str($base)->beforeLast('Resource')->toString();
+        }
+
+        if (str_ends_with($base, 'Form')) {
+            return str($base)->beforeLast('Form')->toString();
+        }
+
+        if (str_ends_with($base, 'Infolist')) {
+            return str($base)->beforeLast('Infolist')->toString();
+        }
+
+        if (str_ends_with($base, 'Table')) {
+            return Str::singular(str($base)->beforeLast('Table')->toString());
+        }
+
+        return $base;
+    }
+
+    protected static function jsonForEditing(mixed $state): ?string
+    {
+        if ($state === null || $state === '') {
+            return null;
+        }
+
+        if (is_string($state)) {
+            $decoded = json_decode($state, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $state = $decoded;
+            } else {
+                return $state;
+            }
+        }
+
+        return json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    protected static function jsonFromEditing(?string $state): mixed
+    {
+        if ($state === null || trim($state) === '') {
+            return null;
+        }
+
+        return json_decode($state, true);
+    }
+
+    protected static function formatEnumState(mixed $state): string
+    {
+        if ($state instanceof BackedEnum) {
+            $state = $state->value;
+        }
+
+        return Str::of((string) $state)->replace('_', ' ')->headline()->toString();
+    }
+
+    protected static function publishedVersionLabel($versions): string
+    {
+        $published = $versions->first(fn (Model $version): bool => ($version->status instanceof BackedEnum ? $version->status->value : $version->status) === 'published');
+
+        if (! $published) {
+            return 'Nenhuma';
+        }
+
+        return "v{$published->version_number} - {$published->name}";
+    }
+
+    protected static function storageUrl(Model $record): ?string
+    {
+        if ($record instanceof Asset && filled($record->public_url)) {
+            return $record->public_url;
+        }
+
+        if (! filled($record->storage_path)) {
+            return null;
+        }
+
+        try {
+            return Storage::disk($record->storage_disk ?: 'public')->url($record->storage_path);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+}
