@@ -53,7 +53,7 @@ export function Footer() {
                 </div>
 
                 <div className="md:text-right">
-                    <CTAButton href="#preco" variant="light">
+                    <CTAButton href="/criar" variant="light">
                         Criar presente
                     </CTAButton>
                     <p className="mt-4 text-xs text-[#d8b98e]">Feito para presentes digitais emocionais.</p>

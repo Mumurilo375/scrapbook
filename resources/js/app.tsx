@@ -9,11 +9,15 @@ type PageModule = {
 };
 
 const pages = import.meta.glob<PageModule>('./pages/**/*.tsx', { eager: true });
+const featurePages = import.meta.glob<PageModule>('./features/**/pages/**/*.tsx', { eager: true });
 
 createInertiaApp({
     title: (title) => (title ? `${title} - Scrapbook` : 'Scrapbook'),
     resolve: (name) => {
-        const page = pages[`./pages/${name}.tsx`];
+        const page =
+            pages[`./pages/${name}.tsx`] ??
+            featurePages[`./features/${name}.tsx`] ??
+            featurePageFromName(name);
 
         if (!page) {
             throw new Error(`Inertia page not found: ${name}`);
@@ -28,3 +32,13 @@ createInertiaApp({
         color: '#be3455',
     },
 });
+
+function featurePageFromName(name: string): PageModule | undefined {
+    const [feature, ...rest] = name.split('/');
+
+    if (!feature || rest.length === 0) {
+        return undefined;
+    }
+
+    return featurePages[`./features/${feature}/pages/${rest.join('/')}.tsx`];
+}

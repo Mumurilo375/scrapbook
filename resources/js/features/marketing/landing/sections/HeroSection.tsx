@@ -30,7 +30,7 @@ export function HeroSection() {
                     </div>
 
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <CTAButton href="#preco">Criar meu presente</CTAButton>
+                        <CTAButton href="/criar">Criar meu presente</CTAButton>
                         <CTAButton href="/demo" icon="play" variant="secondary">
                             Ver demo interativa
                         </CTAButton>

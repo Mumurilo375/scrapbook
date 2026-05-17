@@ -48,7 +48,7 @@ export function PricingSection() {
                         ))}
                     </div>
                     <div className="border-t border-[#dfc7a7] p-6">
-                        <CTAButton className="w-full" href="#topo">
+                        <CTAButton className="w-full" href="/criar">
                             Criar meu presente
                         </CTAButton>
                     </div>

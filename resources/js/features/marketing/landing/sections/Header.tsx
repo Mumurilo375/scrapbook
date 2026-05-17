@@ -37,7 +37,7 @@ export function Header() {
                     >
                         Login
                     </button>
-                    <CTAButton className="min-h-10 px-4 py-2 sm:px-5" href="#preco" icon="none">
+                    <CTAButton className="min-h-10 px-4 py-2 sm:px-5" href="/criar" icon="none">
                         Criar presente
                     </CTAButton>
                     <button
