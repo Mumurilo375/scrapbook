@@ -12,8 +12,12 @@ use App\Policies\GiftPolicy;
 use App\Policies\MediaItemPolicy;
 use App\Policies\TemplatePolicy;
 use App\Policies\ThemePolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,5 +39,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(MediaItem::class, MediaItemPolicy::class);
         Gate::policy(Template::class, TemplatePolicy::class);
         Gate::policy(Theme::class, ThemePolicy::class);
+
+        RateLimiter::for('login', function (Request $request): Limit {
+            $email = Str::lower((string) $request->input('email'));
+
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('register', fn (Request $request): Limit => Limit::perMinute(5)->by($request->ip()));
     }
 }
