@@ -48,11 +48,10 @@ services:
     vite:
         image: node:22-alpine
         working_dir: /var/www/html
-        command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port $${VITE_PORT:-5173}"
+        command: sh -c "npm ci && rm -f public/hot && npm run build && npx vite preview --host 0.0.0.0 --port $${VITE_PORT:-5173}"
         environment:
             VITE_APP_NAME: Scrapbook
             VITE_PORT: "${VITE_PORT:-5173}"
-            VITE_DEV_SERVER_URL: "http://localhost:${VITE_PORT:-5173}"
         ports:
             - "${VITE_PORT:-5173}:${VITE_PORT:-5173}"
         volumes:
@@ -110,7 +109,7 @@ services:
             POSTGRES_USER: scrapbook
             POSTGRES_PASSWORD: 246810
         ports:
-            - "${POSTGRES_PORT:-5433}:5432"
+            - "${POSTGRES_PORT:-5432}:5432"
         volumes:
             - postgres-data:/var/lib/postgresql/data
         healthcheck:
