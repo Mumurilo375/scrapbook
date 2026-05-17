@@ -1590,3 +1590,45 @@ Campos como `metadata`, `config`, `preview_config`, `default_config`, `canvas`, 
 - Publicar uma versão arquiva versões publicadas conflitantes do mesmo tema/template.
 - `TemplateVersion` pode ser duplicada para criar um novo draft com cópia das páginas.
 - Gifts continuam apontando para as versões usadas no momento de criação/publicação; o admin não deve criar lógica que faça gifts dependerem de versões mutáveis.
+
+## 19. Fluxo inicial de criação do cliente
+
+O primeiro fluxo real do cliente transforma dados administrados no banco em um `Gift` rascunho. A landing continua sendo marketing; o fluxo de produto começa em `/criar`.
+
+### Separação de rotas
+
+Rotas públicas de criação:
+
+- `GET /criar`: lista `Occasion` ativas vindas do banco.
+- `GET /criar/{occasion:slug}`: lista `Template` ativos daquela ocasião que possuam `TemplateVersion` publicada.
+- `GET /criar/{occasion:slug}/{template:slug}`: mostra detalhes da versão publicada, páginas, tema sugerido e plano padrão ativo.
+
+Rotas autenticadas:
+
+- `POST /gifts`: cria o `Gift` draft a partir de uma `TemplateVersion` publicada.
+- `GET /app/gifts`: lista gifts do usuário autenticado.
+- `GET /app/gifts/{gift}/edit`: mostra a tela inicial de rascunho.
+- `PATCH /app/gifts/{gift}`: atualiza metadados básicos do draft.
+- `PATCH /app/gifts/{gift}/pages/{giftPage}`: atualiza o canvas JSON de uma página com `UpdateGiftPageCanvas`.
+
+### Regras do draft
+
+- A criação usa `CreateGiftFromTemplate`.
+- Apenas `TemplateVersion` publicada pode gerar gift.
+- Apenas `ThemeVersion` publicada e com tema ativo pode ser usada.
+- O plano padrão vem de `template_versions.default_config.plan_id` ou do primeiro `Plan` ativo do banco.
+- O `Gift` nasce como `draft`, privado, associado ao usuário autenticado, com `last_edited_at` preenchido.
+- As `TemplatePage` da versão publicada são copiadas para `GiftPage`, preservando `sort_order`, `page_type`, `name` e `canvas`.
+- O fluxo não gera publicação, checkout, viewer público, upload final nem editor visual avançado.
+
+### Área do usuário
+
+O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é uma ponte para o editor futuro: permite salvar metadados e editar o canvas JSON de páginas do rascunho, validando estrutura básica no servidor.
+
+### Segurança aplicada
+
+- Rotas que criam ou alteram gifts usam middleware `auth`.
+- Policies bloqueiam visualização/edição de gifts de outro usuário.
+- `GiftPage` só pode ser alterada pelo dono do gift e enquanto o gift está em `draft`.
+- Form Requests validam versões publicadas, plano ativo, ownership da página e canvas sem HTML/URLs externas arbitrárias.
+- Dados enviados às páginas Inertia são resumos mínimos, sem payloads de pagamento, hashes ou dados de outros usuários.

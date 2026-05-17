@@ -15,27 +15,29 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: admin inicial em Filament
+## Prioridade atual: fluxo de criação do cliente
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
-O domínio e banco real já foram implementados em `app/Domain`. Neste momento, a prioridade principal é operar essa base pelo painel administrativo em Filament:
+O domínio, banco real e admin inicial em Filament já foram implementados. O projeto já consegue operar ocasiões, planos, temas, templates, versões, páginas, gifts, mídia, pedidos, pagamentos e analytics sem hardcode administrativo.
 
-1. resources Filament para as entidades centrais;
-2. navegação organizada por Produto, Visual, Templates, Operação, Pagamentos e Analytics;
-3. CRUD seguro para catálogo, temas, assets e templates;
-4. views operacionais para gifts, mídia, orders, payments, visitas e eventos;
-5. validação mínima de JSON nos campos administráveis;
-6. ações administrativas de publicação/arquivamento de versões e operação de gifts.
+Neste momento, a prioridade principal é o primeiro fluxo real do cliente:
+
+1. visitante escolhe uma ocasião ativa em `/criar`;
+2. visitante escolhe um template ativo com `TemplateVersion` publicada;
+3. visitante vê detalhes do template, páginas, tema sugerido e plano padrão;
+4. para criar o `Gift` draft, o usuário precisa estar autenticado;
+5. `CreateGiftFromTemplate` cria o gift e copia `TemplatePage` para `GiftPage`;
+6. usuário acessa `/app/gifts/{gift}/edit` para edição básica de metadados/canvas JSON;
+7. usuário vê seus rascunhos em `/app/gifts`.
 
 A IA deve seguir o roadmap e não continuar refinando front, landing, demo pública, editor, checkout ou viewer sem solicitação explícita. A próxima sequência esperada é:
 
-1. admin inicial;
-2. fluxo de criação de gift a partir de template publicado;
-3. editor MVP;
-4. viewer público;
-5. checkout/publicação;
-6. demo pública refinada e landing final baseada no produto real.
+1. fluxo de criação de gift a partir de template publicado;
+2. editor MVP;
+3. viewer público;
+4. checkout/publicação;
+5. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 
@@ -46,7 +48,9 @@ A IA deve seguir o roadmap e não continuar refinando front, landing, demo públ
 - Não integrar Spotify, streaming ou hospedagem real de música.
 - Não hardcodear templates ou temas finais no frontend.
 - Não assumir que a landing atual é definitiva.
-- Não avançar para fluxo do cliente, editor, viewer público, demo pública ou checkout real sem solicitação explícita.
+- Não avançar para editor visual completo, viewer público, demo pública ou checkout real sem solicitação explícita.
+- Não criar demo pública a partir do fluxo de criação atual.
+- Não tratar a tela inicial de rascunho como editor final.
 
 ## 2. Regras de negócio não negociáveis
 

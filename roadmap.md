@@ -6,9 +6,9 @@
 
 - Landing v1 criada como rascunho inicial de branding/marketing, não como versão final do produto.
 - Domínio e banco real implementados em `app/Domain`, com migrations, models, enums, relações, casts, policies, factories, seeders, actions prioritárias e testes de domínio.
-- Prioridade atual: admin inicial em Filament para operar temas, templates, assets, planos, gifts, mídia, pedidos, pagamentos e analytics.
-- Próxima fase depois do admin: fluxo de criação de gift a partir de `TemplateVersion` publicada.
-- Depois: editor MVP.
+- Admin inicial em Filament implementado para operar temas, templates, assets, planos, gifts, mídia, pedidos, pagamentos e analytics.
+- Fase atual: fluxo de criação de gift a partir de `TemplateVersion` publicada, com dashboard simples e tela inicial de rascunho.
+- Próxima fase depois disso: editor MVP.
 - Depois: viewer público.
 - Depois: checkout/publicação.
 - Só depois: demo pública refinada e landing final baseada no produto real.
