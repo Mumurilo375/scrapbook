@@ -27,8 +27,8 @@ export function GiftImagesPanel({
             <div>
                 <h2 className="text-base font-semibold text-[#1F150A]">Biblioteca de imagens</h2>
                 <p className="mt-1 text-sm text-[#6F5A4A]">
-                    Envie imagens para sua biblioteca. Para substituir uma foto, selecione a imagem na página e use o
-                    painel do elemento.
+                    Envie imagens para sua biblioteca. Para substituir uma foto da página, selecione a imagem e use
+                    Trocar foto.
                 </p>
             </div>
 

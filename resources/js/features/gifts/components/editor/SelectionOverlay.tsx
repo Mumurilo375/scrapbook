@@ -1,10 +1,10 @@
-import type { RefObject } from 'react';
+import { useMemo, type RefObject } from 'react';
 
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
-import { isTransformableElement } from './canvasTransformUtils';
+import { isElementHidden, isTransformableElement } from './canvasTransformUtils';
 import { SelectableElement } from './SelectableElement';
 import { sortedElements } from './layerUtils';
-import { useElementTransform } from './useElementTransform';
+import { useElementTransform, type TransformMode } from './useElementTransform';
 
 type SelectionOverlayProps = {
     artboardRef: RefObject<HTMLDivElement | null>;
@@ -15,6 +15,8 @@ type SelectionOverlayProps = {
     onElementClick?: (element: CanvasElement) => void;
     onElementDoubleClick?: (element: CanvasElement) => void;
     onSelectElement: (elementId: string) => void;
+    onTransformEnd?: (elementId: string, mode: TransformMode) => void;
+    onTransformStart?: (elementId: string, mode: TransformMode) => void;
     selectedElementId: string | null;
 };
 
@@ -27,6 +29,8 @@ export function SelectionOverlay({
     onElementClick,
     onElementDoubleClick,
     onSelectElement,
+    onTransformEnd,
+    onTransformStart,
     selectedElementId,
 }: SelectionOverlayProps) {
     const transform = useElementTransform({
@@ -36,7 +40,13 @@ export function SelectionOverlay({
         onChangeElement,
         onElementClick,
         onSelectElement,
+        onTransformEnd,
+        onTransformStart,
     });
+    const selectableElements = useMemo(
+        () => sortedElements(canvas).filter((element) => isTransformableElement(element) && !isElementHidden(element)),
+        [canvas],
+    );
 
     return (
         <div
@@ -50,19 +60,17 @@ export function SelectionOverlay({
             onPointerUp={transform.endTransform}
             onPointerCancel={transform.endTransform}
         >
-            {sortedElements(canvas)
-                .filter(isTransformableElement)
-                .map((element) => (
-                    <SelectableElement
-                        canvas={canvas}
-                        disabled={disabled}
-                        element={element}
-                        key={element.id}
-                        onDoubleClick={onElementDoubleClick}
-                        onPointerDown={transform.beginTransform}
-                        selected={selectedElementId === element.id}
-                    />
-                ))}
+            {selectableElements.map((element) => (
+                <SelectableElement
+                    canvas={canvas}
+                    disabled={disabled}
+                    element={element}
+                    key={element.id}
+                    onDoubleClick={onElementDoubleClick}
+                    onPointerDown={transform.beginTransform}
+                    selected={selectedElementId === element.id}
+                />
+            ))}
         </div>
     );
 }

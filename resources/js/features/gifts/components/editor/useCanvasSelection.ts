@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
-import { isTransformableElement } from './canvasTransformUtils';
 
 export function useCanvasSelection(canvas: Canvas | null) {
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -12,7 +11,7 @@ export function useCanvasSelection(canvas: Canvas | null) {
 
         const element = canvas.elements.find((item) => item.id === selectedElementId) ?? null;
 
-        return isTransformableElement(element) ? element : null;
+        return element;
     }, [canvas, selectedElementId]);
 
     const normalizedSelectedElementId = selectedElement?.id ?? null;

@@ -1,4 +1,5 @@
 import { Eye, EyeOff, Lock } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import type { EditorPage, SaveStatus } from './editorTypes';
 
@@ -11,10 +12,10 @@ type GiftPageSidebarProps = {
 
 export function GiftPageSidebar({ onSelectPage, pageStatuses = {}, pages, selectedPageId }: GiftPageSidebarProps) {
     return (
-        <div className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-3 shadow-sm">
+        <div className="max-h-[42vh] overflow-y-auto rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-3 shadow-sm lg:max-h-[calc(100vh-112px)]">
             <div className="px-2 pb-3">
                 <h2 className="text-sm font-semibold uppercase text-[#7A2634]">Páginas</h2>
-                <p className="mt-1 text-xs text-[#6F5A4A]">{pages.length} páginas no rascunho</p>
+                <p className="mt-1 text-xs text-[#6F5A4A]">{pageCountLabel(pages.length)}</p>
             </div>
             <div className="grid gap-2">
                 {pages.map((page) => {
@@ -23,6 +24,7 @@ export function GiftPageSidebar({ onSelectPage, pageStatuses = {}, pages, select
 
                     return (
                         <button
+                            aria-current={selected ? 'page' : undefined}
                             className={`w-full rounded-[6px] border p-3 text-left transition ${
                                 selected
                                     ? 'border-[#8F211F] bg-[#F8D8D3] text-[#1F150A]'
@@ -38,13 +40,21 @@ export function GiftPageSidebar({ onSelectPage, pageStatuses = {}, pages, select
                             <span className="mt-1 block truncate text-sm font-semibold">{page.name}</span>
                             <span className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#6F5A4A]">
                                 <span className="flex min-w-0 items-center gap-2">
-                                    <span className="truncate">{page.page_type}</span>
+                                    <span className="truncate">{pageTypeLabel(page.page_type)}</span>
                                     {page.is_visible ? (
-                                        <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+                                        <StatusIcon label="Página visível">
+                                            <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+                                        </StatusIcon>
                                     ) : (
-                                        <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
+                                        <StatusIcon label="Página oculta">
+                                            <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
+                                        </StatusIcon>
                                     )}
-                                    {page.locked && <Lock aria-hidden="true" className="h-3.5 w-3.5" />}
+                                    {page.locked && (
+                                        <StatusIcon label="Página bloqueada">
+                                            <Lock aria-hidden="true" className="h-3.5 w-3.5" />
+                                        </StatusIcon>
+                                    )}
                                 </span>
                                 <PageStatusDot status={saveStatus} />
                             </span>
@@ -56,22 +66,61 @@ export function GiftPageSidebar({ onSelectPage, pageStatuses = {}, pages, select
     );
 }
 
+function StatusIcon({ children, label }: { children: ReactNode; label: string }) {
+    return (
+        <span title={label}>
+            {children}
+            <span className="sr-only">{label}</span>
+        </span>
+    );
+}
+
 function PageStatusDot({ status }: { status: SaveStatus }) {
     if (status === 'dirty') {
-        return <span className="h-2 w-2 rounded-full bg-[#C68928]" title="Alterações pendentes" />;
+        return <StatusDot color="bg-[#C68928]" label="Alterações pendentes" />;
     }
 
     if (status === 'saving') {
-        return <span className="h-2 w-2 animate-pulse rounded-full bg-[#7A2634]" title="Salvando" />;
+        return <StatusDot animated color="bg-[#7A2634]" label="Salvando" />;
     }
 
     if (status === 'error') {
-        return <span className="h-2 w-2 rounded-full bg-[#D93632]" title="Erro ao salvar" />;
+        return <StatusDot color="bg-[#D93632]" label="Erro ao salvar" />;
     }
 
     if (status === 'offline') {
-        return <span className="h-2 w-2 rounded-full bg-[#6F5A4A]" title="Sem conexão" />;
+        return <StatusDot color="bg-[#6F5A4A]" label="Sem conexão" />;
     }
 
-    return <span className="h-2 w-2 rounded-full bg-[#8AA05B]" title="Salvo" />;
+    return <StatusDot color="bg-[#8AA05B]" label="Salvo" />;
+}
+
+function StatusDot({ animated = false, color, label }: { animated?: boolean; color: string; label: string }) {
+    return (
+        <span className={`h-2 w-2 rounded-full ${animated ? 'animate-pulse' : ''} ${color}`} title={label}>
+            <span className="sr-only">{label}</span>
+        </span>
+    );
+}
+
+function pageCountLabel(count: number): string {
+    if (count === 1) {
+        return '1 página no rascunho';
+    }
+
+    return `${count} páginas no rascunho`;
+}
+
+function pageTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+        birthday: 'Aniversário',
+        cover: 'Capa',
+        final: 'Final',
+        gallery: 'Galeria',
+        letter: 'Carta',
+        love_list: 'Lista afetiva',
+        music: 'Música',
+    };
+
+    return labels[type] ?? 'Página';
 }

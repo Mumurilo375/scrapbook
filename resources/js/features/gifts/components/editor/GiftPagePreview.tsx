@@ -1,23 +1,31 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { normalizeThemeConfig, ScrapbookStage } from '../../../../components/renderer';
+import type { RendererAssetMap } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import type { ThemeConfigInput } from '../../../../components/renderer';
 import { EditableCanvasStage } from './EditableCanvasStage';
 import type { EditorPage } from './editorTypes';
+import type { TransformMode } from './useElementTransform';
 
 type GiftPagePreviewProps = {
     canGoNext: boolean;
     canGoPrevious: boolean;
+    assets?: RendererAssetMap;
     canvas: Canvas | null;
     disabled: boolean;
+    imageReplacing?: boolean;
     onChangeElement: (elementId: string, nextElement: CanvasElement) => void;
     onChangeText: (element: CanvasElement, value: string) => void;
     onClearSelection: () => void;
     onElementDoubleClick?: (element: CanvasElement) => void;
+    onElementClick?: (element: CanvasElement) => void;
     onNext: () => void;
     onPrevious: () => void;
+    onReplaceImage?: (element: CanvasElement) => void;
     onSelectElement: (elementId: string) => void;
+    onTransformEnd?: (elementId: string, mode: TransformMode) => void;
+    onTransformStart?: (elementId: string, mode: TransformMode) => void;
     maxTextLength: number;
     page: EditorPage | null;
     selectedElementId?: string | null;
@@ -25,18 +33,24 @@ type GiftPagePreviewProps = {
 };
 
 export function GiftPagePreview({
+    assets,
     canGoNext,
     canGoPrevious,
     canvas,
     disabled,
+    imageReplacing = false,
     onChangeElement,
     onChangeText,
     onClearSelection,
     onElementDoubleClick,
+    onElementClick,
     maxTextLength,
     onNext,
     onPrevious,
+    onReplaceImage,
     onSelectElement,
+    onTransformEnd,
+    onTransformStart,
     page,
     selectedElementId = null,
     theme,
@@ -60,7 +74,7 @@ export function GiftPagePreview({
                         className="mt-1 text-xs font-semibold uppercase"
                         style={{ color: rendererTheme.tokens.colors.accent }}
                     >
-                        {page?.page_type ?? 'scrapbook'}
+                        {page ? pageTypeLabel(page.page_type) : 'Sem página'}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -89,22 +103,42 @@ export function GiftPagePreview({
                 {canvas ? (
                     <EditableCanvasStage
                         canvas={canvas}
+                        assets={assets}
                         disabled={disabled}
+                        imageReplacing={imageReplacing}
                         onChangeElement={onChangeElement}
                         onChangeText={onChangeText}
                         onClearSelection={onClearSelection}
                         onElementDoubleClick={onElementDoubleClick}
+                        onElementClick={onElementClick}
+                        onReplaceImage={onReplaceImage}
                         onSelectElement={onSelectElement}
+                        onTransformEnd={onTransformEnd}
+                        onTransformStart={onTransformStart}
                         maxTextLength={maxTextLength}
                         selectedElementId={selectedElementId}
                         theme={theme}
                     />
                 ) : (
-                    <div className="flex aspect-[3/4] items-center justify-center rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFF7EE] text-sm font-semibold text-[#6F5A4A]">
-                        Nenhuma página disponível.
+                    <div className="grid aspect-[3/4] place-items-center rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFF7EE] p-6 text-center text-sm font-semibold text-[#6F5A4A]">
+                        Nenhuma página disponível para edição.
                     </div>
                 )}
             </ScrapbookStage>
         </div>
     );
+}
+
+function pageTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+        birthday: 'Aniversário',
+        cover: 'Capa',
+        final: 'Final',
+        gallery: 'Galeria',
+        letter: 'Carta',
+        love_list: 'Lista afetiva',
+        music: 'Música',
+    };
+
+    return labels[type] ?? 'Página';
 }

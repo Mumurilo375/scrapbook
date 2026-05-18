@@ -62,6 +62,7 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                 headers: {
                     Accept: 'application/json',
                     'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             });
             const payload = (await response.json().catch(() => ({}))) as UploadResponse;
@@ -73,15 +74,15 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
             }
 
             onUploaded(payload.data, uploadTargetRef.current);
+        } catch {
+            setError('Não foi possível enviar a imagem.');
+        } finally {
             uploadTargetRef.current = null;
+            setUploading(false);
 
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-        } catch {
-            setError('Não foi possível enviar a imagem.');
-        } finally {
-            setUploading(false);
         }
     }
 
@@ -97,9 +98,10 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <h3 className="text-sm font-semibold text-[#7A2634]">Biblioteca do presente</h3>
-                    <p className="mt-1 text-sm text-[#6F5A4A]">{mediaItems.length} imagem(ns) enviada(s)</p>
+                    <p className="mt-1 text-sm text-[#6F5A4A]">{imageCountLabel(mediaItems.length)}</p>
                 </div>
                 <button
+                    aria-label={uploading ? 'Enviando imagem' : 'Enviar imagem'}
                     className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] shadow-sm transition hover:bg-[#F6E4CF] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={disabled || uploading}
                     onClick={openLibraryUpload}
@@ -123,7 +125,10 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
             </div>
 
             {error ? (
-                <p className="mt-3 rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]">
+                <p
+                    className="mt-3 rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]"
+                    role="alert"
+                >
                     {error}
                 </p>
             ) : null}
@@ -132,6 +137,7 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                 <div className="grid grid-cols-3 gap-2">
                     {mediaItems.map((mediaItem) => (
                         <button
+                            aria-label={`Selecionar ${mediaItem.originalFilename ?? 'imagem enviada'}`}
                             className={`aspect-square overflow-hidden rounded-[6px] border bg-[#EAD2B8] text-left shadow-sm transition disabled:cursor-not-allowed ${
                                 selectedMediaId === mediaItem.id
                                     ? 'border-[#7A2634] ring-2 ring-[#7A26344D]'
@@ -158,8 +164,10 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                     ))}
                 </div>
             ) : (
-                <div className="flex min-h-28 items-center justify-center rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] px-4 text-center text-sm font-semibold text-[#6F5A4A]">
-                    Nenhuma imagem enviada.
+                <div className="grid min-h-32 place-items-center gap-2 rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] px-4 py-5 text-center text-sm font-semibold text-[#6F5A4A]">
+                    <ImageIcon aria-hidden="true" className="h-6 w-6 text-[#7A5A43]" />
+                    <span>Nenhuma imagem enviada ainda.</span>
+                    <span className="text-xs font-medium">Use Enviar imagem para guardar fotos neste presente.</span>
                 </div>
             )}
         </section>
@@ -168,6 +176,18 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
 
 function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function imageCountLabel(count: number): string {
+    if (count === 0) {
+        return 'Nenhuma imagem enviada';
+    }
+
+    if (count === 1) {
+        return '1 imagem enviada';
+    }
+
+    return `${count} imagens enviadas`;
 }
 
 function errorMessage(payload: UploadResponse): string {

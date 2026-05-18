@@ -65,13 +65,18 @@ function Field({ disabled, error, label, maxLength, onChange, value }: FieldProp
         <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
             {label}
             <input
-                className="min-h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none focus:border-[#D93632]"
+                className="min-h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226]"
                 disabled={disabled}
                 maxLength={maxLength}
                 onChange={(event) => onChange(event.target.value)}
+                type="text"
                 value={value}
             />
-            {error && <span className="text-xs text-[#D93632]">{error}</span>}
+            {error && (
+                <span className="text-xs font-semibold text-[#D93632]" role="alert">
+                    {error}
+                </span>
+            )}
         </label>
     );
 }

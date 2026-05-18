@@ -16,9 +16,7 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <h2 className="text-base font-semibold text-[#1F150A]">Conteúdo da página</h2>
-                    <p className="mt-1 text-sm text-[#6F5A4A]">
-                        {elements.length} texto(s) editável(is) - {statusLabel(saveStatus)}
-                    </p>
+                    <p className="mt-1 text-sm text-[#6F5A4A]">{contentStatusLabel(elements.length, saveStatus)}</p>
                 </div>
                 {disabled ? (
                     <Lock aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" />
@@ -28,7 +26,10 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
             </div>
 
             {error ? (
-                <p className="rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]">
+                <p
+                    className="rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]"
+                    role="alert"
+                >
                     {error}
                 </p>
             ) : null}
@@ -58,6 +59,12 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
             )}
         </section>
     );
+}
+
+function contentStatusLabel(count: number, status: SaveStatus): string {
+    const countLabel = count === 1 ? '1 texto editável' : `${count} textos editáveis`;
+
+    return `${countLabel} - ${statusLabel(status)}`;
 }
 
 function statusLabel(status: SaveStatus): string {

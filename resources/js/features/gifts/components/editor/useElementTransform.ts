@@ -24,6 +24,8 @@ type UseElementTransformArgs = {
     onChangeElement: (elementId: string, nextElement: CanvasElement) => void;
     onElementClick?: (element: CanvasElement) => void;
     onSelectElement: (elementId: string) => void;
+    onTransformEnd?: (elementId: string, mode: TransformMode) => void;
+    onTransformStart?: (elementId: string, mode: TransformMode) => void;
 };
 
 type TransformSession = {
@@ -45,6 +47,8 @@ export function useElementTransform({
     onChangeElement,
     onElementClick,
     onSelectElement,
+    onTransformEnd,
+    onTransformStart,
 }: UseElementTransformArgs) {
     const sessionRef = useRef<TransformSession | null>(null);
 
@@ -79,6 +83,7 @@ export function useElementTransform({
             startPoint,
         };
         event.currentTarget.setPointerCapture(event.pointerId);
+        onTransformStart?.(element.id, mode);
     }
 
     function updateTransform(event: PointerEvent<HTMLElement>) {
@@ -97,7 +102,11 @@ export function useElementTransform({
         event.preventDefault();
         event.stopPropagation();
 
-        if (session.mode === 'move' && !session.hasDragged && pointerDistance(event, session.startClientPoint) < CLICK_DRAG_THRESHOLD_PX) {
+        if (
+            session.mode === 'move' &&
+            !session.hasDragged &&
+            pointerDistance(event, session.startClientPoint) < CLICK_DRAG_THRESHOLD_PX
+        ) {
             return;
         }
 
@@ -127,7 +136,11 @@ export function useElementTransform({
 
         if (session.mode === 'move' && !session.hasDragged) {
             onElementClick?.(session.element);
+
+            return;
         }
+
+        onTransformEnd?.(session.element.id, session.mode);
     }
 
     return {

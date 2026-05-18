@@ -137,7 +137,11 @@ export type LocalDraft<TValue> = {
     value: TValue;
 };
 
-export function readLocalDraft<TValue>(key: string): LocalDraft<TValue> | null {
+type ReadLocalDraftOptions = {
+    onError?: () => void;
+};
+
+export function readLocalDraft<TValue>(key: string, options: ReadLocalDraftOptions = {}): LocalDraft<TValue> | null {
     if (!hasLocalStorage()) {
         return null;
     }
@@ -152,11 +156,17 @@ export function readLocalDraft<TValue>(key: string): LocalDraft<TValue> | null {
         const parsed = JSON.parse(rawDraft) as Partial<LocalDraft<TValue>>;
 
         if (parsed.schemaVersion !== 1 || typeof parsed.savedAt !== 'string' || parsed.value === undefined) {
+            options.onError?.();
+            clearLocalDraft(key);
+
             return null;
         }
 
         return parsed as LocalDraft<TValue>;
     } catch {
+        options.onError?.();
+        clearLocalDraft(key);
+
         return null;
     }
 }

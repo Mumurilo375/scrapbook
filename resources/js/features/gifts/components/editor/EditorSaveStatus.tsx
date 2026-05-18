@@ -13,7 +13,9 @@ export function EditorSaveStatus({ detail, status }: EditorSaveStatusProps) {
 
     return (
         <div
-            className={`inline-flex min-h-9 items-center gap-2 rounded-[6px] border px-3 text-sm font-semibold ${meta.className}`}
+            aria-live="polite"
+            className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-[6px] border px-3 text-sm font-semibold ${meta.className}`}
+            role="status"
         >
             <Icon aria-hidden="true" className={`h-4 w-4 ${status === 'saving' ? 'animate-spin' : ''}`} />
             <span>{meta.label}</span>
