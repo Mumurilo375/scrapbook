@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
 use App\Domain\Gifts\Actions\UpdateGiftPageCanvas;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
+use App\Domain\Gifts\Services\GiftPublicationChecklist;
 use App\Domain\Media\Models\MediaItem;
 use App\Domain\Payments\Models\Order;
 use App\Domain\Payments\Models\Payment;
@@ -13,6 +15,8 @@ use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Enums\PageType;
 use App\Domain\Templates\Models\TemplatePage;
 use App\Domain\Templates\Models\TemplateVersion;
+use App\Domain\Themes\Models\ThemeVersion;
+use App\Domain\Themes\ThemeConfig;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,6 +54,78 @@ class DomainFoundationTest extends TestCase
 
         $this->assertTrue($templateVersion->is($gift->templateVersion));
         $this->assertCount(2, $gift->pages);
+    }
+
+    public function test_template_page_factory_creates_canvas_with_valid_artboard(): void
+    {
+        $page = TemplatePage::factory()->create();
+
+        $this->assertSame(1, $page->canvas['schemaVersion']);
+        $this->assertSame(1, $page->canvas['version']);
+        $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $page->canvas['artboard']['width']);
+        $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $page->canvas['artboard']['height']);
+        $this->assertSame('px', $page->canvas['artboard']['unit']);
+        $this->assertSame(['type' => 'theme'], $page->canvas['artboard']['background']);
+        $this->assertSame(CanvasNormalizer::DEFAULT_SAFE_AREA, $page->canvas['artboard']['safeArea']);
+        $this->assertIsArray($page->canvas['elements']);
+    }
+
+    public function test_gift_page_factory_creates_canvas_with_valid_artboard(): void
+    {
+        $page = GiftPage::factory()->create([
+            'source_template_page_id' => null,
+        ]);
+
+        $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $page->canvas['artboard']['width']);
+        $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $page->canvas['artboard']['height']);
+        $this->assertIsArray($page->canvas['elements']);
+    }
+
+    public function test_gift_created_from_template_normalizes_canvas_missing_artboard(): void
+    {
+        $user = User::factory()->create();
+        $templateVersion = TemplateVersion::factory()->published()->create();
+
+        TemplatePage::factory()->create([
+            'template_version_id' => $templateVersion->id,
+            'page_type' => PageType::Cover,
+            'name' => 'Capa',
+            'sort_order' => 10,
+            'canvas' => [
+                'schemaVersion' => 1,
+                'elements' => [
+                    ['id' => 'title', 'type' => 'text', 'text' => 'Oi', 'x' => 10, 'y' => 20, 'w' => 100, 'h' => 40, 'z' => 1],
+                ],
+            ],
+        ]);
+
+        $gift = app(CreateGiftFromTemplate::class)->handle($user, $templateVersion);
+        $canvas = $gift->pages->firstOrFail()->canvas;
+
+        $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $canvas['artboard']['width']);
+        $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $canvas['artboard']['height']);
+        $this->assertSame('title', $canvas['elements'][0]['id']);
+    }
+
+    public function test_canvas_without_artboard_is_normalized_when_saved(): void
+    {
+        $owner = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $owner->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        app(UpdateGiftPageCanvas::class)->handle($owner, $page, [
+            'schemaVersion' => 1,
+            'elements' => [],
+        ]);
+
+        $canvas = $page->refresh()->canvas;
+
+        $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $canvas['artboard']['width']);
+        $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $canvas['artboard']['height']);
+        $this->assertSame([], $canvas['elements']);
     }
 
     public function test_gift_created_from_template_copies_theme_version_id(): void
@@ -166,9 +242,163 @@ class DomainFoundationTest extends TestCase
         $this->assertDatabaseHas('roles', ['name' => 'admin']);
         $this->assertDatabaseHas('occasions', ['slug' => 'amor-namoro']);
         $this->assertDatabaseHas('plans', ['slug' => 'presente-digital', 'price_cents' => 499]);
-        $this->assertDatabaseHas('themes', ['slug' => 'kraft-scrapbook-vintage']);
-        $this->assertDatabaseHas('templates', ['slug' => 'cartinha-de-amor-vintage']);
-        $this->assertDatabaseCount('template_pages', 5);
+        $this->assertDatabaseHas('themes', ['slug' => 'kraft-vintage', 'name' => 'Kraft Vintage']);
+        $this->assertDatabaseHas('themes', ['slug' => 'romance-delicado', 'name' => 'Romance Delicado']);
+        $this->assertDatabaseHas('themes', ['slug' => 'aniversario-fofo', 'name' => 'Aniversário Fofo']);
+        $this->assertDatabaseHas('templates', ['slug' => 'amor-namoro-basico', 'name' => 'Amor / Namoro']);
+        $this->assertDatabaseHas('templates', ['slug' => 'feliz-aniversario-basico', 'name' => 'Feliz Aniversário']);
+        $this->assertDatabaseHas('templates', ['slug' => 'melhor-amiga-basico', 'name' => 'Melhor Amiga']);
+        $this->assertDatabaseCount('themes', 3);
+        $this->assertDatabaseCount('templates', 3);
+        $this->assertDatabaseCount('template_pages', 15);
+    }
+
+    public function test_seeded_theme_configs_are_expressive_for_scrapbook_renderer(): void
+    {
+        $this->seed();
+
+        $themeVersions = ThemeVersion::query()
+            ->with('theme')
+            ->where('status', 'published')
+            ->get();
+
+        $this->assertCount(3, $themeVersions);
+        $this->assertCount(3, $themeVersions->pluck('config.page.surface')->unique());
+        $this->assertCount(3, $themeVersions->pluck('config.tokens.colors.paper')->unique());
+
+        foreach ($themeVersions as $themeVersion) {
+            $config = ThemeConfig::publicConfig($themeVersion->config);
+
+            $this->assertArrayHasKey('appBackground', $config['tokens']['colors']);
+            $this->assertArrayHasKey('bookBackground', $config['tokens']['colors']);
+            $this->assertArrayHasKey('paperAlt', $config['tokens']['colors']);
+            $this->assertArrayHasKey('mutedInk', $config['tokens']['colors']);
+            $this->assertArrayHasKey('accentSoft', $config['tokens']['colors']);
+            $this->assertArrayHasKey('spineColor', $config['book']);
+            $this->assertArrayHasKey('texture', $config['page']);
+            $this->assertArrayHasKey('edge', $config['page']);
+            $this->assertTrue($config['page']['decorations']['paperGrain']);
+            $this->assertTrue($config['elements']['image']['shadow']);
+            $this->assertTrue($config['elements']['sticker']['shadow']);
+        }
+    }
+
+    public function test_seeded_templates_use_different_published_themes(): void
+    {
+        $this->seed();
+
+        $templateThemes = TemplateVersion::query()
+            ->where('status', 'published')
+            ->whereHas('template', fn ($query) => $query->whereIn('slug', [
+                'amor-namoro-basico',
+                'feliz-aniversario-basico',
+                'melhor-amiga-basico',
+            ]))
+            ->with('themeVersion.theme')
+            ->get()
+            ->map(fn (TemplateVersion $templateVersion): ?string => $templateVersion->themeVersion?->theme?->slug)
+            ->filter()
+            ->values();
+
+        $this->assertCount(3, $templateThemes);
+        $this->assertCount(3, $templateThemes->unique());
+    }
+
+    public function test_each_seeded_template_page_has_valid_artboard(): void
+    {
+        $this->seed();
+
+        $pages = TemplatePage::query()
+            ->whereHas('templateVersion.template', fn ($query) => $query->whereIn('slug', [
+                'amor-namoro-basico',
+                'feliz-aniversario-basico',
+                'melhor-amiga-basico',
+            ]))
+            ->get();
+
+        $this->assertCount(15, $pages);
+
+        foreach ($pages as $page) {
+            $this->assertSame(1, $page->canvas['schemaVersion']);
+            $this->assertSame(1, $page->canvas['version']);
+            $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $page->canvas['artboard']['width']);
+            $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $page->canvas['artboard']['height']);
+            $this->assertSame('px', $page->canvas['artboard']['unit']);
+            $this->assertEquals(CanvasNormalizer::DEFAULT_SAFE_AREA, $page->canvas['artboard']['safeArea']);
+            $this->assertIsArray($page->canvas['elements']);
+        }
+    }
+
+    public function test_seeded_template_creates_gift_that_passes_publication_checklist(): void
+    {
+        $this->seed();
+
+        $user = User::factory()->create();
+        $templateVersion = TemplateVersion::query()
+            ->where('name', 'Amor / Namoro v1')
+            ->firstOrFail();
+
+        $gift = app(CreateGiftFromTemplate::class)->handle($user, $templateVersion);
+        $checks = app(GiftPublicationChecklist::class)->evaluate($user, $gift);
+
+        $this->assertTrue(app(GiftPublicationChecklist::class)->canPublish($checks));
+        $this->assertCount(5, $gift->pages);
+
+        foreach ($gift->pages as $page) {
+            $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $page->canvas['artboard']['width']);
+            $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $page->canvas['artboard']['height']);
+            $this->assertSame('px', $page->canvas['artboard']['unit']);
+        }
+    }
+
+    public function test_incomplete_theme_config_uses_safe_visual_fallbacks(): void
+    {
+        $config = ThemeConfig::publicConfig([
+            'tokens' => [
+                'colors' => [
+                    'paper' => '#FFF1DD',
+                ],
+            ],
+            'page' => [
+                'texture' => 'soft-confetti',
+            ],
+        ]);
+
+        $this->assertSame('#FFF1DD', $config['tokens']['colors']['paper']);
+        $this->assertSame('#F3E7D3', $config['tokens']['colors']['appBackground']);
+        $this->assertSame('#D8BE96', $config['tokens']['colors']['bookBackground']);
+        $this->assertSame('#7B4F32', $config['book']['spineColor']);
+        $this->assertSame('soft-confetti', $config['page']['texture']);
+        $this->assertSame('#FFF8EC', $config['page']['backgroundColor']);
+        $this->assertTrue($config['page']['decorations']['paperGrain']);
+    }
+
+    public function test_publication_checklist_rejects_invalid_artboard(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+            'name' => 'Capa',
+            'canvas' => [
+                'schemaVersion' => 1,
+                'version' => 1,
+                'artboard' => [
+                    'width' => 0,
+                    'height' => CanvasNormalizer::DEFAULT_HEIGHT,
+                    'unit' => 'px',
+                    'background' => ['type' => 'theme'],
+                    'safeArea' => CanvasNormalizer::DEFAULT_SAFE_AREA,
+                ],
+                'elements' => [],
+            ],
+        ]);
+
+        $checks = app(GiftPublicationChecklist::class)->evaluate($user, $gift);
+        $canvasCheck = collect($checks)->firstWhere('key', 'canvas');
+
+        $this->assertFalse($canvasCheck['passed']);
     }
 
     private function publishedTemplateVersionWithPages(): TemplateVersion

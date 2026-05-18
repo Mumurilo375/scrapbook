@@ -172,6 +172,9 @@ class CustomerGiftFlowTest extends TestCase
                 ->where('gift.id', $gift->id)
                 ->missing('gift.settings')
                 ->missing('gift.plan')
+                ->where('gift.theme.config.tokens.colors.paper', '#FFF8EC')
+                ->where('gift.theme.config.tokens.colors.appBackground', '#F3E7D3')
+                ->where('gift.theme.config.page.texture', 'paper-grain')
                 ->has('pages', 1)
                 ->where('pages.0.id', $page->id)
                 ->where('pages.0.text_max_length', 240));
@@ -214,6 +217,25 @@ class CustomerGiftFlowTest extends TestCase
         $this->assertSame('Ana', $gift->recipient_name);
         $this->assertSame('João', $gift->sender_name);
         $this->assertTrue($gift->last_edited_at?->equalTo($editedAt));
+    }
+
+    public function test_gift_metadata_autosave_can_return_json(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.update', $gift), [
+                'title' => 'Presente autosalvo',
+                'recipient_name' => 'Ana',
+                'sender_name' => 'João',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.gift.id', $gift->id)
+            ->assertJsonPath('data.gift.title', 'Presente autosalvo')
+            ->assertJsonPath('data.gift.recipient_name', 'Ana')
+            ->assertJsonPath('data.gift.sender_name', 'João');
     }
 
     public function test_user_cannot_update_forbidden_gift_fields_from_editor(): void
@@ -298,6 +320,42 @@ class CustomerGiftFlowTest extends TestCase
 
         $this->assertSame('Novo texto', $page->refresh()->canvas['elements'][0]['text']);
         $this->assertTrue($gift->refresh()->last_edited_at?->equalTo($editedAt));
+    }
+
+    public function test_page_canvas_autosave_can_return_json(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 390, 'height' => 844],
+                    'elements' => [
+                        [
+                            'id' => 'main_text',
+                            'type' => 'text',
+                            'text' => 'Texto autosalvo',
+                            'x' => 32,
+                            'y' => 96,
+                            'w' => 326,
+                            'h' => 120,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.id', $page->id)
+            ->assertJsonPath('data.page.canvas.elements.0.text', 'Texto autosalvo')
+            ->assertJsonPath('data.gift.id', $gift->id);
     }
 
     public function test_user_cannot_update_page_from_another_gift(): void

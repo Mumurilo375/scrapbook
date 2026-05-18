@@ -15,7 +15,7 @@ export default function GiftPreview({ gift }: GiftPreviewProps) {
             <Head title={`Preview ${gift.title}`}>
                 <meta content="noindex,nofollow" name="robots" />
             </Head>
-            <GiftViewerLayout>
+            <GiftViewerLayout theme={gift.theme?.config}>
                 <GiftViewerTopBar
                     createUrl={gift.urls.create}
                     editUrl={gift.urls.edit}

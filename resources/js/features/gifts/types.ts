@@ -100,6 +100,7 @@ export type EditableGift = {
     theme: {
         id: string;
         name: string;
+        config: Record<string, unknown>;
     } | null;
     update_url: string;
     preview_url: string;

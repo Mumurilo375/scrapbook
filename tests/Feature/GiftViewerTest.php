@@ -8,6 +8,7 @@ use App\Domain\Gifts\Enums\GiftVisibility;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
 use App\Domain\Media\Models\MediaItem;
+use App\Domain\Themes\ThemeConfig;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +39,10 @@ class GiftViewerTest extends TestCase
                 ->component('gifts/Preview/GiftPreview', false)
                 ->where('gift.id', $gift->id)
                 ->where('gift.status', GiftStatus::Draft->value)
+                ->where('gift.theme.config.tokens.colors.paper', '#FFF8EC')
+                ->where('gift.theme.config.tokens.colors.appBackground', '#F3E7D3')
+                ->where('gift.theme.config.book.spineColor', '#7B4F32')
+                ->where('gift.theme.config.page.texture', 'paper-grain')
                 ->where('gift.urls.edit', route('app.gifts.edit', $gift, false))
                 ->has('gift.pages', 1)
                 ->where('gift.pages.0.id', $page->id));
@@ -93,6 +98,9 @@ class GiftViewerTest extends TestCase
                 ->component('public-gifts/PublicGiftShow', false)
                 ->where('gift.title', $gift->title)
                 ->where('gift.status', GiftStatus::Published->value)
+                ->where('gift.theme.config.tokens.colors.paper', '#FFF8EC')
+                ->where('gift.theme.config.tokens.colors.bookBackground', '#D8BE96')
+                ->where('gift.theme.config.page.decorations.paperGrain', true)
                 ->has('gift.pages', 1));
     }
 
@@ -152,6 +160,65 @@ class GiftViewerTest extends TestCase
                 ->missing('gift.plan')
                 ->missing('gift.orders')
                 ->missing('gift.payments'));
+    }
+
+    public function test_public_viewer_receives_sanitized_theme_config_without_internal_paths(): void
+    {
+        $gift = Gift::factory()->published()->create();
+        $gift->themeVersion->forceFill([
+            'config' => ThemeConfig::normalize([
+                'tokens' => [
+                    'colors' => [
+                        'appBackground' => '#FBEAD8',
+                        'bookBackground' => '#E6C7A6',
+                        'paper' => '#FFF1DD',
+                        'shadow' => 'rgba(12,10,8,0.2)',
+                    ],
+                ],
+                'book' => [
+                    'spineColor' => '#7B4F32',
+                    'storage_path' => 'system/private/spine.png',
+                ],
+                'page' => [
+                    'storage_path' => 'system/private/paper.png',
+                    'backgroundColor' => '#FFF1DD',
+                    'texture' => 'vintage-stains',
+                    'decorations' => [
+                        'cornerTape' => true,
+                        'paperGrain' => true,
+                        'secretAsset' => 'private',
+                    ],
+                ],
+                'elements' => [
+                    'image' => [
+                        'shadow' => false,
+                        'storage_path' => 'system/private/frame.png',
+                    ],
+                ],
+                'storage_path' => 'private/root-secret',
+            ]),
+        ])->save();
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->get($this->publicUrl($gift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('gift.theme.config.tokens.colors.paper', '#FFF1DD')
+                ->where('gift.theme.config.tokens.colors.appBackground', '#FBEAD8')
+                ->where('gift.theme.config.book.spineColor', '#7B4F32')
+                ->where('gift.theme.config.page.backgroundColor', '#FFF1DD')
+                ->where('gift.theme.config.page.texture', 'vintage-stains')
+                ->where('gift.theme.config.page.decorations.paperGrain', true)
+                ->where('gift.theme.config.elements.image.shadow', false)
+                ->missing('gift.theme.config.storage_path')
+                ->missing('gift.theme.config.book.storage_path')
+                ->missing('gift.theme.config.page.storage_path')
+                ->missing('gift.theme.config.page.decorations.secretAsset')
+                ->missing('gift.theme.config.elements.image.storage_path'));
     }
 
     public function test_public_media_is_served_when_it_belongs_to_accessible_published_gift(): void
