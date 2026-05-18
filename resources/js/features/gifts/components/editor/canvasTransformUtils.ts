@@ -11,6 +11,9 @@ const OUTSIDE_ARTBOARD_RATIO = 0.85;
 export type TransformableElementType = 'text' | 'image' | 'sticker';
 
 export type ElementPatch = Partial<Pick<CanvasElement, 'x' | 'y' | 'w' | 'h' | 'rotation' | 'z'>> & {
+    name?: string;
+    locked?: boolean;
+    hidden?: boolean;
     style?: Record<string, unknown>;
     text?: string;
     content?: string;
@@ -50,6 +53,14 @@ export function isElementLocked(element: CanvasElement | null | undefined): bool
     }
 
     return (element as Record<string, unknown>).locked === true;
+}
+
+export function isElementHidden(element: CanvasElement | null | undefined): boolean {
+    if (!element || typeof element !== 'object') {
+        return false;
+    }
+
+    return (element as Record<string, unknown>).hidden === true;
 }
 
 export function updateCanvasElement(
@@ -146,24 +157,33 @@ export function elementCenter(element: CanvasElement): { x: number; y: number } 
 
 export function elementLabel(element: CanvasElement): string {
     const record = element as CanvasElement & Record<string, unknown>;
+    const customName = typeof record.name === 'string' ? record.name.trim() : '';
+
+    if (customName !== '') {
+        return truncateLabel(customName);
+    }
 
     if (element.type === 'text') {
         const text = typeof record.text === 'string' ? record.text : typeof record.content === 'string' ? record.content : '';
 
-        return text.trim() !== '' ? truncateLabel(text.trim()) : 'Texto';
+        return text.trim() !== '' ? `Texto: ${truncateLabel(text.trim())}` : 'Texto';
     }
 
     if (element.type === 'image') {
-        return typeof record.alt === 'string' && record.alt.trim() !== '' ? truncateLabel(record.alt.trim()) : 'Imagem';
+        return 'Imagem';
     }
 
     if (element.type === 'sticker') {
         const text = textValueForElement(element);
 
-        return text.trim() !== '' ? truncateLabel(text.trim()) : 'Sticker';
+        return text.trim() !== '' ? `Adesivo: ${truncateLabel(text.trim())}` : 'Adesivo';
     }
 
-    return element.type;
+    if (element.type === 'music') {
+        return 'Música';
+    }
+
+    return 'Elemento';
 }
 
 export function textFieldForElement(element: CanvasElement): 'text' | 'content' {

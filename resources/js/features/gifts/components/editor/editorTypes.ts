@@ -1,10 +1,19 @@
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
+import type { RendererAsset, RendererAssetCategory } from '../../../../components/renderer';
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error' | 'offline';
 
 export type EditorSaveState = SaveStatus;
 
-export type EditorTab = 'content' | 'images' | 'gift' | 'layers' | 'debug';
+export type EditorTab = 'content' | 'images' | 'stickers' | 'gift' | 'layers' | 'debug';
+
+export type EditorAssetCategory = RendererAssetCategory & {
+    description?: string | null;
+    icon?: string | null;
+    sortOrder?: number;
+};
+
+export type EditorAsset = RendererAsset;
 
 export type ImageUploadTarget = {
     pageId: string;

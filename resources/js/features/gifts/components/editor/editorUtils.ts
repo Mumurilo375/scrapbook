@@ -42,12 +42,15 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
                 ...element,
                 id: typeof element.id === 'string' && element.id !== '' ? element.id : `element_${index + 1}`,
                 type: typeof element.type === 'string' && element.type !== '' ? element.type : 'unknown',
+                name: typeof element.name === 'string' && element.name.trim() !== '' ? element.name.trim() : undefined,
                 x: numberValue(element.x, 0),
                 y: numberValue(element.y, 0),
                 w: positiveNumber(element.w ?? element.width, 120),
                 h: positiveNumber(element.h ?? element.height, 40),
                 rotation: numberValue(element.rotation, 0),
                 z: numberValue(element.z ?? element.zIndex, (index + 1) * 10),
+                locked: element.locked === true,
+                hidden: element.hidden === true,
             };
 
             return normalized;
@@ -137,11 +140,17 @@ export function applyMediaToImageElement(canvas: Canvas, elementId: string, medi
 }
 
 function textElementLabel(element: CanvasElementRecord): string {
-    if (typeof element.slotKey === 'string' && element.slotKey !== '') {
-        return element.slotKey.replaceAll('_', ' ');
+    if (typeof element.name === 'string' && element.name.trim() !== '') {
+        return element.name.trim();
     }
 
-    return element.id;
+    const text = typeof element.text === 'string' ? element.text : typeof element.content === 'string' ? element.content : '';
+
+    if (text.trim() !== '') {
+        return `Texto: ${truncateLabel(text.trim(), 36)}`;
+    }
+
+    return 'Texto';
 }
 
 function imageElementLabel(element: CanvasElementRecord): string {
@@ -174,4 +183,8 @@ function nonNegativeNumber(value: unknown, fallback: number): number {
     const number = numberValue(value, fallback);
 
     return number >= 0 ? number : fallback;
+}
+
+function truncateLabel(value: string, maxLength: number): string {
+    return value.length > maxLength ? `${value.slice(0, Math.max(0, maxLength - 3))}...` : value;
 }

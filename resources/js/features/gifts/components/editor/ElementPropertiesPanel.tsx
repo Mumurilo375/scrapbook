@@ -1,12 +1,13 @@
-import { ImageIcon, Lock, Palette, Type } from 'lucide-react';
+import { EyeOff, Lock, Palette, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { CanvasElement } from '../../../../domain/canvas/schema';
-import type { EditorMediaItem } from './editorTypes';
 import {
     elementLabel,
+    isElementHidden,
     isElementLocked,
     isTextEditableElement,
+    isTransformableElement,
     styleNumber,
     styleString,
     textValueForElement,
@@ -23,9 +24,6 @@ type ElementPropertiesPanelProps = {
     onLayerAction: (action: LayerAction) => void;
     onPatchElement: (patch: ElementPatch) => void;
     onPatchStyle: (stylePatch: Record<string, unknown>) => void;
-    onReplaceImage: () => void;
-    onUseSelectedMedia: () => void;
-    selectedMediaItem: EditorMediaItem | null;
 };
 
 type NumberField = 'x' | 'y' | 'w' | 'h' | 'rotation' | 'z';
@@ -38,92 +36,113 @@ export function ElementPropertiesPanel({
     onLayerAction,
     onPatchElement,
     onPatchStyle,
-    onReplaceImage,
-    onUseSelectedMedia,
-    selectedMediaItem,
 }: ElementPropertiesPanelProps) {
     if (!element) {
         return (
             <section className="mb-4 rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-3 text-sm text-[#6F5A4A]">
-                Selecione um texto, imagem ou sticker na página.
+                Selecione um texto, imagem ou adesivo na página.
             </section>
         );
     }
 
-    const locked = disabled || isElementLocked(element);
+    const elementLocked = isElementLocked(element);
+    const hidden = isElementHidden(element);
+    const locked = disabled || elementLocked || hidden;
     const label = elementLabel(element);
 
     return (
         <section className="mb-4 grid min-w-0 gap-4 overflow-hidden rounded-[8px] border border-[#D8B991] bg-[#FFFBF6] p-3 text-[#1F150A]">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase text-[#7A2634]">Elemento selecionado</p>
+                    <p className="text-xs font-semibold uppercase text-[#7A2634]">Item selecionado</p>
                     <h2 className="mt-1 truncate text-base font-semibold">{label}</h2>
                     <p className="mt-1 text-xs font-semibold uppercase text-[#6F5A4A]">{typeLabel(element.type)}</p>
                 </div>
-                {locked ? <Lock aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" /> : null}
-            </div>
-
-            <div className="grid min-w-0 gap-3">
-                <FieldGroup title="Posição">
-                    <NumberInput disabled={locked} label="X" onChange={(value) => patchNumber('x', value)} value={element.x} />
-                    <NumberInput disabled={locked} label="Y" onChange={(value) => patchNumber('y', value)} value={element.y} />
-                </FieldGroup>
-                <FieldGroup title="Tamanho">
-                    <NumberInput disabled={locked} label="Largura" onChange={(value) => patchNumber('w', value)} value={element.w} />
-                    <NumberInput disabled={locked} label="Altura" onChange={(value) => patchNumber('h', value)} value={element.h} />
-                </FieldGroup>
-                <FieldGroup title="Transformação">
-                    <NumberInput
-                        disabled={locked}
-                        label="Rotação"
-                        onChange={(value) => patchNumber('rotation', value)}
-                        value={element.rotation}
-                    />
-                    <NumberInput disabled={locked} label="Camada" onChange={(value) => patchNumber('z', value)} value={element.z} />
-                </FieldGroup>
-            </div>
-
-            <div className="grid gap-2">
-                <p className="text-xs font-semibold uppercase text-[#7A2634]">Camadas</p>
-                <LayerControls disabled={locked} onAction={onLayerAction} />
-            </div>
-
-            {isTextEditableElement(element) ? (
-                <TextControls
-                    disabled={locked}
-                    element={element}
-                    maxTextLength={maxTextLength}
-                    onChangeText={onChangeText}
-                    onPatchStyle={onPatchStyle}
-                />
-            ) : null}
-
-            {element.type === 'image' ? (
-                <div className="grid gap-2">
-                    <p className="text-xs font-semibold uppercase text-[#7A2634]">Imagem</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                        <button
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF8EF] px-3 text-sm font-semibold text-[#42291D] transition hover:bg-[#F6E4CF] disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={locked}
-                            onClick={onReplaceImage}
-                            type="button"
-                        >
-                            <ImageIcon aria-hidden="true" className="h-4 w-4" />
-                            <span>Trocar imagem</span>
-                        </button>
-                        <button
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF8EF] px-3 text-sm font-semibold text-[#42291D] transition hover:bg-[#F6E4CF] disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={locked || !selectedMediaItem}
-                            onClick={onUseSelectedMedia}
-                            type="button"
-                        >
-                            <ImageIcon aria-hidden="true" className="h-4 w-4" />
-                            <span>Usar selecionada</span>
-                        </button>
-                    </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    {hidden ? <EyeOff aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" /> : null}
+                    {disabled || elementLocked ? <Lock aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" /> : null}
                 </div>
+            </div>
+
+            {hidden ? (
+                <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
+                    Item oculto.
+                </p>
             ) : null}
+
+            {elementLocked ? (
+                <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
+                    Item bloqueado. Desbloqueie em Camadas para editar.
+                </p>
+            ) : null}
+
+            {isTransformableElement(element) ? (
+                <>
+                    <div className="grid min-w-0 gap-3">
+                        <FieldGroup title="Posição">
+                            <NumberInput
+                                disabled={locked}
+                                label="Horizontal"
+                                onChange={(value) => patchNumber('x', value)}
+                                value={element.x}
+                            />
+                            <NumberInput
+                                disabled={locked}
+                                label="Vertical"
+                                onChange={(value) => patchNumber('y', value)}
+                                value={element.y}
+                            />
+                        </FieldGroup>
+                        <FieldGroup title="Tamanho">
+                            <NumberInput
+                                disabled={locked}
+                                label="Largura"
+                                onChange={(value) => patchNumber('w', value)}
+                                value={element.w}
+                            />
+                            <NumberInput
+                                disabled={locked}
+                                label="Altura"
+                                onChange={(value) => patchNumber('h', value)}
+                                value={element.h}
+                            />
+                        </FieldGroup>
+                        <FieldGroup title="Transformação">
+                            <NumberInput
+                                disabled={locked}
+                                label="Rotação"
+                                onChange={(value) => patchNumber('rotation', value)}
+                                value={element.rotation}
+                            />
+                            <NumberInput
+                                disabled={locked}
+                                label="Camada"
+                                onChange={(value) => patchNumber('z', value)}
+                                value={element.z}
+                            />
+                        </FieldGroup>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <p className="text-xs font-semibold uppercase text-[#7A2634]">Camadas</p>
+                        <LayerControls disabled={locked} onAction={onLayerAction} />
+                    </div>
+
+                    {isTextEditableElement(element) ? (
+                        <TextControls
+                            disabled={locked}
+                            element={element}
+                            maxTextLength={maxTextLength}
+                            onChangeText={onChangeText}
+                            onPatchStyle={onPatchStyle}
+                        />
+                    ) : null}
+                </>
+            ) : (
+                <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
+                    Item preservado.
+                </p>
+            )}
         </section>
     );
 
@@ -151,7 +170,7 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
             <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
                 <span className="inline-flex items-center gap-2">
                     <Type aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
-                    {element.type === 'sticker' ? 'Texto do sticker' : 'Texto'}
+                    {element.type === 'sticker' ? 'Texto do adesivo' : 'Texto'}
                 </span>
                 <textarea
                     className="min-h-24 w-full min-w-0 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
@@ -168,7 +187,7 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_72px]">
                 <NumberInput
                     disabled={disabled}
-                    label="Fonte"
+                    label="Tamanho"
                     min={8}
                     onChange={(nextValue) => onPatchStyle({ fontSize: nextValue })}
                     value={fontSize}
@@ -266,10 +285,10 @@ function typeLabel(type: string): string {
     }
 
     if (type === 'sticker') {
-        return 'Sticker';
+        return 'Adesivo';
     }
 
-    return type;
+    return 'Item';
 }
 
 function colorInputValue(color: string | null): string {
