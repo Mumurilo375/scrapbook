@@ -1,6 +1,7 @@
 import type { CSSProperties, DragEvent } from 'react';
 import { useState } from 'react';
 import type { CanvasElement } from '../../domain/canvas/schema';
+import { isRecord, type NormalizedThemeConfig } from './theme';
 
 const MEDIA_ITEM_DRAG_MIME = 'application/x-scrapbook-media-item-id';
 
@@ -10,17 +11,30 @@ type ImageElementProps = {
     onDropMedia?: (mediaItemId: string) => void;
     selected?: boolean;
     style: CSSProperties;
+    theme: NormalizedThemeConfig;
 };
 
-export function ImageElement({ element, onClick, onDropMedia, selected = false, style }: ImageElementProps) {
+export function ImageElement({ element, onClick, onDropMedia, selected = false, style, theme }: ImageElementProps) {
     const src = typeof element.src === 'string' ? safeImageSrc(element.src) : undefined;
     const alt = typeof element.alt === 'string' ? element.alt : '';
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const failed = Boolean(src && failedSrc === src);
     const interactiveClass = onClick ? 'cursor-pointer' : '';
-    const selectedClass = selected ? 'ring-2 ring-[#7A2634] ring-offset-2 ring-offset-[#FFF7EE]' : '';
-    const dragOverClass = dragOver ? 'border-[#167A6A] bg-[#E8F6F1] ring-2 ring-[#167A6A] ring-offset-2 ring-offset-[#FFF7EE]' : '';
+    const selectedClass = selected ? 'ring-2 ring-[var(--scrap-accent)] ring-offset-2 ring-offset-[var(--scrap-paper)]' : '';
+    const dragOverClass = dragOver ? 'border-[var(--scrap-leaf)] bg-[#E8F6F1] ring-2 ring-[var(--scrap-leaf)] ring-offset-2 ring-offset-[var(--scrap-paper)]' : '';
+    const elementStyle = isRecord(element.style) ? element.style : {};
+    const frame = typeof elementStyle.frame === 'string' ? elementStyle.frame : theme.elements.image.defaultFrame;
+    const framed = frame === 'polaroid';
+    const frameStyle = framed
+        ? {
+              backgroundColor: theme.tokens.colors.paper,
+              borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 44%, transparent)`,
+              boxShadow: theme.elements.image.shadow ? `0 14px 28px ${theme.tokens.colors.shadow}` : undefined,
+              padding: '3.8%',
+              paddingBottom: '10%',
+          }
+        : {};
     const dropHandlers = onDropMedia
         ? {
               onDragEnter: handleDragEnter,
@@ -31,14 +45,25 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         : {};
 
     if (!src || failed) {
+        const placeholderStyle = {
+            ...style,
+            ...frameStyle,
+            backgroundColor: framed ? theme.tokens.colors.paper : `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 74%, white)`,
+            backgroundImage:
+                'linear-gradient(135deg, rgba(255,255,255,0.34), transparent 32%), radial-gradient(circle at 50% 42%, rgba(58,36,24,0.08), transparent 28%)',
+            borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 56%, transparent)`,
+            color: theme.tokens.colors.mutedInk,
+            fontSize: '2.7cqw',
+        };
+
         if (!onClick) {
             return (
                 <div
-                    className={`absolute flex items-center justify-center rounded-[4px] border border-dashed border-[#CBA980] bg-[#EED8CC] px-2 text-center text-[10px] font-semibold uppercase text-[#7A5A43] ${selectedClass} ${dragOverClass}`}
-                    style={style}
+                    className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center font-semibold uppercase ${selectedClass} ${dragOverClass}`}
+                    style={placeholderStyle}
                     {...dropHandlers}
                 >
-                    Imagem
+                    Foto
                 </div>
             );
         }
@@ -46,21 +71,27 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         return (
             <button
                 aria-label="Selecionar espaço de imagem"
-                className={`absolute flex items-center justify-center rounded-[4px] border border-dashed border-[#CBA980] bg-[#EED8CC] px-2 text-center text-[10px] font-semibold uppercase text-[#7A5A43] ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+                className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center font-semibold uppercase ${interactiveClass} ${selectedClass} ${dragOverClass}`}
                 onClick={onClick}
-                style={style}
+                style={placeholderStyle}
                 type="button"
                 {...dropHandlers}
             >
-                Imagem
+                Foto
             </button>
         );
     }
 
+    const imageFrameStyle = {
+        ...style,
+        ...frameStyle,
+        borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 36%, transparent)`,
+    };
+
     if (!onClick) {
         return (
-            <div className={`absolute overflow-hidden rounded-[4px] ${selectedClass} ${dragOverClass}`} style={style} {...dropHandlers}>
-                <img alt={alt} className="h-full w-full object-cover" draggable={false} onError={() => setFailedSrc(src)} src={src} />
+            <div className={`absolute overflow-hidden rounded-[8px] border ${selectedClass} ${dragOverClass}`} style={imageFrameStyle} {...dropHandlers}>
+                <img alt={alt} className="h-full w-full rounded-[4px] object-cover" draggable={false} onError={() => setFailedSrc(src)} src={src} />
             </div>
         );
     }
@@ -68,13 +99,13 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
     return (
         <button
             aria-label={alt !== '' ? `Selecionar imagem ${alt}` : 'Selecionar imagem'}
-            className={`absolute overflow-hidden rounded-[4px] ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+            className={`absolute overflow-hidden rounded-[8px] border ${interactiveClass} ${selectedClass} ${dragOverClass}`}
             onClick={onClick}
-            style={style}
+            style={imageFrameStyle}
             type="button"
             {...dropHandlers}
         >
-            <img alt={alt} className="h-full w-full object-cover" draggable={false} onError={() => setFailedSrc(src)} src={src} />
+            <img alt={alt} className="h-full w-full rounded-[4px] object-cover" draggable={false} onError={() => setFailedSrc(src)} src={src} />
         </button>
     );
 
