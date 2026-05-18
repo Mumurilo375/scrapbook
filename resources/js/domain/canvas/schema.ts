@@ -3,6 +3,8 @@ import { z } from 'zod';
 export const artboardSchema = z.object({
     width: z.number().positive(),
     height: z.number().positive(),
+    unit: z.literal('px').optional(),
+    background: z.record(z.string(), z.unknown()).optional(),
     safeArea: z.object({
         top: z.number().min(0),
         right: z.number().min(0),
@@ -26,6 +28,7 @@ export const canvasElementSchema = z
 
 export const canvasSchema = z.object({
     schemaVersion: z.literal(1),
+    version: z.literal(1).optional(),
     artboard: artboardSchema,
     background: z.record(z.string(), z.unknown()).optional(),
     elements: z.array(canvasElementSchema),
