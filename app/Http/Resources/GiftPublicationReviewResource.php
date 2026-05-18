@@ -70,6 +70,10 @@ class GiftPublicationReviewResource extends JsonResource
                 'checkout' => route('app.gifts.checkout', $this->resource, false),
                 'publish' => route('app.gifts.publish', $this->resource, false),
                 'public' => $publicUrl,
+                'share' => $publicUrl !== null ? route('app.gifts.share', $this->resource, false) : null,
+                'qr_code' => $publicUrl !== null ? route('app.gifts.qr-code', $this->resource, false) : null,
+                'qr_code_download' => $publicUrl !== null ? route('app.gifts.qr-code', $this->resource, false).'?download=1' : null,
+                'share_card' => $publicUrl !== null ? route('app.gifts.share-card', $this->resource, false) : null,
             ],
         ];
     }

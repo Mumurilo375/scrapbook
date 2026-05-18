@@ -70,6 +70,10 @@ class OrderStatusController extends Controller
                     'review' => route('app.gifts.review', $gift, false),
                     'checkout' => route('app.gifts.checkout', $gift, false),
                     'public' => $publicUrl,
+                    'share' => $publicUrl !== null ? route('app.gifts.share', $gift, false) : null,
+                    'qr_code' => $publicUrl !== null ? route('app.gifts.qr-code', $gift, false) : null,
+                    'qr_code_download' => $publicUrl !== null ? route('app.gifts.qr-code', $gift, false).'?download=1' : null,
+                    'share_card' => $publicUrl !== null ? route('app.gifts.share-card', $gift, false) : null,
                 ],
             ],
             'plan' => $plan === null ? null : [

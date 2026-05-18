@@ -14,7 +14,7 @@ export function CheckoutSummary({ gift }: CheckoutSummaryProps) {
         <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Gift</p>
+                    <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Presente</p>
                     <h1 className="mt-3 text-3xl font-semibold text-[#1F150A]">{gift.title}</h1>
                     <p className="mt-2 text-sm font-semibold text-[#6F5A4A]">
                         {gift.recipient_name ? `Para ${gift.recipient_name}` : 'Sem destinatário'}
@@ -43,7 +43,7 @@ export function CheckoutSummary({ gift }: CheckoutSummaryProps) {
                     href={gift.urls.preview}
                 >
                     <Eye aria-hidden="true" className="h-4 w-4" />
-                    Preview
+                    Pré-visualizar
                 </Link>
                 <Link
                     className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"

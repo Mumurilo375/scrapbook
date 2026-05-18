@@ -72,6 +72,9 @@ class UserGiftDashboardController extends Controller
             'checkout_url' => route('app.gifts.checkout', $gift),
             'order_url' => $this->latestOrderUrl($gift),
             'public_url' => $publicUrl,
+            'share_url' => $publicUrl !== null ? route('app.gifts.share', $gift) : null,
+            'qr_code_download_url' => $publicUrl !== null ? route('app.gifts.qr-code', $gift).'?download=1' : null,
+            'share_card_url' => $publicUrl !== null ? route('app.gifts.share-card', $gift) : null,
         ];
     }
 

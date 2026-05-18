@@ -3,12 +3,16 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Gifts\CreateGiftFlowController;
+use App\Http\Controllers\Gifts\GiftAssetController;
 use App\Http\Controllers\Gifts\GiftController;
 use App\Http\Controllers\Gifts\GiftMediaController;
 use App\Http\Controllers\Gifts\GiftPageController;
 use App\Http\Controllers\Gifts\GiftPreviewController;
 use App\Http\Controllers\Gifts\GiftPublicationController;
+use App\Http\Controllers\Gifts\GiftQrCodeController;
 use App\Http\Controllers\Gifts\GiftReviewController;
+use App\Http\Controllers\Gifts\GiftShareCardController;
+use App\Http\Controllers\Gifts\GiftShareController;
 use App\Http\Controllers\Gifts\PublicGiftController;
 use App\Http\Controllers\Gifts\PublicGiftMediaController;
 use App\Http\Controllers\Gifts\UserGiftDashboardController;
@@ -57,10 +61,15 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/app/gifts/{gift}/edit', [GiftController::class, 'edit'])->name('app.gifts.edit');
     Route::get('/app/gifts/{gift}/preview', GiftPreviewController::class)->name('app.gifts.preview');
     Route::get('/app/gifts/{gift}/review', GiftReviewController::class)->name('app.gifts.review');
+    Route::get('/app/gifts/{gift}/share', GiftShareController::class)->name('app.gifts.share');
+    Route::get('/app/gifts/{gift}/qr-code', GiftQrCodeController::class)->name('app.gifts.qr-code');
+    Route::get('/app/gifts/{gift}/share-card', GiftShareCardController::class)->name('app.gifts.share-card');
+    Route::get('/app/gifts/{gift}/share-card/download', [GiftShareCardController::class, 'download'])->name('app.gifts.share-card.download');
     Route::get('/app/gifts/{gift}/checkout', [GiftCheckoutController::class, 'show'])->name('app.gifts.checkout');
     Route::post('/app/gifts/{gift}/checkout', [GiftCheckoutController::class, 'store'])->name('app.gifts.checkout.store');
     Route::post('/app/gifts/{gift}/publish', GiftPublicationController::class)->name('app.gifts.publish');
     Route::patch('/app/gifts/{gift}', [GiftController::class, 'update'])->name('app.gifts.update');
+    Route::get('/app/gifts/{gift}/assets', [GiftAssetController::class, 'index'])->name('app.gifts.assets.index');
     Route::get('/app/gifts/{gift}/media', [GiftMediaController::class, 'index'])->name('app.gifts.media.index');
     Route::post('/app/gifts/{gift}/media', [GiftMediaController::class, 'store'])
         ->middleware('throttle:media-upload')

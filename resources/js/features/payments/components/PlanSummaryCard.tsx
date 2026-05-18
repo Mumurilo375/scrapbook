@@ -12,7 +12,7 @@ export function PlanSummaryCard({ plan }: PlanSummaryCardProps) {
     if (!plan) {
         return (
             <section className="rounded-[8px] border border-[#D93632] bg-[#F8D8D3] p-5 text-sm font-semibold text-[#8F211F] shadow-sm">
-                Nenhum plano ativo disponível para este checkout.
+                Nenhum plano disponível agora.
             </section>
         );
     }
@@ -52,8 +52,8 @@ export function PlanSummaryCard({ plan }: PlanSummaryCardProps) {
             </dl>
 
             <p className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[#6F5A4A]">
-                <Receipt aria-hidden="true" className="h-4 w-4" />O valor vem do plano no banco e não é enviado pelo
-                frontend.
+                <Receipt aria-hidden="true" className="h-4 w-4" />O valor vem do plano escolhido e fica protegido pelo
+                sistema.
             </p>
         </section>
     );

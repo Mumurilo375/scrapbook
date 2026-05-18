@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, CreditCard, ExternalLink, Eye, PenLine } from 'lucide-react';
+import { ArrowLeft, CreditCard, Download, ExternalLink, Eye, PenLine, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { GiftStatusBadge } from '../../../gifts/components/GiftStatusBadge';
@@ -37,7 +37,7 @@ export default function OrderShow({ order, dev_approval_enabled }: OrderShowProp
 
     return (
         <>
-            <Head title={`Pedido ${order.id}`} />
+            <Head title="Pedido" />
             <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
                 <header className="border-b border-[#D8B991] bg-[#F4E8D9]/95 backdrop-blur">
                     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
@@ -63,7 +63,7 @@ export default function OrderShow({ order, dev_approval_enabled }: OrderShowProp
                             <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Status</p>
                             <div className="mt-3 flex flex-wrap items-center gap-3">
                                 <h1 className="text-3xl font-semibold text-[#1F150A]">
-                                    {gift?.title ?? 'Pedido de gift'}
+                                    {gift?.title ?? 'Pedido do presente'}
                                 </h1>
                                 {gift ? <GiftStatusBadge status={gift.status} /> : null}
                             </div>
@@ -82,7 +82,7 @@ export default function OrderShow({ order, dev_approval_enabled }: OrderShowProp
                                         href={gift.urls.preview}
                                     >
                                         <Eye aria-hidden="true" className="h-4 w-4" />
-                                        Preview
+                                        Pré-visualizar
                                     </Link>
                                     <Link
                                         className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
@@ -92,13 +92,34 @@ export default function OrderShow({ order, dev_approval_enabled }: OrderShowProp
                                         Editar
                                     </Link>
                                     {gift.public_url ? (
-                                        <Link
-                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
-                                            href={gift.public_url}
-                                        >
-                                            <ExternalLink aria-hidden="true" className="h-4 w-4" />
-                                            Link público
-                                        </Link>
+                                        <>
+                                            {gift.urls.share ? (
+                                                <Link
+                                                    className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                                    href={gift.urls.share}
+                                                >
+                                                    <Share2 aria-hidden="true" className="h-4 w-4" />
+                                                    Compartilhar
+                                                </Link>
+                                            ) : null}
+                                            <Link
+                                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                                                href={gift.public_url}
+                                            >
+                                                <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                                                Link público
+                                            </Link>
+                                            {gift.urls.qr_code_download ? (
+                                                <a
+                                                    className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                                    download
+                                                    href={gift.urls.qr_code_download}
+                                                >
+                                                    <Download aria-hidden="true" className="h-4 w-4" />
+                                                    Baixar QR
+                                                </a>
+                                            ) : null}
+                                        </>
                                     ) : null}
                                 </div>
                             ) : null}
@@ -112,6 +133,14 @@ export default function OrderShow({ order, dev_approval_enabled }: OrderShowProp
 
                     <div className="grid content-start gap-5">
                         <OrderStatusCard order={order} publicUrl={gift?.public_url ?? null} />
+                        {gift?.urls.qr_code ? (
+                            <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 text-center shadow-sm">
+                                <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">QR Code</p>
+                                <div className="mt-4 inline-flex rounded-[8px] border border-[#E5D0B8] bg-white p-4 shadow-inner">
+                                    <img alt="QR Code do presente publicado" className="h-44 w-44" src={gift.urls.qr_code} />
+                                </div>
+                            </section>
+                        ) : null}
                     </div>
                 </section>
             </main>

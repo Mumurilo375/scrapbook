@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ClipboardCheck, CreditCard, ExternalLink, Gift, LogOut, PenLine, Plus } from 'lucide-react';
+import { ClipboardCheck, CreditCard, ExternalLink, Gift, LogOut, PenLine, Plus, Share2 } from 'lucide-react';
 
 import { formatDate } from '../../components/formatters';
 import { GiftStatusBadge } from '../../components/GiftStatusBadge';
@@ -17,7 +17,7 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
 
     return (
         <>
-            <Head title="Meus gifts" />
+            <Head title="Meus presentes" />
             <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
                 <header className="border-b border-[#E5D0B8] bg-[#F4E8D9]/92">
                     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
@@ -50,7 +50,7 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                 <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                     <div className="max-w-3xl">
                         <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Painel</p>
-                        <h1 className="mt-4 text-4xl font-semibold text-[#1F150A]">Meus gifts</h1>
+                        <h1 className="mt-4 text-4xl font-semibold text-[#1F150A]">Meus presentes</h1>
                     </div>
 
                     <div className="mt-8 overflow-hidden rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] shadow-sm">
@@ -66,7 +66,7 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                                             <h2 className="mt-3 text-lg font-semibold text-[#1F150A]">{gift.title}</h2>
                                             <p className="mt-1 text-sm text-[#42291D]">
                                                 {gift.occasion?.name ?? 'Sem ocasião'} ·{' '}
-                                                {gift.template?.name ?? 'Sem template'}
+                                                {gift.template?.name ?? 'Sem modelo'}
                                             </p>
                                         </div>
                                         <div className="text-sm text-[#42291D]">
@@ -91,14 +91,23 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                                                 <PenLine aria-hidden="true" className="h-4 w-4" />
                                                 Editar
                                             </Link>
-                                            {gift.public_url ? (
-                                                <Link
-                                                    className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
-                                                    href={gift.public_url}
-                                                >
-                                                    <ExternalLink aria-hidden="true" className="h-4 w-4" />
-                                                    Ver link
-                                                </Link>
+                                            {gift.public_url && gift.share_url ? (
+                                                <>
+                                                    <Link
+                                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                                        href={gift.share_url}
+                                                    >
+                                                        <Share2 aria-hidden="true" className="h-4 w-4" />
+                                                        Compartilhar
+                                                    </Link>
+                                                    <Link
+                                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                                                        href={gift.public_url}
+                                                    >
+                                                        <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                                                        Abrir link
+                                                    </Link>
+                                                </>
                                             ) : gift.status === 'pending_payment' && gift.order_url ? (
                                                 <Link
                                                     className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
@@ -121,9 +130,18 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-6 text-[#42291D]">
-                                <p>Você ainda não criou nenhum gift.</p>
-                                <Link className="mt-4 inline-flex font-semibold text-[#D93632]" href={createUrl}>
+                            <div className="grid gap-4 p-6 text-[#42291D] sm:p-8">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-[#1F150A]">Nenhum presente criado ainda</h2>
+                                    <p className="mt-2 text-sm text-[#6F5A4A]">
+                                        Escolha uma ocasião e comece com um modelo pronto para editar.
+                                    </p>
+                                </div>
+                                <Link
+                                    className="inline-flex min-h-10 w-fit items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                    href={createUrl}
+                                >
+                                    <Plus aria-hidden="true" className="h-4 w-4" />
                                     Escolher uma ocasião
                                 </Link>
                             </div>

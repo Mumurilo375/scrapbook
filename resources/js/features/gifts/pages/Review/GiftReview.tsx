@@ -5,10 +5,13 @@ import {
     CheckCircle2,
     Clipboard,
     CreditCard,
+    Download,
     ExternalLink,
     Eye,
     Gift,
     PenLine,
+    Printer,
+    Share2,
     XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -53,6 +56,10 @@ type ReviewGift = {
         checkout: string;
         publish: string;
         public: string | null;
+        share: string | null;
+        qr_code: string | null;
+        qr_code_download: string | null;
+        share_card: string | null;
     };
 };
 
@@ -139,6 +146,15 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                             <div className="rounded-[8px] border border-[#7E8F68] bg-[#F2F5E8] p-4 shadow-sm">
                                 <p className="text-sm font-semibold text-[#48573A]">Link público disponível</p>
                                 <p className="mt-2 break-all text-sm text-[#42291D]">{gift.public_url}</p>
+                                {gift.urls.qr_code ? (
+                                    <div className="mt-4 flex justify-center rounded-[8px] border border-[#E5D0B8] bg-white p-3">
+                                        <img
+                                            alt="QR Code do presente publicado"
+                                            className="h-32 w-32"
+                                            src={gift.urls.qr_code}
+                                        />
+                                    </div>
+                                ) : null}
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     <Link
                                         className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
@@ -155,6 +171,34 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                         <Clipboard aria-hidden="true" className="h-4 w-4" />
                                         {copied ? 'Copiado' : 'Copiar'}
                                     </button>
+                                    {gift.urls.share ? (
+                                        <Link
+                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                            href={gift.urls.share}
+                                        >
+                                            <Share2 aria-hidden="true" className="h-4 w-4" />
+                                            Compartilhar
+                                        </Link>
+                                    ) : null}
+                                    {gift.urls.qr_code_download ? (
+                                        <a
+                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                            download
+                                            href={gift.urls.qr_code_download}
+                                        >
+                                            <Download aria-hidden="true" className="h-4 w-4" />
+                                            Baixar QR
+                                        </a>
+                                    ) : null}
+                                    {gift.urls.share_card ? (
+                                        <Link
+                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                            href={gift.urls.share_card}
+                                        >
+                                            <Printer aria-hidden="true" className="h-4 w-4" />
+                                            Criar cartão
+                                        </Link>
+                                    ) : null}
                                 </div>
                             </div>
                         ) : null}
@@ -191,13 +235,24 @@ export default function GiftReview({ gift }: GiftReviewProps) {
 
                             <div className="mt-5 flex flex-wrap gap-2">
                                 {isPublished && gift.public_url ? (
-                                    <Link
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-4 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
-                                        href={gift.public_url}
-                                    >
-                                        <ExternalLink aria-hidden="true" className="h-4 w-4" />
-                                        Abrir link público
-                                    </Link>
+                                    <>
+                                        {gift.urls.share ? (
+                                            <Link
+                                                className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                                href={gift.urls.share}
+                                            >
+                                                <Share2 aria-hidden="true" className="h-4 w-4" />
+                                                Compartilhar
+                                            </Link>
+                                        ) : null}
+                                        <Link
+                                            className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-4 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                                            href={gift.public_url}
+                                        >
+                                            <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                                            Abrir link público
+                                        </Link>
+                                    </>
                                 ) : gift.order ? (
                                     <Link
                                         className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"

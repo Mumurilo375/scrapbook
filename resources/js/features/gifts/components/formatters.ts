@@ -25,5 +25,5 @@ export function humanStatus(status: string): string {
         disabled: 'Desativado',
     };
 
-    return labels[status] ?? status;
+    return labels[status] ?? 'Status desconhecido';
 }

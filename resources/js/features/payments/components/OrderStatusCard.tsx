@@ -40,7 +40,7 @@ export function OrderStatusCard({ order, publicUrl = null }: OrderStatusCardProp
 
             <dl className="mt-5 grid gap-3 text-sm text-[#42291D] sm:grid-cols-3">
                 <Info label="Valor" value={formatPrice(order.amount_cents, order.currency)} />
-                <Info label="Provider" value={order.provider ?? 'A definir'} />
+                <Info label="Forma de confirmação" value={paymentProviderLabel(order.provider)} />
                 <Info label="Expira em" value={formatDate(order.expires_at)} />
             </dl>
 
@@ -99,4 +99,16 @@ function humanPaymentStatus(status: string): string {
     };
 
     return labels[status] ?? status;
+}
+
+function paymentProviderLabel(provider: string | null): string {
+    if (!provider) {
+        return 'A definir';
+    }
+
+    if (provider === 'manual_dev') {
+        return 'Aprovação interna';
+    }
+
+    return 'Confirmação externa';
 }

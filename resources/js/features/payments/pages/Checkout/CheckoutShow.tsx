@@ -43,7 +43,7 @@ export default function CheckoutShow({ gift, plan, order, checks, can_checkout, 
 
     return (
         <>
-            <Head title={`Checkout ${gift.title}`} />
+            <Head title={`Finalizar ${gift.title}`} />
             <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
                 <header className="border-b border-[#D8B991] bg-[#F4E8D9]/95 backdrop-blur">
                     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
@@ -80,10 +80,10 @@ export default function CheckoutShow({ gift, plan, order, checks, can_checkout, 
                                         Requisitos
                                     </p>
                                     <h2 className="mt-3 text-xl font-semibold text-[#1F150A]">
-                                        {failedErrors.length === 0 ? 'Pronto para checkout' : 'Ajustes necessários'}
+                                        {failedErrors.length === 0 ? 'Pronto para finalizar' : 'Ajustes necessários'}
                                     </h2>
                                     <p className="mt-2 text-sm text-[#6F5A4A]">
-                                        O pedido só é criado quando os requisitos obrigatórios do gift estão válidos.
+                                        O pedido só é criado quando os requisitos obrigatórios do presente estão válidos.
                                     </p>
                                 </div>
                                 <StatusPill errors={failedErrors.length} />

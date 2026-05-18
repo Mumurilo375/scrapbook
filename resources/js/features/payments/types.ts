@@ -68,6 +68,10 @@ export type OrderShowData = {
             review: string;
             checkout: string;
             public: string | null;
+            share: string | null;
+            qr_code: string | null;
+            qr_code_download: string | null;
+            share_card: string | null;
         };
     } | null;
     plan: {
