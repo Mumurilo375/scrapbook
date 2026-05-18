@@ -10,6 +10,16 @@ final class CanvasSecurity
 {
     public const DEFAULT_TEXT_MAX_LENGTH = 1000;
 
+    private const MAX_ARTBOARD_SIZE = 10000;
+
+    private const MAX_ELEMENT_COORDINATE = 10000;
+
+    private const MAX_ELEMENT_SIZE = 10000;
+
+    private const MAX_ELEMENT_ROTATION = 3600;
+
+    private const MAX_ELEMENT_Z = 100000;
+
     public function __construct(private readonly CanvasNormalizer $normalizer) {}
 
     /**
@@ -23,7 +33,7 @@ final class CanvasSecurity
 
         $this->validate($canvas, $textMaxLength);
 
-        return $canvas;
+        return $this->normalizer->normalizeForPersistence($canvas);
     }
 
     /**
@@ -56,6 +66,7 @@ final class CanvasSecurity
         }
 
         $this->validateArtboard($canvas['artboard']);
+        $this->validateElements($canvas['elements']);
 
         $this->inspectValue($canvas, max(1, $textMaxLength));
     }
@@ -150,6 +161,16 @@ final class CanvasSecurity
      */
     private function validateArtboard(array $artboard): void
     {
+        foreach (['width', 'height'] as $field) {
+            $number = $this->finiteNumber($artboard[$field] ?? null);
+
+            if ($number === null || $number <= 0 || $number > self::MAX_ARTBOARD_SIZE) {
+                throw ValidationException::withMessages([
+                    "canvas.artboard.{$field}" => 'O artboard precisa usar dimensões positivas e seguras.',
+                ]);
+            }
+        }
+
         if (array_key_exists('unit', $artboard) && $artboard['unit'] !== 'px') {
             throw ValidationException::withMessages([
                 'canvas.artboard.unit' => 'O artboard precisa usar unidade px.',
@@ -165,11 +186,103 @@ final class CanvasSecurity
         }
 
         foreach (['top', 'right', 'bottom', 'left'] as $side) {
-            if (! is_numeric($safeArea[$side] ?? null) || (float) $safeArea[$side] < 0) {
+            $number = $this->finiteNumber($safeArea[$side] ?? null);
+
+            if ($number === null || $number < 0 || $number > self::MAX_ARTBOARD_SIZE) {
                 throw ValidationException::withMessages([
                     "canvas.artboard.safeArea.{$side}" => 'O safeArea do artboard precisa usar valores não negativos.',
                 ]);
             }
         }
+    }
+
+    /**
+     * @param  array<int, mixed>  $elements
+     */
+    private function validateElements(array $elements): void
+    {
+        foreach ($elements as $index => $element) {
+            if (! is_array($element)) {
+                throw ValidationException::withMessages([
+                    "canvas.elements.{$index}" => 'Cada elemento do canvas precisa ser um objeto válido.',
+                ]);
+            }
+
+            if (! is_string($element['id'] ?? null) || trim((string) $element['id']) === '') {
+                throw ValidationException::withMessages([
+                    "canvas.elements.{$index}.id" => 'Todo elemento do canvas precisa ter id.',
+                ]);
+            }
+
+            if (! is_string($element['type'] ?? null) || trim((string) $element['type']) === '') {
+                throw ValidationException::withMessages([
+                    "canvas.elements.{$index}.type" => 'Todo elemento do canvas precisa ter type.',
+                ]);
+            }
+
+            $this->validateElementNumber($element, $index, 'x', -self::MAX_ELEMENT_COORDINATE, self::MAX_ELEMENT_COORDINATE);
+            $this->validateElementNumber($element, $index, 'y', -self::MAX_ELEMENT_COORDINATE, self::MAX_ELEMENT_COORDINATE);
+            $this->validateElementNumber($element, $index, 'w', 1, self::MAX_ELEMENT_SIZE);
+            $this->validateElementNumber($element, $index, 'h', 1, self::MAX_ELEMENT_SIZE);
+            $this->validateElementNumber($element, $index, 'rotation', -self::MAX_ELEMENT_ROTATION, self::MAX_ELEMENT_ROTATION);
+            $this->validateElementNumber($element, $index, 'z', -self::MAX_ELEMENT_Z, self::MAX_ELEMENT_Z);
+
+            $this->validateElementStyle($element, $index);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateElementNumber(array $element, int $index, string $field, int|float $min, int|float $max): void
+    {
+        $number = $this->finiteNumber($element[$field] ?? null);
+
+        if ($number === null || $number < $min || $number > $max) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.{$field}" => 'Transformações do canvas precisam usar números finitos e seguros.',
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateElementStyle(array $element, int $index): void
+    {
+        $style = $element['style'] ?? null;
+
+        if (! is_array($style)) {
+            return;
+        }
+
+        if (array_key_exists('fontSize', $style)) {
+            $fontSize = $this->finiteNumber($style['fontSize']);
+
+            if ($fontSize === null || $fontSize < 1 || $fontSize > 512) {
+                throw ValidationException::withMessages([
+                    "canvas.elements.{$index}.style.fontSize" => 'O tamanho de fonte precisa ser um número seguro.',
+                ]);
+            }
+        }
+
+        if (array_key_exists('align', $style)
+            && ! in_array($style['align'], ['left', 'center', 'right'], true)
+        ) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.style.align" => 'O alinhamento do texto é inválido.',
+            ]);
+        }
+    }
+
+    private function finiteNumber(mixed $value): ?float
+    {
+        if (! is_int($value) && ! is_float($value) && ! (is_string($value) && is_numeric($value))) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        return is_finite($number) ? $number : null;
     }
 }

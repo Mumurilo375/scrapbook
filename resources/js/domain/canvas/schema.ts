@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
 export const artboardSchema = z.object({
-    width: z.number().positive(),
-    height: z.number().positive(),
+    width: z.number().finite().positive(),
+    height: z.number().finite().positive(),
     unit: z.literal('px').optional(),
     background: z.record(z.string(), z.unknown()).optional(),
     safeArea: z.object({
-        top: z.number().min(0),
-        right: z.number().min(0),
-        bottom: z.number().min(0),
-        left: z.number().min(0),
+        top: z.number().finite().min(0),
+        right: z.number().finite().min(0),
+        bottom: z.number().finite().min(0),
+        left: z.number().finite().min(0),
     }).optional(),
 });
 
@@ -17,12 +17,12 @@ export const canvasElementSchema = z
     .object({
         id: z.string().min(1),
         type: z.string().min(1),
-        x: z.number(),
-        y: z.number(),
-        w: z.number().positive(),
-        h: z.number().positive(),
-        rotation: z.number().default(0),
-        z: z.number(),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        w: z.number().finite().positive(),
+        h: z.number().finite().positive(),
+        rotation: z.number().finite().default(0),
+        z: z.number().finite(),
     })
     .passthrough();
 
