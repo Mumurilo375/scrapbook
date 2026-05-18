@@ -459,6 +459,177 @@ class CustomerGiftFlowTest extends TestCase
         $this->assertSame('center', $elements[0]['style']['align']);
     }
 
+    public function test_page_canvas_accepts_layer_name_locked_and_hidden_flags(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'main_title',
+                            'type' => 'text',
+                            'name' => 'Título principal',
+                            'text' => 'Camada salva',
+                            'x' => 120,
+                            'y' => 160,
+                            'w' => 420,
+                            'h' => 140,
+                            'rotation' => 0,
+                            'z' => 10,
+                            'locked' => true,
+                            'hidden' => false,
+                        ],
+                        [
+                            'id' => 'hidden_note',
+                            'type' => 'text',
+                            'text' => 'Oculto',
+                            'x' => 120,
+                            'y' => 340,
+                            'w' => 420,
+                            'h' => 140,
+                            'rotation' => 0,
+                            'z' => 20,
+                            'hidden' => true,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.elements.0.name', 'Título principal')
+            ->assertJsonPath('data.page.canvas.elements.0.locked', true)
+            ->assertJsonPath('data.page.canvas.elements.0.hidden', false)
+            ->assertJsonPath('data.page.canvas.elements.1.locked', false)
+            ->assertJsonPath('data.page.canvas.elements.1.hidden', true);
+
+        $elements = $page->refresh()->canvas['elements'];
+
+        $this->assertSame('Título principal', $elements[0]['name']);
+        $this->assertTrue($elements[0]['locked']);
+        $this->assertFalse($elements[0]['hidden']);
+        $this->assertFalse($elements[1]['locked']);
+        $this->assertTrue($elements[1]['hidden']);
+    }
+
+    public function test_page_canvas_rejects_html_in_layer_name(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'main_title',
+                            'type' => 'text',
+                            'name' => '<script>alert(1)</script>',
+                            'text' => 'Nome inseguro',
+                            'x' => 120,
+                            'y' => 160,
+                            'w' => 420,
+                            'h' => 140,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas');
+    }
+
+    public function test_locked_canvas_element_cannot_be_transformed_or_deleted_but_can_be_unlocked(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $lockedElement = [
+            'id' => 'locked_title',
+            'type' => 'text',
+            'name' => 'Título bloqueado',
+            'text' => 'Não mexer',
+            'x' => 120,
+            'y' => 160,
+            'w' => 420,
+            'h' => 140,
+            'rotation' => 0,
+            'z' => 10,
+            'locked' => true,
+            'hidden' => false,
+        ];
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+            'canvas' => [
+                'schemaVersion' => 1,
+                'version' => 1,
+                'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                'elements' => [$lockedElement],
+            ],
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        array_merge($lockedElement, ['x' => 220]),
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.locked');
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.locked');
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        array_merge($lockedElement, ['locked' => false]),
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.elements.0.locked', false);
+    }
+
     public function test_page_canvas_accepts_editable_sticker_text(): void
     {
         $user = User::factory()->create();
