@@ -163,6 +163,22 @@ final class CanvasNormalizer
                 $element['z'] = $element['zIndex'] ?? (($index + 1) * self::LAYER_STEP);
             }
 
+            if (array_key_exists('name', $element) && is_string($element['name'])) {
+                $element['name'] = trim($element['name']);
+
+                if ($element['name'] === '') {
+                    unset($element['name']);
+                }
+            }
+
+            if (! array_key_exists('locked', $element)) {
+                $element['locked'] = false;
+            }
+
+            if (! array_key_exists('hidden', $element)) {
+                $element['hidden'] = false;
+            }
+
             $elements[$index] = $element;
         }
 

@@ -17,12 +17,15 @@ export const canvasElementSchema = z
     .object({
         id: z.string().min(1),
         type: z.string().min(1),
+        name: z.string().max(80).optional(),
         x: z.number().finite(),
         y: z.number().finite(),
         w: z.number().finite().positive(),
         h: z.number().finite().positive(),
         rotation: z.number().finite().default(0),
         z: z.number().finite(),
+        locked: z.boolean().default(false),
+        hidden: z.boolean().default(false),
     })
     .passthrough();
 

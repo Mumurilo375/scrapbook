@@ -20,6 +20,8 @@ final class CanvasSecurity
 
     private const MAX_ELEMENT_Z = 100000;
 
+    private const MAX_ELEMENT_NAME_LENGTH = 80;
+
     public function __construct(private readonly CanvasNormalizer $normalizer) {}
 
     /**
@@ -226,6 +228,9 @@ final class CanvasSecurity
             $this->validateElementNumber($element, $index, 'h', 1, self::MAX_ELEMENT_SIZE);
             $this->validateElementNumber($element, $index, 'rotation', -self::MAX_ELEMENT_ROTATION, self::MAX_ELEMENT_ROTATION);
             $this->validateElementNumber($element, $index, 'z', -self::MAX_ELEMENT_Z, self::MAX_ELEMENT_Z);
+            $this->validateElementName($element, $index);
+            $this->validateElementBoolean($element, $index, 'locked');
+            $this->validateElementBoolean($element, $index, 'hidden');
 
             $this->validateElementStyle($element, $index);
         }
@@ -271,6 +276,38 @@ final class CanvasSecurity
         ) {
             throw ValidationException::withMessages([
                 "canvas.elements.{$index}.style.align" => 'O alinhamento do texto é inválido.',
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateElementName(array $element, int $index): void
+    {
+        if (! array_key_exists('name', $element)) {
+            return;
+        }
+
+        if (! is_string($element['name']) || Str::length($element['name']) > self::MAX_ELEMENT_NAME_LENGTH) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.name" => 'O nome da camada precisa ser um texto curto.',
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateElementBoolean(array $element, int $index, string $field): void
+    {
+        if (! array_key_exists($field, $element)) {
+            return;
+        }
+
+        if (! is_bool($element[$field])) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.{$field}" => 'Estados de camada precisam usar boolean.',
             ]);
         }
     }
