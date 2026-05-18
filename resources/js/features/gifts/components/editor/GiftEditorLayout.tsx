@@ -8,10 +8,10 @@ type GiftEditorLayoutProps = {
 
 export function GiftEditorLayout({ center, left, right }: GiftEditorLayoutProps) {
     return (
-        <section className="mx-auto grid max-w-[1440px] gap-4 px-4 py-5 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)_340px] lg:px-8">
-            <aside className="min-w-0">{left}</aside>
+        <section className="mx-auto grid max-w-[1560px] gap-4 px-3 py-4 sm:px-5 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[248px_minmax(0,1fr)_372px] lg:px-6">
+            <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">{left}</aside>
             <section className="min-w-0">{center}</section>
-            <aside className="min-w-0">{right}</aside>
+            <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">{right}</aside>
         </section>
     );
 }

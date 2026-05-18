@@ -2,18 +2,18 @@ import { ImageIcon, LoaderCircle, Upload } from 'lucide-react';
 import type { DragEvent } from 'react';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
-import type { EditorMediaItem } from './editorTypes';
+import type { EditorMediaItem, ImageUploadTarget } from './editorTypes';
 
 const MEDIA_ITEM_DRAG_MIME = 'application/x-scrapbook-media-item-id';
 
 export type GiftMediaLibraryHandle = {
-    openFilePicker: () => void;
+    openFilePicker: (target?: ImageUploadTarget | null) => void;
 };
 
 type GiftMediaLibraryProps = {
     disabled: boolean;
     mediaItems: EditorMediaItem[];
-    onUploaded: (mediaItem: EditorMediaItem) => void;
+    onUploaded: (mediaItem: EditorMediaItem, target: ImageUploadTarget | null) => void;
     onSelectMedia: (mediaItemId: string) => void;
     selectedMediaId: string | null;
     uploadUrl: string;
@@ -25,25 +25,27 @@ type UploadResponse = {
     errors?: Record<string, string[] | string>;
 };
 
-export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibraryProps>(function GiftMediaLibrary({
-    disabled,
-    mediaItems,
-    onSelectMedia,
-    onUploaded,
-    selectedMediaId,
-    uploadUrl,
-}, ref) {
+export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibraryProps>(function GiftMediaLibrary(
+    { disabled, mediaItems, onSelectMedia, onUploaded, selectedMediaId, uploadUrl },
+    ref,
+) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const uploadTargetRef = useRef<ImageUploadTarget | null>(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useImperativeHandle(ref, () => ({
-        openFilePicker: () => {
-            if (!disabled && !uploading) {
-                fileInputRef.current?.click();
-            }
-        },
-    }), [disabled, uploading]);
+    useImperativeHandle(
+        ref,
+        () => ({
+            openFilePicker: (target = null) => {
+                if (!disabled && !uploading) {
+                    uploadTargetRef.current = target;
+                    fileInputRef.current?.click();
+                }
+            },
+        }),
+        [disabled, uploading],
+    );
 
     async function uploadSelectedFile(file: File | null) {
         if (!file || disabled) {
@@ -73,7 +75,8 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                 return;
             }
 
-            onUploaded(payload.data);
+            onUploaded(payload.data, uploadTargetRef.current);
+            uploadTargetRef.current = null;
 
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
@@ -82,6 +85,13 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
             setError('Não foi possível enviar a imagem.');
         } finally {
             setUploading(false);
+        }
+    }
+
+    function openLibraryUpload() {
+        if (!disabled && !uploading) {
+            uploadTargetRef.current = null;
+            fileInputRef.current?.click();
         }
     }
 
@@ -99,32 +109,43 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
     }
 
     return (
-        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-4 text-[#1F150A] shadow-sm">
+        <section className="grid gap-3 text-[#1F150A]">
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-sm font-semibold uppercase text-[#7A2634]">Biblioteca de imagens</h2>
-                    <p className="mt-1 text-sm text-[#6F5A4A]">{mediaItems.length} imagem(ns) neste presente</p>
+                    <h3 className="text-sm font-semibold text-[#7A2634]">Biblioteca do presente</h3>
+                    <p className="mt-1 text-sm text-[#6F5A4A]">{mediaItems.length} imagem(ns) enviada(s)</p>
                 </div>
-                <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] shadow-sm hover:bg-[#F6E4CF] has-disabled:cursor-not-allowed has-disabled:opacity-50">
-                    {uploading ? <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" /> : <Upload aria-hidden="true" className="h-5 w-5" />}
+                <button
+                    className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] shadow-sm transition hover:bg-[#F6E4CF] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={disabled || uploading}
+                    onClick={openLibraryUpload}
+                    type="button"
+                >
+                    {uploading ? (
+                        <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" />
+                    ) : (
+                        <Upload aria-hidden="true" className="h-5 w-5" />
+                    )}
                     <span>Enviar imagem</span>
-                    <input
-                        ref={fileInputRef}
-                        accept="image/jpeg,image/png,image/webp"
-                        className="sr-only"
-                        disabled={disabled || uploading}
-                        onChange={(event) => uploadSelectedFile(event.target.files?.[0] ?? null)}
-                        type="file"
-                    />
-                </label>
+                </button>
+                <input
+                    ref={fileInputRef}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={disabled || uploading}
+                    onChange={(event) => uploadSelectedFile(event.target.files?.[0] ?? null)}
+                    type="file"
+                />
             </div>
 
             {error ? (
-                <p className="mt-3 rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]">{error}</p>
+                <p className="mt-3 rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]">
+                    {error}
+                </p>
             ) : null}
 
             {mediaItems.length > 0 ? (
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     {mediaItems.map((mediaItem) => (
                         <button
                             className={`aspect-square cursor-grab overflow-hidden rounded-[6px] border bg-[#EAD2B8] text-left shadow-sm transition active:cursor-grabbing disabled:cursor-not-allowed ${
@@ -139,7 +160,7 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                             onClick={() => onSelectMedia(mediaItem.id)}
                             type="button"
                         >
-                            {mediaItem.thumbnailUrl ?? mediaItem.url ? (
+                            {(mediaItem.thumbnailUrl ?? mediaItem.url) ? (
                                 <img
                                     alt={mediaItem.originalFilename ?? 'Imagem enviada'}
                                     className="h-full w-full object-cover"
@@ -155,7 +176,7 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                     ))}
                 </div>
             ) : (
-                <div className="mt-4 flex min-h-28 items-center justify-center rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] px-4 text-center text-sm font-semibold text-[#6F5A4A]">
+                <div className="flex min-h-28 items-center justify-center rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] px-4 text-center text-sm font-semibold text-[#6F5A4A]">
                     Nenhuma imagem enviada.
                 </div>
             )}

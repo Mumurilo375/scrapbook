@@ -2,15 +2,17 @@ import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, ClipboardCheck, CreditCard, ExternalLink, Eye, Gift, LogOut } from 'lucide-react';
 
 import { GiftStatusBadge } from '../GiftStatusBadge';
-import type { EditorSaveState } from './editorTypes';
+import { EditorSaveStatus } from './EditorSaveStatus';
+import type { SaveStatus } from './editorTypes';
 
 type GiftEditorTopBarProps = {
     dashboardUrl: string;
     orderUrl: string | null;
-    pageSaveState: EditorSaveState;
     previewUrl: string;
     publicUrl: string | null;
     reviewUrl: string;
+    saveDetail?: string | null;
+    saveStatus: SaveStatus;
     status: string;
     title: string;
 };
@@ -18,10 +20,11 @@ type GiftEditorTopBarProps = {
 export function GiftEditorTopBar({
     dashboardUrl,
     orderUrl,
-    pageSaveState,
     previewUrl,
     publicUrl,
     reviewUrl,
+    saveDetail,
+    saveStatus,
     status,
     title,
 }: GiftEditorTopBarProps) {
@@ -39,14 +42,12 @@ export function GiftEditorTopBar({
                         <p className="truncate text-sm font-semibold text-[#1F150A]">{title}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                             <GiftStatusBadge status={status} />
-                            <span className="text-xs font-semibold text-[#6F5A4A]">
-                                {saveStateLabel(pageSaveState)}
-                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+                <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
+                    <EditorSaveStatus detail={saveDetail} status={saveStatus} />
                     <Link
                         className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#42291D]"
                         href={dashboardUrl}
@@ -98,24 +99,4 @@ export function GiftEditorTopBar({
             </div>
         </header>
     );
-}
-
-function saveStateLabel(saveState: EditorSaveState): string {
-    if (saveState === 'dirty') {
-        return 'Alterações não salvas';
-    }
-
-    if (saveState === 'saving') {
-        return 'Salvando...';
-    }
-
-    if (saveState === 'saved') {
-        return 'Salvo';
-    }
-
-    if (saveState === 'error') {
-        return 'Erro ao salvar';
-    }
-
-    return 'Pronto para editar';
 }
