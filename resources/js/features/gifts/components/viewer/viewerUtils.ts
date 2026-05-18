@@ -47,12 +47,15 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
             ...element,
             id: typeof element.id === 'string' && element.id !== '' ? element.id : `element_${index + 1}`,
             type: typeof element.type === 'string' && element.type !== '' ? element.type : 'unknown',
+            name: typeof element.name === 'string' && element.name.trim() !== '' ? element.name.trim() : undefined,
             x: numberValue(element.x, 0),
             y: numberValue(element.y, 0),
             w: positiveNumber(element.w ?? element.width, 120),
             h: positiveNumber(element.h ?? element.height, 40),
             rotation: numberValue(element.rotation, 0),
             z: numberValue(element.z ?? element.zIndex, index),
+            locked: element.locked === true,
+            hidden: element.hidden === true,
         })),
     };
 }

@@ -72,7 +72,7 @@ class GiftPageViewerResource extends JsonResource
             ],
             'background' => is_array($canvas['background'] ?? null) ? $this->sanitizeValue($canvas['background']) : null,
             'elements' => collect($elements)
-                ->filter(fn (mixed $element): bool => is_array($element))
+                ->filter(fn (mixed $element): bool => is_array($element) && ($element['hidden'] ?? false) !== true)
                 ->map(fn (array $element, int $index): array => $this->elementForViewer($element, $index))
                 ->values()
                 ->all(),
@@ -94,10 +94,16 @@ class GiftPageViewerResource extends JsonResource
         $element['h'] = $this->positiveNumber($element['h'] ?? $element['height'] ?? null, 80);
         $element['rotation'] = $this->number($element['rotation'] ?? null, 0);
         $element['z'] = $this->number($element['z'] ?? $element['zIndex'] ?? null, $index);
+        $element['locked'] = ($element['locked'] ?? false) === true;
+        $element['hidden'] = false;
         unset($element['width'], $element['height'], $element['zIndex']);
 
         if ($element['type'] === 'image') {
             return $this->imageElementForViewer($element);
+        }
+
+        if ($element['type'] === 'sticker') {
+            return $this->stickerElementForViewer($element);
         }
 
         return $element;
@@ -148,6 +154,33 @@ class GiftPageViewerResource extends JsonResource
         }
 
         unset($element['missingMedia']);
+
+        return $element;
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     * @return array<string, mixed>
+     */
+    private function stickerElementForViewer(array $element): array
+    {
+        unset($element['src'], $element['url'], $element['publicUrl'], $element['public_url'], $element['previewUrl'], $element['preview_url'], $element['assetUrl'], $element['asset_url'], $element['storage_path'], $element['storagePath'], $element['asset'], $element['renderMode']);
+
+        $assetId = $element['assetId'] ?? $element['asset_id'] ?? null;
+
+        if (is_string($assetId) || is_int($assetId)) {
+            $assetId = trim((string) $assetId);
+
+            if ($assetId !== '') {
+                $element['assetId'] = $assetId;
+            } else {
+                unset($element['assetId']);
+            }
+        } else {
+            unset($element['assetId']);
+        }
+
+        unset($element['asset_id']);
 
         return $element;
     }

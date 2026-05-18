@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { normalizeThemeConfig, type RendererContext } from '../../../../components/renderer';
+import { assetMapFromList, normalizeThemeConfig, type RendererContext } from '../../../../components/renderer';
 import { GiftPageNavigator } from './GiftPageNavigator';
 import { GiftViewerControls } from './GiftViewerControls';
 import { GiftViewerFrame } from './GiftViewerFrame';
@@ -16,6 +16,7 @@ type GiftViewerStageProps = {
 export function GiftViewerStage({ context = 'preview', gift, showHeader = true }: GiftViewerStageProps) {
     const pages = useMemo(() => normalizeViewerPages(gift.pages), [gift.pages]);
     const theme = useMemo(() => normalizeThemeConfig(gift.theme?.config), [gift.theme?.config]);
+    const assetMap = useMemo(() => assetMapFromList(gift.assets), [gift.assets]);
     const [activePageIndex, setActivePageIndex] = useState(0);
     const activePage = pages[activePageIndex] ?? null;
 
@@ -64,7 +65,7 @@ export function GiftViewerStage({ context = 'preview', gift, showHeader = true }
                 </div>
             ) : null}
 
-            <GiftViewerFrame context={context} page={activePage} theme={gift.theme?.config} />
+            <GiftViewerFrame assets={assetMap} context={context} page={activePage} theme={gift.theme?.config} />
             <GiftViewerControls
                 activePageIndex={activePageIndex}
                 onNext={goNext}
