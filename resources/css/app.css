@@ -49,6 +49,26 @@ html {
     font-family: var(--font-editorial);
 }
 
+.gift-viewer-opening-transition {
+    animation: gift-viewer-fade-up 300ms ease-out both;
+}
+
+.gift-viewer-page-transition {
+    animation: gift-viewer-fade-up 220ms ease-out both;
+}
+
+@keyframes gift-viewer-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.992);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 .scrapbook-background {
     background-image:
         linear-gradient(90deg, #AD79480A 1px, transparent 1px),
@@ -104,4 +124,38 @@ html {
         4% 74%,
         0 58%
     );
+}
+
+@media print {
+    @page {
+        size: A5 portrait;
+        margin: 12mm;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    .share-card-print-page {
+        min-height: auto !important;
+        background: #fff !important;
+    }
+
+    .share-card-screen-only {
+        display: none !important;
+    }
+
+    .share-card-print-page section {
+        min-height: auto !important;
+        padding: 0 !important;
+    }
+
+    .share-card-print-sheet {
+        width: 100% !important;
+        max-width: none !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
 }

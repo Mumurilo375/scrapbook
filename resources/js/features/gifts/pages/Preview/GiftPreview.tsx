@@ -1,8 +1,6 @@
 import { Head } from '@inertiajs/react';
 
-import { GiftViewerLayout } from '../../components/viewer/GiftViewerLayout';
-import { GiftViewerStage } from '../../components/viewer/GiftViewerStage';
-import { GiftViewerTopBar } from '../../components/viewer/GiftViewerTopBar';
+import { PublicGiftViewerShell } from '../../../public-gifts/components/PublicGiftViewerShell';
 import type { ViewerGift } from '../../components/viewer/viewerTypes';
 
 type GiftPreviewProps = {
@@ -15,16 +13,7 @@ export default function GiftPreview({ gift }: GiftPreviewProps) {
             <Head title={`Preview ${gift.title}`}>
                 <meta content="noindex,nofollow" name="robots" />
             </Head>
-            <GiftViewerLayout theme={gift.theme?.config}>
-                <GiftViewerTopBar
-                    createUrl={gift.urls.create}
-                    editUrl={gift.urls.edit}
-                    mode="preview"
-                    status={gift.status}
-                    title={gift.title}
-                />
-                <GiftViewerStage gift={gift} />
-            </GiftViewerLayout>
+            <PublicGiftViewerShell gift={gift} mode="preview" />
         </>
     );
 }
