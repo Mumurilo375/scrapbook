@@ -13,10 +13,12 @@
 - Upload/mídia básica no editor implementado, com upload seguro de imagens, `media_items`, biblioteca simples e aplicação em elementos `image` existentes.
 - Viewer/preview do scrapbook implementado, com preview privado autenticado, viewer público por slug + `public_code`, navegação de páginas e mídia pública controlada.
 - Revisão/publicação técnica MVP implementada, com checklist de requisitos mínimos.
-- Fase atual: checkout/publicação condicionada a pagamento, com `Order`, `Payment`, provider manual/dev e publicação após aprovação.
-- Próxima fase depois disso: escolha e integração de gateway externo real.
-- Depois: QR Code e entrega.
-- Só depois: melhorias visuais/editor avançado, demo pública refinada e landing final baseada no produto real.
+- Checkout interno/publicação condicionada a pagamento implementado, com `Order`, `Payment`, provider manual/dev e publicação após aprovação.
+- Artboard/canvas padronizado com `schemaVersion/version = 1`, `artboard` válido, `elements` como array e proporção padrão `1080x1350`.
+- Fase atual: aprofundamento visual de temas e folhas, com `PageSurface`, textura CSS sem asset externo obrigatório, moldura de caderno/livro e seeds comparáveis de temas/templates.
+- Próxima fase: redesign do editor e autosave simples/robusto.
+- Depois: manipulação visual, camadas e stickers.
+- Gateway externo real, QR Code, entrega, demo pública refinada e landing final ficam para etapas futuras.
 
 ## Nota técnica de ambiente
 
@@ -282,6 +284,8 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 
 ## Fase 9 - Sistema de templates
 
+Status: templates e temas versionados já existem e os seeds iniciais devem manter pelo menos três templates publicados, associados a temas diferentes, para validar troca visual sem hardcode no frontend.
+
 190. Definir contrato JSON de `canvas_json`.
 191. Definir contrato JSON de `editable_slots`.
 192. Definir contrato JSON de `interaction_config`.
@@ -302,6 +306,8 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 207. Criar duplicação de template_version para novo draft.
 
 ## Fase 10 - Renderer do scrapbook
+
+Status: renderer compartilhado já alimenta editor, preview privado e viewer público. A etapa atual aprofunda `ScrapbookStage`, `ScrapbookPageFrame`, `PageSurface`, `ThemedArtboard` e `CanvasElementLayer` para que a folha pareça papel/caderno artesanal, com textura, grão, manchas, desgaste de borda, encadernação e tokens reais de tema. Os seeds comparáveis atuais são `Kraft Vintage`, `Romance Delicado` e `Aniversário Fofo`, aplicados aos templates `Amor / Namoro`, `Feliz Aniversário` e `Melhor Amiga`.
 
 208. Criar componente `ScrapbookRenderer`.
 209. Criar componente `PageRenderer`.
@@ -443,7 +449,7 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 
 ## Fase 16 - Checkout e pagamento
 
-Subfase atual: checkout interno sem gateway externo real. A transição de produto é `draft -> pending_payment -> published`, com `Order pending`, `Payment approved` e provider `manual_dev` limitado a ambiente controlado.
+Status: checkout interno sem gateway externo real implementado. A transição de produto é `draft -> pending_payment -> published`, com `Order pending`, `Payment approved` e provider `manual_dev` limitado a ambiente controlado. Gateway real continua fora da fase atual.
 
 330. Criar seleção/uso de plano ativo. Implementado inicialmente via plano do Gift/fallback ativo.
 331. Criar `CreateCheckoutOrder` action. Implementado.
@@ -469,7 +475,7 @@ Subfase atual: checkout interno sem gateway externo real. A transição de produ
 
 ## Fase 17 - Publicação
 
-Subfase atual: publicação condicionada a pagamento aprovado. A publicação técnica direta não deve burlar checkout; `POST /app/gifts/{gift}/publish` exige `Order paid` ou redireciona para checkout.
+Status: publicação condicionada a pagamento aprovado implementada. A publicação técnica direta não deve burlar checkout; `POST /app/gifts/{gift}/publish` exige `Order paid` ou redireciona para checkout.
 
 351. Criar ação `PublishGift`.
 352. Validar owner.

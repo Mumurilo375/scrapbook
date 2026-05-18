@@ -15,13 +15,31 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: checkout/publicação condicionada a pagamento
+## Prioridade atual: aprofundamento visual dos temas
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
 O domínio, banco real e admin inicial em Filament já foram implementados. O projeto já consegue operar ocasiões, planos, temas, templates, versões, páginas, gifts, mídia, pedidos, pagamentos e analytics sem hardcode administrativo. O fluxo inicial de criação do cliente também já existe: o visitante escolhe ocasião, escolhe template publicado e o usuário autenticado consegue criar um `Gift` draft com páginas copiadas do template.
 
-Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro e revisão/publicação técnica MVP já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, edita textos existentes, salva canvas, edita metadados básicos do Gift, envia fotos reais, aplica essas fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review` e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`. Neste momento, a prioridade principal é amarrar a publicação a `Order`/`Payment` aprovado, sem integrar gateway externo real, cobrança fake, QR Code, demo pública ou editor visual avançado:
+Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro, revisão/publicação técnica MVP e checkout interno/manual-dev já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, edita textos existentes, salva canvas, edita metadados básicos do Gift, envia fotos reais, aplica essas fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review`, passa por checkout interno e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`.
+
+Neste momento, a prioridade principal é fazer o scrapbook parecer um scrapbook real e aprofundar temas que mudam o visual de verdade. A folha precisa parecer papel/scrapbook, com textura, sombra, borda, detalhes e moldura de caderno, não um retângulo branco. Não avançar para autosave, drag-and-drop, biblioteca de stickers, gateway externo, Pix real, QR Code ou landing/demo refinada agora. A fundação visual atual deve garantir:
+
+1. todo `TemplatePage.canvas` e `GiftPage.canvas` tem `schemaVersion/version = 1`, `artboard` válido e `elements` como array;
+2. canvas antigo sem `artboard` é normalizado de forma segura, sem apagar elementos do usuário;
+3. artboard inválido, canvas inseguro, HTML, scripts, protocolos inseguros e URLs externas continuam bloqueando publicação;
+4. `theme_versions.config` possui contrato visual utilizável, com `tokens`, `book`, `page` e defaults de `elements`;
+5. Template define estrutura, páginas, posições, textos default, slots e placeholders;
+6. Theme define aparência: papel, textura, cor, fontes, sombras, bordas, molduras e estilo geral do livro;
+7. editor, preview privado e viewer público usam o mesmo renderer base;
+8. a página renderizada deve ser uma folha temática de scrapbook dentro de um caderno/livro, não um retângulo branco simples;
+9. a proporção padrão do artboard é `1080x1350`, mais próxima de uma folha 4:5 equilibrada para mobile e desktop;
+10. `theme_versions.config` deve controlar fundo da aplicação, livro, lombada, papel, textura, grão, manchas, bordas, sombra, fitas e defaults de elementos;
+11. os seeds iniciais devem manter múltiplos temas/templates publicados para comparar se trocar tema realmente muda o produto;
+12. os temas seedados atuais são `Kraft Vintage`, `Romance Delicado` e `Aniversário Fofo`;
+13. os templates seedados atuais são `Amor / Namoro`, `Feliz Aniversário` e `Melhor Amiga`, cada um com páginas estruturais e artboard válido.
+
+Fluxo atual do produto:
 
 1. visitante pode explorar `/criar` sem login até o template;
 2. ao criar o `Gift` draft, precisa entrar ou criar conta;
@@ -43,16 +61,18 @@ Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado,
 18. Gift em checkout fica `pending_payment` e não abre publicamente;
 19. aprovação manual/dev controlada marca `Payment approved`, `Order paid` e chama `PublishGift`;
 20. `PublishGift` publica apenas com pagamento aprovado, gera slug/`public_code`, `published_at` e `expires_at`;
-21. após publicar, o link público aparece na revisão, editor, pedido e dashboard;
-22. usuário volta depois e vê seus próprios gifts em `/app/gifts`.
+21. editor, preview e viewer renderizam a folha com tema aplicado;
+22. após publicar, o link público aparece na revisão, editor, pedido e dashboard;
+23. usuário volta depois e vê seus próprios gifts em `/app/gifts`.
 
 A IA deve seguir o roadmap e não continuar refinando landing, demo pública, checkout ou publicação real sem solicitação explícita. A sequência esperada é:
 
-1. checkout/publicação condicionada a pagamento;
-2. escolha e integração de gateway real;
-3. QR Code e entrega;
-4. melhorias visuais/editor avançado;
-5. demo pública refinada e landing final baseada no produto real.
+1. aprofundamento visual dos temas: canvas/artboard, tema, renderer e folha temática;
+2. redesign do editor e autosave simples/robusto;
+3. manipulação visual, camadas e stickers;
+4. QR Code e entrega;
+5. escolha e integração de gateway real;
+6. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 
@@ -65,6 +85,7 @@ A IA deve seguir o roadmap e não continuar refinando landing, demo pública, ch
 - Não hardcodear templates ou temas finais no frontend.
 - Não assumir que a landing atual é definitiva.
 - Não avançar para editor visual completo, demo pública ou checkout real sem solicitação explícita.
+- Não implementar drag-and-drop completo, biblioteca de stickers ou autosave complexo nesta fase.
 - Não criar demo pública a partir do fluxo de criação atual.
 - Não tratar o Editor MVP como editor visual completo.
 - Não recolocar placeholders de auth no lugar das páginas reais de login/cadastro.
@@ -272,15 +293,17 @@ Formato conceitual:
 ```json
 {
   "schemaVersion": 1,
+  "version": 1,
   "artboard": {
-    "width": 390,
-    "height": 844,
-    "safeArea": { "top": 24, "right": 16, "bottom": 24, "left": 16 }
+    "width": 1080,
+    "height": 1350,
+    "unit": "px",
+    "background": { "type": "theme" },
+    "safeArea": { "top": 80, "right": 80, "bottom": 80, "left": 80 }
   },
   "background": {
-    "type": "asset",
-    "assetId": "asset_ulid",
-    "color": "var(--paper)"
+    "type": "themeToken",
+    "value": "paper"
   },
   "elements": [
     {
@@ -288,16 +311,16 @@ Formato conceitual:
       "type": "text",
       "slotKey": "main_title",
       "text": "Feliz aniversário",
-      "x": 20,
-      "y": 40,
-      "w": 350,
-      "h": 80,
+      "x": 120,
+      "y": 180,
+      "w": 840,
+      "h": 180,
       "rotation": 0,
       "z": 10,
       "style": {
         "fontToken": "title",
-        "fontSize": 42,
-        "color": "var(--primary)",
+        "fontSize": 76,
+        "color": "var(--ink)",
         "align": "center"
       }
     }
@@ -320,6 +343,11 @@ Regras:
 
 Criar componentes compartilhados:
 
+- `ScrapbookStage`
+- `ScrapbookPageFrame`
+- `PageSurface`
+- `ThemedArtboard`
+- `CanvasElementLayer`
 - `ScrapbookRenderer`
 - `PageRenderer`
 - `ElementRenderer`
@@ -332,6 +360,8 @@ Criar componentes compartilhados:
 O editor e o viewer público devem usar o mesmo renderer base.
 
 Nunca duplicar lógica de renderização em dois lugares incompatíveis.
+
+`PageSurface` é responsável por fazer a folha parecer papel real: fundo temático, textura simulada, grão, manchas suaves, desgaste de borda, sombra e safe area visível no editor. O visual não deve voltar a ser um retângulo branco genérico.
 
 ## 9. Editor
 

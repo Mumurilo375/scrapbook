@@ -1870,3 +1870,181 @@ draft -> pending_payment -> published
 - `public_code` é alfanumérico forte, com 32 caracteres, e único.
 - `expires_at` usa `limits_snapshot.gift_lifetime_days`, depois `plans.gift_lifetime_days`, com fallback em `config('scrapbook.gifts.default_lifetime_days')`.
 - O viewer público continua exigindo `status = published`, `visibility = public_link`, `slug + public_code`, não expirado e não desativado.
+
+## 24. Fundação visual do scrapbook
+
+A fase atual consolida o contrato visual do produto. Internamente a entidade continua sendo `GiftPage`; visualmente ela deve ser renderizada como uma folha temática de diário/scrapbook dentro de um caderno/livro.
+
+### Canvas schema e artboard
+
+Todo canvas de `TemplatePage` e `GiftPage` deve seguir o contrato mínimo:
+
+```json
+{
+  "schemaVersion": 1,
+  "version": 1,
+  "artboard": {
+    "width": 1080,
+    "height": 1350,
+    "unit": "px",
+    "background": { "type": "theme" },
+    "safeArea": { "top": 80, "right": 80, "bottom": 80, "left": 80 }
+  },
+  "elements": []
+}
+```
+
+`schemaVersion` é mantido por compatibilidade com o contrato existente e `version` acompanha a versão visual esperada. Coordenadas e dimensões de elementos continuam no sistema do artboard. O renderer escala para a tela sem mudar os dados salvos. O default atual é `1080x1350`, uma proporção 4:5 mais equilibrada para mobile, editor central e viewer público do que a folha alta/estreita anterior.
+
+Regras:
+
+1. `artboard.width` e `artboard.height` precisam ser positivos.
+2. `artboard.unit` deve ser `px`.
+3. `safeArea` precisa ter lados não negativos.
+4. `elements` precisa ser array.
+5. Canvas sem `artboard` pode ser normalizado com defaults.
+6. Canvas com artboard explicitamente inválido não passa na validação/checklist.
+7. Textos continuam sendo texto puro; HTML, scripts, protocolos inseguros e URLs externas seguem bloqueados.
+
+### Normalização de canvas
+
+`App\Domain\Editor\CanvasNormalizer` centraliza defaults e normalização segura:
+
+- adiciona `artboard` padrão quando ausente;
+- adiciona `version = 1` quando ausente;
+- preserva elementos existentes;
+- completa `unit`, `background` e `safeArea`;
+- não substitui width/height inválidos quando eles foram enviados explicitamente, permitindo que a validação reprove.
+
+`CanvasSecurity` valida o canvas normalizado. `CreateGiftFromTemplate`, salvamento de página e checklist de publicação usam a mesma base para evitar divergência entre editor, preview, viewer e publicação.
+
+### Relação entre Template e Theme
+
+Template define estrutura:
+
+- quais páginas existem;
+- tipos de página;
+- elementos iniciais;
+- posições e tamanhos;
+- textos default;
+- placeholders de imagem;
+- elementos editáveis e restrições.
+
+Theme define aparência:
+
+- textura e cor da folha;
+- fundo do livro/caderno;
+- fontes;
+- sombras;
+- bordas;
+- moldura padrão de imagem;
+- estilo padrão de stickers;
+- tokens visuais aplicados pelo renderer.
+
+Trocar tema deve ser não destrutivo: o layout e o conteúdo do canvas permanecem, e o renderer altera a aparência usando `theme_versions.config`.
+
+### Contrato de `theme_versions.config`
+
+O config de tema deve ter defaults úteis para o renderer:
+
+```json
+{
+  "schemaVersion": 1,
+  "tokens": {
+    "colors": {
+      "appBackground": "#F3E7D3",
+      "bookBackground": "#D8BE96",
+      "paper": "#FFF4DE",
+      "paperAlt": "#F7E4C2",
+      "ink": "#3A2418",
+      "mutedInk": "#7B5A43",
+      "accent": "#8E2F2F",
+      "accentSoft": "#D9A6A1",
+      "shadow": "rgba(58,36,24,0.22)",
+      "muted": "#A77B55",
+      "tape": "#D9B77E",
+      "leaf": "#6E7C4F"
+    },
+    "fonts": {
+      "heading": "serif",
+      "body": "sans",
+      "handwritten": "script"
+    }
+  },
+  "book": {
+    "style": "scrapbook",
+    "binding": "left",
+    "background": "#F3E7D3",
+    "spineColor": "#7B4F32"
+  },
+  "page": {
+    "surface": "kraft",
+    "backgroundColor": "#FFF4DE",
+    "texture": "paper-grain",
+    "textureAssetRole": "paper_texture",
+    "edge": "deckled",
+    "borderRadius": 32,
+    "shadow": "deep-paper",
+    "padding": 56,
+    "decorations": {
+      "cornerTape": true,
+      "paperGrain": true,
+      "subtleStains": true,
+      "edgeWear": true
+    }
+  },
+  "elements": {
+    "text": { "defaultColor": "#3A2418", "headingColor": "#3A2418" },
+    "image": { "defaultFrame": "polaroid", "shadow": true },
+    "sticker": { "shadow": true }
+  }
+}
+```
+
+`App\Domain\Themes\ThemeConfig` fornece defaults, normalização e payload público allowlistado. O viewer público recebe apenas o config visual permitido, sem `storage_path`, dados de usuário, pedidos, pagamentos ou campos internos. `defaultShadow` ainda pode ser aceito como alias legado de `elements.sticker.shadow`, mas o contrato novo usa `shadow`.
+
+Os tokens agora precisam afetar visualmente mais do que a borda: fundo da aplicação, fundo do livro, cor da folha, folha alternativa, tinta, tinta secundária, acento, fita, lombada, sombra, textura, desgaste de borda, grão de papel, manchas suaves e molduras de imagem. Os seeds iniciais mantêm pelo menos três temas publicados para comparação:
+
+- `Kraft Vintage`: papel kraft/bege, marrom, creme, textura de jornal antigo, sombra quente e detalhe vintage;
+- `Romance Delicado`: fundo off-white rosado, folha creme, acentos vinho/rosa queimado, sombras suaves e acabamento delicado;
+- `Aniversário Fofo`: fundo claro quente, folha clara, acentos pêssego/rosa/dourado e visual comemorativo controlado.
+
+Texturas reais podem vir de assets depois. Nesta fase, `PageSurface` usa CSS leve (`radial-gradient`, `linear-gradient`, `background-blend` implícito por camadas, grão simulado, manchas sutis, desgaste de borda e sombras multicamada), sem depender de URL externa.
+
+### Seeds de templates
+
+Os templates seedados publicados são estruturais e não carregam a aparência que pertence ao tema:
+
+- `Amor / Namoro`: capa, carta principal, galeria, música e página final;
+- `Feliz Aniversário`: capa de aniversário, mensagem de parabéns, galeria, coisas que amo/admiro em você e página final;
+- `Melhor Amiga`: capa, nossa amizade, melhores momentos, piadas/memórias e página final.
+
+Cada `TemplatePage.canvas` seedado tem `schemaVersion = 1`, `version = 1`, `artboard` `1080x1350`, `unit = px`, `safeArea` padrão e `elements` como array. `CreateGiftFromTemplate` copia esses canvases para `GiftPage` já normalizados, então gifts novos não devem falhar com erro de artboard da capa.
+
+### Renderer temático
+
+O renderer compartilhado continua sendo a fonte única para editor e viewer. A base visual agora é composta por:
+
+- `ScrapbookStage`: moldura externa, mesa/fundo da aplicação e base do caderno/livro;
+- `ScrapbookPageFrame`: encadernação, lombada, furos, camadas de papel, fitas e profundidade;
+- `PageSurface`: superfície de papel temática, textura, grão, manchas, desgaste de borda, sombra e safe area visual no editor;
+- `ThemedArtboard`: camada interna do artboard;
+- `CanvasElementLayer`: ordenação por `z` e renderização dos elementos;
+- `ElementRenderer`, `TextElement`, `ImageElement`, `StickerElement`, `MusicElement` e `InteractiveElement`.
+
+`PageRenderer` segue sendo a entrada principal, recebendo `canvas`, `theme` e `context` (`editor`, `preview` ou `public`). Editor, preview privado e viewer público devem passar o mesmo `theme.config` resumido pelo backend.
+
+### Estado visual mínimo esperado
+
+A página renderizada não deve parecer um retângulo branco simples. Ela deve mostrar:
+
+- fundo temático;
+- textura ou simulação de papel com grão/fibras/manchas;
+- borda e sombra;
+- sensação de folha artesanal;
+- safe area/padding visual, especialmente no editor;
+- proporção consistente;
+- placeholders bonitos para imagens vazias;
+- responsividade para mobile e desktop.
+
+Esta fase não implementa drag-and-drop completo, biblioteca de stickers, animação de virar página, autosave complexo ou gateway real.
