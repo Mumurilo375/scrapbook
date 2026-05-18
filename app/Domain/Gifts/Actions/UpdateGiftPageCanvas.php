@@ -2,6 +2,9 @@
 
 namespace App\Domain\Gifts\Actions;
 
+use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Services\EditorAssetCatalog;
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Models\GiftPage;
 use App\Domain\Media\Models\MediaItem;
@@ -11,7 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 final class UpdateGiftPageCanvas
 {
-    public function __construct(private readonly CanvasSecurity $canvasSecurity) {}
+    public function __construct(
+        private readonly CanvasSecurity $canvasSecurity,
+        private readonly CanvasNormalizer $canvasNormalizer,
+        private readonly EditorAssetCatalog $assetCatalog,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $canvas
@@ -32,6 +39,8 @@ final class UpdateGiftPageCanvas
             $canvas,
             $this->canvasSecurity->textMaxLengthForPage($giftPage),
         );
+        $this->ensureLockedElementsWereNotMutated($giftPage, $canvas);
+        $canvas = $this->normalizeStickerElements($giftPage, $canvas);
         $canvas = $this->normalizeImageElements($user, $giftPage, $canvas);
         $this->validateMediaReferences($user, $giftPage, $canvas);
 
@@ -44,6 +53,135 @@ final class UpdateGiftPageCanvas
         ])->save();
 
         return $giftPage->refresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $canvas
+     */
+    private function ensureLockedElementsWereNotMutated(GiftPage $giftPage, array $canvas): void
+    {
+        $currentCanvas = is_array($giftPage->canvas) ? $giftPage->canvas : [];
+        $currentCanvas = $this->canvasNormalizer->normalizeForPersistence($currentCanvas);
+        $currentElements = is_array($currentCanvas['elements'] ?? null) ? $currentCanvas['elements'] : [];
+        $nextElements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
+        $nextById = [];
+
+        foreach ($nextElements as $element) {
+            if (is_array($element) && is_string($element['id'] ?? null)) {
+                $nextById[$element['id']] = $element;
+            }
+        }
+
+        foreach ($currentElements as $element) {
+            if (! is_array($element) || ($element['locked'] ?? false) !== true) {
+                continue;
+            }
+
+            $elementId = $element['id'] ?? null;
+
+            if (! is_string($elementId) || $elementId === '') {
+                continue;
+            }
+
+            $nextElement = $nextById[$elementId] ?? null;
+
+            if (! is_array($nextElement)) {
+                throw ValidationException::withMessages([
+                    'canvas.locked' => 'Elementos bloqueados não podem ser deletados.',
+                ]);
+            }
+
+            if ($this->lockedElementComparable($element) !== $this->lockedElementComparable($nextElement)) {
+                throw ValidationException::withMessages([
+                    'canvas.locked' => 'Elementos bloqueados não podem ser transformados ou editados.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     * @return array<string, mixed>
+     */
+    private function lockedElementComparable(array $element): array
+    {
+        unset($element['locked'], $element['hidden'], $element['name'], $element['z']);
+
+        return $this->canonicalize($element);
+    }
+
+    /**
+     * @param  array<string, mixed>  $value
+     * @return array<string, mixed>
+     */
+    private function canonicalize(array $value): array
+    {
+        foreach ($value as $key => $child) {
+            if (is_array($child)) {
+                $value[$key] = $this->canonicalize($child);
+            }
+        }
+
+        ksort($value);
+
+        return $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $canvas
+     * @return array<string, mixed>
+     */
+    private function normalizeStickerElements(GiftPage $giftPage, array $canvas): array
+    {
+        if (! isset($canvas['elements']) || ! is_array($canvas['elements'])) {
+            return $canvas;
+        }
+
+        foreach ($canvas['elements'] as $index => $element) {
+            if (! is_array($element) || ($element['type'] ?? null) !== 'sticker') {
+                continue;
+            }
+
+            $this->rejectStickerUrlFields($element);
+
+            $assetId = $element['assetId'] ?? $element['asset_id'] ?? null;
+
+            if ($assetId === null || $assetId === '') {
+                unset($element['assetId'], $element['asset_id']);
+                $canvas['elements'][$index] = $element;
+
+                continue;
+            }
+
+            $asset = $this->assetForCanvas($assetId);
+
+            if (! $this->assetCatalog->assetIsAllowedForGift($giftPage->gift, $asset)) {
+                throw ValidationException::withMessages([
+                    'canvas.assets' => 'O canvas referencia um asset indisponível para este tema.',
+                ]);
+            }
+
+            $element['assetId'] = $asset->id;
+            unset($element['asset_id'], $element['asset'], $element['assetUrl'], $element['asset_url'], $element['previewUrl'], $element['preview_url'], $element['renderMode']);
+
+            $canvas['elements'][$index] = $element;
+        }
+
+        return $canvas;
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function rejectStickerUrlFields(array $element): void
+    {
+        foreach (['src', 'url', 'publicUrl', 'public_url', 'previewUrl', 'preview_url', 'assetUrl', 'asset_url', 'storage_path', 'storagePath'] as $key) {
+            if (filled($element[$key] ?? null)) {
+                throw ValidationException::withMessages([
+                    'canvas.assets' => 'Stickers do canvas precisam usar assetId, não URLs ou paths manuais.',
+                ]);
+            }
+        }
     }
 
     /**
@@ -147,5 +285,32 @@ final class UpdateGiftPageCanvas
         }
 
         return $mediaItem;
+    }
+
+    private function assetForCanvas(mixed $assetId): Asset
+    {
+        if (! is_string($assetId) && ! is_int($assetId)) {
+            throw ValidationException::withMessages([
+                'canvas.assets' => 'O canvas referencia um asset inválido.',
+            ]);
+        }
+
+        $assetId = trim((string) $assetId);
+
+        if ($assetId === '') {
+            throw ValidationException::withMessages([
+                'canvas.assets' => 'O canvas referencia um asset inválido.',
+            ]);
+        }
+
+        $asset = Asset::query()->find($assetId);
+
+        if (! $asset instanceof Asset) {
+            throw ValidationException::withMessages([
+                'canvas.assets' => 'O canvas referencia um asset indisponível.',
+            ]);
+        }
+
+        return $asset;
     }
 }

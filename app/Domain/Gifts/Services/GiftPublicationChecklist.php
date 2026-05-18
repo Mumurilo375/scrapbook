@@ -2,6 +2,8 @@
 
 namespace App\Domain\Gifts\Services;
 
+use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Services\EditorAssetCatalog;
 use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Enums\GiftStatus;
@@ -20,6 +22,7 @@ final class GiftPublicationChecklist
     public function __construct(
         private readonly CanvasSecurity $canvasSecurity,
         private readonly CanvasNormalizer $canvasNormalizer,
+        private readonly EditorAssetCatalog $assetCatalog,
     ) {}
 
     /**
@@ -27,7 +30,7 @@ final class GiftPublicationChecklist
      */
     public function evaluate(User $user, Gift $gift, bool $allowPublished = false, bool $allowPendingPayment = false): array
     {
-        $gift->loadMissing(['pages', 'mediaItems', 'plan']);
+        $gift->loadMissing(['pages', 'mediaItems', 'plan', 'themeVersion']);
 
         $visiblePages = $gift->pages
             ->filter(fn (GiftPage $page): bool => $page->is_visible)
@@ -93,11 +96,60 @@ final class GiftPublicationChecklist
                 'Deixe ao menos uma página visível antes de publicar.',
             ),
             $this->canvasCheck($visiblePages),
+            $this->assetReferencesCheck($gift, $visiblePages),
             $this->mediaReferencesCheck($gift, $visiblePages),
             $this->missingImagesCheck($visiblePages),
             $this->pageLimitCheck($gift, $visiblePages),
             $this->photoLimitCheck($gift),
         ];
+    }
+
+    /**
+     * @param  Collection<int, GiftPage>  $visiblePages
+     * @return array{key: string, label: string, passed: bool, severity: string, message?: string}
+     */
+    private function assetReferencesCheck(Gift $gift, Collection $visiblePages): array
+    {
+        foreach ($visiblePages as $page) {
+            foreach ($this->stickerElements($page) as $element) {
+                foreach (['src', 'url', 'publicUrl', 'public_url', 'previewUrl', 'preview_url', 'assetUrl', 'asset_url', 'storage_path', 'storagePath'] as $key) {
+                    if (filled($element[$key] ?? null)) {
+                        return $this->check(
+                            'asset_references',
+                            'Stickers usam assets seguros',
+                            false,
+                            'error',
+                            "A página {$page->name} tem sticker com URL ou path manual. Use um asset do sistema.",
+                        );
+                    }
+                }
+
+                $assetId = $element['assetId'] ?? $element['asset_id'] ?? null;
+
+                if ($assetId === null || $assetId === '') {
+                    continue;
+                }
+
+                $asset = Asset::query()->find(trim((string) $assetId));
+
+                if (! $asset instanceof Asset || ! $this->assetCatalog->assetIsAllowedForGift($gift, $asset)) {
+                    return $this->check(
+                        'asset_references',
+                        'Stickers usam assets seguros',
+                        false,
+                        'error',
+                        "A página {$page->name} referencia um asset indisponível ou inativo.",
+                    );
+                }
+            }
+        }
+
+        return $this->check(
+            'asset_references',
+            'Stickers usam assets seguros',
+            true,
+            'error',
+        );
     }
 
     /**
@@ -321,6 +373,20 @@ final class GiftPublicationChecklist
 
         return collect($elements)
             ->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'image')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function stickerElements(GiftPage $page): array
+    {
+        $canvas = is_array($page->canvas) ? $page->canvas : [];
+        $elements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
+
+        return collect($elements)
+            ->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'sticker')
             ->values()
             ->all();
     }
