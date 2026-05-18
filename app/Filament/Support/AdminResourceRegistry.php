@@ -30,6 +30,7 @@ use App\Filament\Resources\Gifts\RelationManagers\VisitsRelationManager;
 use App\Filament\Resources\Orders\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\TemplateVersions\RelationManagers\PagesRelationManager;
 use App\Filament\Resources\Themes\RelationManagers\VersionsRelationManager;
+use App\Filament\Resources\ThemeVersions\RelationManagers\AssetsRelationManager;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -110,6 +111,9 @@ class AdminResourceRegistry
             'TemplateVersion' => [
                 PagesRelationManager::class,
             ],
+            'ThemeVersion' => [
+                AssetsRelationManager::class,
+            ],
             'Gift' => [
                 \App\Filament\Resources\Gifts\RelationManagers\PagesRelationManager::class,
                 MediaItemsRelationManager::class,
@@ -134,7 +138,8 @@ class AdminResourceRegistry
             'Plan' => ['group' => 'Produto', 'sort' => 20, 'label' => 'plano', 'pluralLabel' => 'Plans', 'icon' => Heroicon::OutlinedBanknotes, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'Theme' => ['group' => 'Visual', 'sort' => 10, 'label' => 'tema', 'pluralLabel' => 'Themes', 'icon' => Heroicon::OutlinedPaintBrush, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'ThemeVersion' => ['group' => 'Visual', 'sort' => 20, 'label' => 'versão de tema', 'pluralLabel' => 'Theme Versions', 'icon' => Heroicon::OutlinedSparkles, 'adminOnly' => true, 'delete' => true],
-            'Asset' => ['group' => 'Visual', 'sort' => 30, 'label' => 'asset', 'pluralLabel' => 'Assets', 'icon' => Heroicon::OutlinedPhoto, 'adminOnly' => true, 'delete' => true],
+            'AssetCategory' => ['group' => 'Visual', 'sort' => 30, 'label' => 'categoria de asset', 'pluralLabel' => 'Asset Categories', 'icon' => Heroicon::OutlinedTag, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'Asset' => ['group' => 'Visual', 'sort' => 40, 'label' => 'asset', 'pluralLabel' => 'Assets', 'icon' => Heroicon::OutlinedPhoto, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'Template' => ['group' => 'Templates', 'sort' => 10, 'label' => 'template', 'pluralLabel' => 'Templates', 'icon' => Heroicon::OutlinedDocumentDuplicate, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'TemplateVersion' => ['group' => 'Templates', 'sort' => 20, 'label' => 'versão de template', 'pluralLabel' => 'Template Versions', 'icon' => Heroicon::OutlinedDocumentCheck, 'adminOnly' => true, 'delete' => true],
             'TemplatePage' => ['group' => 'Templates', 'sort' => 30, 'label' => 'página de template', 'pluralLabel' => 'Template Pages', 'icon' => Heroicon::OutlinedRectangleStack, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
@@ -193,18 +198,29 @@ class AdminResourceRegistry
                 DateTimePicker::make('published_at'),
                 self::jsonField('config', required: true, default: ThemeConfig::defaults()),
             ],
+            'AssetCategory' => [
+                self::nameField(),
+                self::slugField(),
+                Textarea::make('description')->columnSpanFull(),
+                TextInput::make('icon')->maxLength(255),
+                Toggle::make('is_active')->default(true),
+                self::integerField('sort_order')->default(0),
+                self::jsonField('metadata'),
+            ],
             'Asset' => [
+                Select::make('asset_category_id')->relationship('category', 'name')->searchable()->preload(),
                 self::nameField(),
                 self::slugField(required: false),
                 self::enumSelect('type', AssetType::class)->required(),
                 TextInput::make('storage_disk')->required()->default('public')->maxLength(255),
                 TextInput::make('storage_path')->required()->maxLength(255)->columnSpanFull(),
-                TextInput::make('public_url')->url()->maxLength(2048)->columnSpanFull(),
+                TextInput::make('public_url')->maxLength(2048)->columnSpanFull(),
                 TextInput::make('mime_type')->maxLength(255),
                 self::integerField('size_bytes')->minValue(0),
                 self::integerField('width')->minValue(0),
                 self::integerField('height')->minValue(0),
                 Toggle::make('is_active')->default(true),
+                self::integerField('sort_order')->default(0),
                 self::jsonField('metadata'),
             ],
             'Template' => [
@@ -313,9 +329,15 @@ class AdminResourceRegistry
             'ThemeVersion' => [
                 TextEntry::make('theme.name'), TextEntry::make('version_number'), self::statusEntry('status'), TextEntry::make('name'), TextEntry::make('published_at')->dateTime(), self::jsonEntry('config'), ...self::timestamps(),
             ],
+            'AssetCategory' => [
+                TextEntry::make('name'), TextEntry::make('slug')->copyable(), TextEntry::make('icon'), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('sort_order'), TextEntry::make('assets_count')->counts('assets')->label('Assets'), TextEntry::make('description')->columnSpanFull(), self::jsonEntry('metadata'),
+                ...self::timestamps(),
+            ],
             'Asset' => [
                 ImageEntry::make('preview')->label('Preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(140),
-                TextEntry::make('name'), TextEntry::make('slug')->copyable(), self::statusEntry('type'), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('category.name'), TextEntry::make('name'), TextEntry::make('slug')->copyable(), self::statusEntry('type'), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('sort_order'),
                 TextEntry::make('storage_disk'), TextEntry::make('storage_path')->copyable(), TextEntry::make('public_url')->copyable(),
                 TextEntry::make('mime_type'), TextEntry::make('size_bytes')->numeric(), TextEntry::make('width'), TextEntry::make('height'), self::jsonEntry('metadata'), ...self::timestamps(),
             ],
@@ -387,10 +409,16 @@ class AdminResourceRegistry
                 ->columns([TextColumn::make('theme.name')->searchable()->sortable(), TextColumn::make('version_number')->sortable(), self::statusColumn('status'), TextColumn::make('name')->searchable(), TextColumn::make('published_at')->dateTime()->sortable()])
                 ->filters([SelectFilter::make('theme_id')->relationship('theme', 'name')->searchable()->preload(), SelectFilter::make('status')->options(self::enumOptions(ThemeVersionStatus::class))])
                 ->defaultSort('created_at', 'desc'),
+            'AssetCategory' => $table
+                ->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), TextColumn::make('icon'), IconColumn::make('is_active')->boolean(), TextColumn::make('assets_count')->counts('assets')->label('Assets'), TextColumn::make('sort_order')->sortable()])
+                ->filters([TernaryFilter::make('is_active')])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
             'Asset' => $table
-                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), IconColumn::make('is_active')->boolean(), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable()])
-                ->filters([SelectFilter::make('type')->options(self::enumOptions(AssetType::class)), TernaryFilter::make('is_active')])
-                ->defaultSort('created_at', 'desc'),
+                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('category.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable(), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable()])
+                ->filters([SelectFilter::make('asset_category_id')->relationship('category', 'name')->searchable()->preload(), SelectFilter::make('type')->options(self::enumOptions(AssetType::class)), TernaryFilter::make('is_active')])
+                ->defaultSort('sort_order')
+                ->reorderable('sort_order'),
             'Template' => $table
                 ->columns([TextColumn::make('occasion.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), IconColumn::make('is_active')->boolean(), TextColumn::make('versions_count')->counts('versions')->label('Versões'), TextColumn::make('published_version')->getStateUsing(fn ($record): string => self::publishedVersionLabel($record->versions))->label('Publicada'), TextColumn::make('sort_order')->sortable()])
                 ->filters([SelectFilter::make('occasion_id')->relationship('occasion', 'name')->searchable()->preload(), TernaryFilter::make('is_active')])
