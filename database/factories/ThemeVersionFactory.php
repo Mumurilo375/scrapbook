@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
 use App\Domain\Themes\Models\Theme;
 use App\Domain\Themes\Models\ThemeVersion;
+use App\Domain\Themes\ThemeConfig;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,18 +22,7 @@ class ThemeVersionFactory extends Factory
             'version_number' => fake()->unique()->numberBetween(1, 100000),
             'status' => ThemeVersionStatus::Draft->value,
             'name' => 'Draft '.fake()->word(),
-            'config' => [
-                'schemaVersion' => 1,
-                'palette' => [
-                    'paper' => '#f7efe2',
-                    'ink' => '#3a2618',
-                    'accent' => '#b85f5f',
-                ],
-                'fonts' => [
-                    'title' => 'serif',
-                    'body' => 'sans',
-                ],
-            ],
+            'config' => ThemeConfig::defaults(),
             'published_at' => null,
         ];
     }

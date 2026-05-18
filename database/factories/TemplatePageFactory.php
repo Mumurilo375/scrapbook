@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Templates\Enums\PageType;
 use App\Domain\Templates\Models\TemplatePage;
 use App\Domain\Templates\Models\TemplateVersion;
@@ -23,7 +24,14 @@ class TemplatePageFactory extends Factory
             'sort_order' => fake()->unique()->numberBetween(1, 100000),
             'canvas' => [
                 'schemaVersion' => 1,
-                'artboard' => ['width' => 390, 'height' => 844],
+                'version' => 1,
+                'artboard' => [
+                    'width' => CanvasNormalizer::DEFAULT_WIDTH,
+                    'height' => CanvasNormalizer::DEFAULT_HEIGHT,
+                    'unit' => 'px',
+                    'background' => ['type' => 'theme'],
+                    'safeArea' => CanvasNormalizer::DEFAULT_SAFE_AREA,
+                ],
                 'elements' => [],
             ],
             'editable_schema' => null,
