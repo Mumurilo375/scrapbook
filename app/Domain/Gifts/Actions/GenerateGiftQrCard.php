@@ -3,22 +3,20 @@
 namespace App\Domain\Gifts\Actions;
 
 use App\Domain\Gifts\Models\Gift;
-use RuntimeException;
+use App\Domain\Gifts\Services\GiftShareCardData;
 
-final class GenerateGiftQrCard
+final readonly class GenerateGiftQrCard
 {
+    public function __construct(private GiftShareCardData $shareCardData) {}
+
     /**
-     * @return array{status: string, public_path: string}
+     * @return array<string, mixed>
      */
     public function handle(Gift $gift): array
     {
-        if (! $gift->isPubliclyAccessible()) {
-            throw new RuntimeException('QR card generation requires a published public gift.');
-        }
-
         return [
-            'status' => 'pending_generation',
-            'public_path' => '/p/'.$gift->slug.'-'.$gift->public_code,
+            'status' => 'ready_on_demand',
+            'card' => $this->shareCardData->forGift($gift),
         ];
     }
 }
