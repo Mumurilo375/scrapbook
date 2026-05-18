@@ -18,6 +18,7 @@ export type ViewerGift = {
     expires_at: string | null;
     theme: {
         name: string;
+        config: Record<string, unknown>;
     } | null;
     pages: ViewerPage[];
     urls: {
