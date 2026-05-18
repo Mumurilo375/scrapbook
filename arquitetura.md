@@ -913,6 +913,7 @@ Exemplo simplificado:
     {
       "id": "el_01",
       "type": "image",
+      "name": "Foto principal",
       "slotKey": "gallery_photo_1",
       "mediaId": "media_ulid",
       "x": 42,
@@ -923,6 +924,7 @@ Exemplo simplificado:
       "z": 10,
       "opacity": 1,
       "locked": false,
+      "hidden": false,
       "style": {
         "frame": "polaroid_white",
         "shadow": "soft"
@@ -972,6 +974,10 @@ Exemplo simplificado:
 - Coordenadas sempre no sistema do artboard, não em pixels reais da tela.
 - Renderer escala proporcionalmente no celular/desktop.
 - Todo elemento precisa ter `id`, `type`, `x`, `y`, `w`, `h`, `z`.
+- Todo elemento pode ter `name`, `locked` e `hidden`; defaults são `name` ausente, `locked = false` e `hidden = false`.
+- `name` serve para a UI de camadas e precisa ser texto curto, sem HTML/script.
+- Elementos `locked` não podem ser transformados, editados ou deletados pelo editor.
+- Elementos `hidden` não renderizam no canvas visual, preview privado ou viewer público.
 - Elementos de usuário podem ser livres, mas devem respeitar limites mínimos e máximos.
 - Textos de usuário devem ser texto puro, nunca HTML não sanitizado.
 - Elementos interativos devem declarar `interactions` de forma explícita.
@@ -1106,6 +1112,8 @@ unique(provider, provider_event_id)
 ```
 
 ### 7.11 QR Code e cartão imprimível
+
+No MVP atual, QR Code e cartão compartilhável são gerados **on-demand** a partir do Gift publicado. A tabela `gift_delivery_assets` permanece como estrutura futura para cache/arquivamento de PNG/PDF, mas a primeira versão evita salvar arquivos e evita órfãos em storage.
 
 #### `gift_delivery_assets`
 
@@ -1409,6 +1417,40 @@ Contrato atual:
 - rascunhos devem ser limpos após sucesso confirmado do backend;
 - ele não substitui o servidor como fonte de verdade.
 
+### 12.1 Histórico local do editor
+
+O editor mantém histórico local de canvas para desfazer/refazer durante a sessão. Esse histórico não é salvo no banco, não cria endpoint novo e não substitui o autosave.
+
+Contrato atual:
+
+- o histórico é mantido no frontend por `GiftPage`, usando snapshots de canvas JSON;
+- cada página mantém pilhas próprias de undo e redo, com limite de 40 entradas por página;
+- cada entrada guarda `pageId`, canvas `before`, canvas `after`, label opcional e timestamp;
+- nova alteração depois de um undo limpa a pilha de redo daquela página;
+- undo/redo aplica o canvas localmente, atualiza o rascunho de proteção em `localStorage` quando ele difere do salvo e deixa o autosave persistir por debounce;
+- se o canvas aplicado por undo/redo for igual ao canvas salvo, o rascunho local daquela página pode ser limpo;
+- o servidor continua sendo a fonte da verdade persistida e valida o canvas recebido pelo mesmo fluxo de autosave;
+- preview privado e viewer público continuam read-only e não recebem controles de histórico.
+
+Ações cobertas pelo histórico local:
+
+- mover, redimensionar e rotacionar elemento;
+- editar texto no canvas ou painel;
+- trocar imagem de elemento `image`;
+- adicionar sticker;
+- duplicar e deletar elemento;
+- bloquear/desbloquear;
+- ocultar/exibir;
+- renomear camada;
+- alterar zIndex/camada;
+- editar posição, tamanho, rotação, estilo e propriedades pelo painel.
+
+Granularidade:
+
+- transformações contínuas por ponteiro registram o estado antes da transformação e uma única entrada ao finalizar o gesto;
+- texto, estilo e propriedades editadas em campos usam debounce/coalescing para evitar uma entrada por tecla ou pixel;
+- navegação, troca de aba, seleção de elemento e upload de imagem sem aplicação na página não entram no histórico.
+
 Tabelas adicionais opcionais:
 
 #### `gift_draft_snapshots`
@@ -1632,7 +1674,7 @@ Rotas autenticadas:
 
 ### Área do usuário
 
-O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é o Editor MVP: permite navegar entre páginas copiadas do template, visualizar preview via renderer compartilhado, selecionar/manipular elementos existentes, editar textos direto no canvas ou pelo painel, enviar imagens do Gift, aplicar imagens em elementos `image` existentes no canvas e salvar metadados básicos do gift por autosave.
+O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é o Editor MVP: permite navegar entre páginas copiadas do template, visualizar preview via renderer compartilhado, selecionar/manipular elementos existentes, editar textos direto no canvas ou pelo painel, enviar imagens do Gift, aplicar imagens em elementos `image` existentes no canvas, desfazer/refazer alterações locais por página e salvar metadados básicos do gift por autosave.
 
 ### Segurança aplicada
 
@@ -1652,8 +1694,8 @@ O Editor MVP é uma camada de produto sobre drafts já existentes. Ele não é u
 - O usuário autenticado abre `/app/gifts/{gift}/edit`.
 - A policy garante que o gift pertence ao usuário.
 - O backend envia somente resumo seguro do gift, páginas ordenadas, canvas, mídias processadas do Gift, flags `is_visible`/`locked`, URLs de update/upload e limite de texto.
-- O frontend mantém estado local para página selecionada, canvas local, dirty state, autosave, rascunho local temporário e metadados básicos.
-- O usuário seleciona uma página, vê o preview, seleciona elementos no canvas, move/redimensiona/rotaciona elementos suportados, edita textos direto no canvas ou pelo painel e aplica mídia em elementos `type: image` existentes.
+- O frontend mantém estado local para página selecionada, canvas local, dirty state, autosave, rascunho local temporário, histórico local por página e metadados básicos.
+- O usuário seleciona uma página, vê o preview, seleciona elementos no canvas, move/redimensiona/rotaciona elementos suportados, edita textos direto no canvas ou pelo painel, aplica mídia em elementos `type: image` existentes e desfaz/refaz alterações recentes da página.
 - Metadados e canvas são salvos por autosave com debounce; não deve haver botão manual destacado como ação principal do editor.
 - O indicador global de salvamento mostra pendente, salvando, salvo, erro ou sem conexão.
 - Erros de validação do autosave devem ficar visíveis e não podem descartar alterações locais.
@@ -1664,30 +1706,69 @@ O Editor MVP é uma camada de produto sobre drafts já existentes. Ele não é u
 - `resources/js/components/renderer` é a base compartilhada de renderização para editor e futuro viewer público.
 - O editor não duplica regras visuais do renderer; ele monta UI de navegação e propriedades ao redor do preview.
 - A seleção/manipulação fica em componentes do editor, como overlay e handles sobre o `PageRenderer`; preview privado e viewer público continuam read-only.
+- Controles de camadas, botões de ação, botões de undo/redo e atalhos existem somente no editor.
 - O renderer aceita fallback seguro para canvas simples, elementos desconhecidos e mídia ainda não disponível.
 
 ### Editor visual básico
 
 - O canvas continua usando coordenadas lógicas do artboard, com padrão `1080x1350`; movimento e resize convertem ponteiro/tela para esse sistema antes de salvar.
 - Elementos manipuláveis usam o contrato atual `x`, `y`, `w`, `h`, `rotation` e `z`. Aliases antigos/conceituais como `width`, `height` e `zIndex` podem ser normalizados para `w`, `h` e `z`.
-- O primeiro clique em imagem seleciona o elemento e mostra outline, handles de resize e handle simples de rotação.
+- Elementos podem ter `name`, `locked` e `hidden`. `name` é opcional e usado apenas como nome amigável de camada; `locked` e `hidden` recebem default `false` em elementos antigos.
+- O clique curto em imagem seleciona o elemento e mantém os handles de mover/redimensionar/rotacionar; quando a imagem está selecionada, aparece um botão contextual `Trocar foto` abaixo dela.
 - Em elementos `text` e stickers com texto editável, clique rápido seleciona e abre edição direta no canvas com textarea controlado. O texto é tratado como texto puro; não há `contentEditable` livre nem `dangerouslySetInnerHTML`.
 - A diferença entre clique e arraste é feita por threshold simples de ponteiro. Movimentos curtos entram em edição; deslocamento acima do threshold move o elemento.
 - Arrastar o elemento move; arrastar handles redimensiona; imagens mantêm proporção por padrão nesta primeira versão.
 - A rotação pode ser feita por handle visual e também por campo numérico no painel.
-- O painel de elemento selecionado permite editar posição, tamanho, rotação, camada, texto, fonte, cor, alinhamento e ações de imagem.
+- O painel de elemento selecionado permite editar posição, tamanho, rotação, camada, texto, fonte, cor e alinhamento.
 - O painel de elemento selecionado usa grupos responsivos para posição, tamanho e transformação, sem overflow horizontal em desktop ou mobile.
 - Camadas são persistidas como `z`, recalculadas de forma previsível em passos de 10. A UI oferece trazer para frente, enviar para trás, mover acima e mover abaixo.
-- Para imagem, o primeiro clique apenas seleciona. Troca de imagem exige intenção explícita pelo painel do elemento ou duplo clique no elemento; upload geral continua apenas adicionando à biblioteca.
+- A aba `Camadas` lista elementos da página atual em ordem visual de zIndex, com seleção por camada, nome amigável, estado selecionado/bloqueado/oculto e ações rápidas.
+- Nomes amigáveis devem evitar termos técnicos: texto usa o começo do conteúdo, imagem usa `Imagem`, sticker usa o nome do asset quando disponível, música usa `Música` e desconhecidos usam `Elemento`.
+- Ações básicas de elemento no editor: renomear camada, duplicar, deletar, bloquear/desbloquear, ocultar/exibir e selecionar pela lista.
+- Duplicar cria novo `id`, desloca levemente `x/y`, mantém `mediaItemId` ou `assetId`, coloca a cópia acima do original, seleciona a cópia e força `locked = false` e `hidden = false`.
+- Deletar remove o elemento do canvas, mas elementos `locked` não podem ser deletados.
+- Elementos `locked` continuam visíveis, podem ser selecionados pela lista e desbloqueados, mas não podem ser movidos, redimensionados, rotacionados, editados, deletados ou receber troca de imagem.
+- Elementos `hidden` aparecem na lista de camadas e podem ser reexibidos, mas não aparecem no canvas do editor, não recebem clique no canvas e não aparecem no preview/viewer.
+- Para imagem, clique curto no elemento apenas seleciona e permite mover/rotacionar; o botão contextual `Trocar foto` abre o upload direcionado para substituir aquela foto. Upload geral continua apenas adicionando à biblioteca.
 - Stickers renderizados com texto visível (`text`, `content` ou `label`) podem ser editados como texto quando o elemento for textual/editável. Stickers sem texto visível continuam sem campo de texto.
 - Elementos desconhecidos continuam preservados quando seguros, mas ficam read-only no editor visual básico.
+- Atalhos simples podem existir no editor: `Ctrl/Cmd + Z` para desfazer, `Ctrl/Cmd + Shift + Z` e `Ctrl/Cmd + Y` para refazer, `Delete`/`Backspace` para deletar, `Ctrl/Cmd + D` para duplicar, `Esc` para limpar seleção e setas para mover elemento selecionado. Eles não disparam enquanto o usuário digita em `input`, `textarea`, `select` ou conteúdo editável, e respeitam `locked`/`hidden`.
+
+### Histórico local de edição
+
+- O histórico de edição do canvas é local ao editor e separado por página.
+- As pilhas de undo/redo guardam snapshots de canvas JSON, não arquivos binários de imagem.
+- O limite atual é 40 entradas por página para evitar consumo excessivo de memória.
+- Mover, redimensionar e rotacionar entram como uma única ação ao fim do gesto, mesmo que o canvas tenha recebido várias atualizações visuais durante o drag.
+- Texto, estilo e propriedades numéricas usam coalescing/debounce para reduzir entradas excessivas.
+- Duplicar, deletar, trocar imagem, adicionar sticker, bloquear/desbloquear, ocultar/exibir, renomear camada e alterar zIndex registram entradas imediatas.
+- Undo/redo atualiza o canvas local, marca a página para salvamento quando ela difere do último canvas salvo, atualiza/limpa o rascunho local de proteção e deixa o autosave salvar pelo debounce existente.
+- O histórico não é persistido no servidor, não é versionamento completo de `Gift` e não altera o contrato visual do tema.
 
 ### Correções de UX do editor visual
 
 - A folha/página mantém artboard lógico `1080x1350`, mas o limite visual do renderer foi ampliado em cerca de 25%; editor, preview e viewer escalam o mesmo canvas sem alterar coordenadas salvas.
 - No mobile, a ordem do editor prioriza canvas e painel de propriedades antes da lista de páginas, reduzindo rolagem até os controles essenciais.
 - As abas do painel direito ficam mais compactas no mobile. Debug continua restrito ao ambiente de desenvolvimento/teste.
-- A biblioteca de imagens permanece limpa: upload geral adiciona mídia; trocar imagem exige elemento selecionado, botão do painel ou duplo clique.
+- A biblioteca de imagens permanece limpa: upload geral adiciona mídia; trocar imagem exige selecionar o elemento de imagem na página e clicar no botão contextual `Trocar foto`.
+
+### Polimento e QA do editor
+
+O editor passou por uma etapa de estabilidade antes da fase de entrega por QR Code/cartão. Esta etapa não mudou o contrato principal do canvas; ela melhorou comportamento, feedback e usabilidade da experiência existente.
+
+Diretrizes preservadas:
+
+- Mobile precisa ser utilizável: topbar não deve quebrar, canvas deve continuar grande o suficiente para toque, abas precisam ser acessíveis, lista de páginas deve ter altura controlada e handles de transformação devem ser tocáveis.
+- Estados vazios devem ser amigáveis para biblioteca de imagens, biblioteca de adesivos, busca sem resultado, página sem textos editáveis e painel de camadas sem itens.
+- Estados de loading e erro devem aparecer para upload de imagem, carregamento/listagem de adesivos, autosave, salvamento de página, aplicação de imagem/adesivo e restauração de rascunho local.
+- Autosave não deve limpar rascunho local antes de confirmação do backend; erro de save mantém alterações locais na tela e status global compreensível.
+- `localStorage` continua sendo proteção temporária e deve avisar quando um rascunho local não puder ser restaurado.
+- Undo/redo continua local e por página; ações contínuas de mover/redimensionar/rotacionar entram como uma única ação, e atalhos não disparam dentro de inputs/textareas.
+- Elementos `locked` não podem ser movidos, redimensionados, rotacionados, editados, duplicados pela UI principal, deletados nem receber troca de imagem; elementos `hidden` não aparecem no canvas/viewer e podem ser reexibidos por Camadas.
+- A UI final deve usar nomes amigáveis e evitar termos técnicos como `photo 1`, `zIndex`, `canvas`, `mediaItemId`, `assetId`, `debug`, JSON bruto ou paths internos. Esses termos ficam restritos a debug local/dev.
+- Acessibilidade básica deve incluir labels claros, foco visível, `aria-label` em botões de ícone, estados destrutivos identificáveis e status de salvamento com anúncio educado.
+- Performance básica deve evitar recálculos óbvios em listas de camadas/assets, listeners globais duplicados e loops de autosave.
+- Painéis de debug, JSON bruto e logs de autosave só aparecem em ambiente local/desenvolvimento/teste; produção não deve exibir dados técnicos.
 
 ### Metadados permitidos
 
@@ -1704,13 +1785,34 @@ O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de 
 - Canvas é dado não confiável e sempre passa por validação server-side.
 - `schemaVersion` precisa ser `1` e `elements` precisa ser uma lista.
 - Elementos precisam ter `id`, `type`, `x`, `y`, `w`, `h`, `rotation` e `z` normalizados antes de persistir.
+- `name` precisa ser string curta e sem HTML/script; `locked` e `hidden` precisam ser booleanos.
 - Números de transformação precisam ser finitos e dentro de limites seguros; `NaN`, `Infinity`, strings inválidas, dimensões negativas/zero e valores extremos são rejeitados.
 - O backend normaliza aliases `width`/`height`/`zIndex`, remove aliases depois de persistir, normaliza rotação e evita camadas duplicadas problemáticas.
 - Textos são tratados como texto puro, sem HTML, `script`, `innerHTML`, URLs externas ou protocolos inseguros.
 - O limite de texto vem de `constraints.maxTextLength` quando existir, com fallback seguro.
 - Páginas `locked` podem ser visualizadas, mas não editadas.
+- Elementos `locked` já persistidos não podem ser transformados, editados ou deletados por autosave malicioso; o backend permite apenas alterações de estado de camada como desbloquear/ocultar/renomear.
+- Elementos `hidden` continuam passando por validação de segurança e referências, mesmo sem renderizar no viewer.
 - Referências de mídia são autorizadas por `user_id`, `gift_id`, tipo `image` e status `processed` antes de salvar.
 - Elementos `image` não podem persistir `src` externo ou relativo arbitrário; quando `mediaItemId` é válido, o backend substitui `src` pela rota segura do app.
+- Elementos `sticker` com asset decorativo persistem `assetId`; o canvas não salva URL, `storage_path`, `previewUrl` nem `src` manual para sticker.
+- `assetId` de sticker precisa apontar para `Asset` ativo e permitido ao Gift: global ou associado ao `theme_version` atual.
+
+### Biblioteca de stickers/assets
+
+Assets decorativos do sistema são diferentes de `MediaItem`.
+
+- `MediaItem` representa arquivos enviados pelo usuário, vinculados a `User`/`Gift`: fotos pessoais e imagens do presente.
+- `Asset` representa elementos decorativos do sistema, cadastrados/admins e reutilizáveis: stickers, fitas, flores, molduras, papéis, selos, rabiscos, ícones e recortes.
+- `AssetCategory` organiza assets em categorias ativas/ordenadas como Corações, Fitas, Flores, Papéis, Molduras, Rabiscos, Aniversário, Romance, Amizade e Vintage.
+- Um `Asset` pertence opcionalmente a uma categoria por `asset_category_id`; para o MVP não há many-to-many de categorias.
+- Assets globais são assets ativos sem vínculo em `theme_asset`; assets do tema são os associados ao `ThemeVersion` atual por `theme_asset`.
+- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema.
+- O endpoint autenticado `GET /app/gifts/{gift}/assets` lista categorias ativas, assets ativos do tema primeiro e assets globais depois. Ele exige Gift próprio em `draft`.
+- O endpoint não expõe `storage_path` nem metadata administrativa; o frontend recebe `id`, `name`, `type`, categoria, `renderMode`, `previewUrl` seguro quando existir e `config` allowlistado.
+- O editor possui aba `Adesivos`, com busca, filtro por categoria e grid responsivo. Ao clicar em um asset, cria um elemento `sticker` no centro da página atual com `assetId`, dimensões padrão, rotação `0`, `locked = false`, `hidden = false` e camada acima das atuais.
+- O renderer compartilhado resolve `assetId` por um mapa seguro `assetId -> asset` recebido do endpoint/editor ou do payload de preview/viewer. Se o asset estiver inativo/indisponível, o sticker fica em fallback seguro.
+- Preview privado e viewer público recebem apenas os assets referenciados por elementos visíveis das páginas visíveis e não expõem caminhos internos.
 
 ### Upload/mídia básica
 
@@ -1720,13 +1822,13 @@ O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de 
 - O editor recebe somente `id`, tipo, nome original, URL segura, thumbnail, dimensões, tamanho, status e data; não recebe `storage_path` nem metadata interna.
 - A aba Imagens do editor é uma biblioteca simples do Gift, com upload geral, lista/grid de imagens e instrução de uso.
 - Upload geral na biblioteca apenas adiciona a imagem à biblioteca; ele não altera automaticamente o canvas.
-- Para substituir uma foto da página, o usuário deve selecionar a imagem e usar o painel do elemento ou duplo clique; upload geral não altera canvas automaticamente.
+- Para substituir uma foto da página, o usuário deve selecionar o espaço de imagem dentro do scrapbook e clicar em `Trocar foto` para enviar a nova imagem; upload geral não altera canvas automaticamente.
 - Não recriar o card técnico "Usar na página", nem listar slots como `photo 1`/`photo 2` fora de debug local.
 - Storage continua S3-compatible/MinIO em desenvolvimento via `FILESYSTEM_DISK=s3`, mas o browser usa rotas autenticadas do Laravel.
 
-### Limites desta etapa
+### Limites do Editor MVP
 
-Não entram no Editor MVP atual: biblioteca completa de stickers, adicionar novos stickers/assets pelo painel, deletar/duplicar com histórico/desfazer, crop/filtros, animação de virar página, QR Code, gateway real, demo pública, integração musical externa e builder visual de templates no admin. Preview, viewer público e publicação técnica são fluxos separados do editor.
+Não entram no Editor MVP atual: marketplace de assets, upload avançado de assets pelo usuário final, edição visual de tema, histórico persistido no servidor, versionamento completo de Gift, agrupamento de elementos, multi-seleção complexa, crop/filtros, animação de virar página, gateway real, demo pública, integração musical externa e builder visual de templates no admin. QR Code e cartão compartilhável pertencem à camada de entrega do Gift publicado, não ao editor visual.
 
 ## 20. Autenticação real mínima do cliente
 
@@ -1810,12 +1912,27 @@ A visualização real do presente foi separada em dois contextos:
 
 O viewer não envia models crus ao frontend. `GiftViewerResource` e `GiftPageViewerResource` expõem somente:
 
-- título, destinatário, remetente, status público/preview, tema resumido e datas mínimas;
+- no viewer público: título, destinatário, remetente, tema resumido, páginas, assets visíveis e URL de criação;
+- no preview privado: dados do dono necessários para revisar, como `id`, `status`, datas, URL de edição, revisão, compartilhamento e link público quando já existir;
 - páginas visíveis ordenadas;
 - canvas sanitizado e resolvido para o contexto correto;
+- elementos com `hidden = true` removidos do payload de preview/viewer;
 - URLs de navegação necessárias ao contexto.
 
-O payload público não envia `user_id`, usuário, e-mail, plano, pedidos, pagamentos, `public_code` separado, `storage_path` ou metadata interna.
+O payload público não envia `id`, `status`, `published_at`, `expires_at`, `user_id`, usuário, e-mail, plano, pedidos, pagamentos, `public_code` separado, `storage_path` ou metadata interna. Mesmo se a pessoa abrir o link público estando autenticada, o middleware Inertia não compartilha `auth.user` nas rotas `public.gifts.*`.
+
+### Experiência refinada do viewer
+
+O viewer público `/p/{slug}-{public_code}` é a experiência final do destinatário e deve parecer um presente digital, não uma tela administrativa. O fluxo atual é:
+
+1. tela de abertura com “Você recebeu um scrapbook”, título, destinatário/remetente quando existirem e botão “Abrir presente”;
+2. leitura página por página usando o renderer compartilhado;
+3. navegação por anterior/próxima, teclado no desktop, swipe simples no mobile, indicador textual e progresso discreto;
+4. estado final com “Fim deste scrapbook”, voltar ao início, voltar à última página, copiar/compartilhar link e CTA discreto para `/criar`.
+
+O preview privado `/app/gifts/{gift}/preview` reutiliza a mesma experiência visual, incluindo a abertura, mas mantém uma barra privada discreta com voltar para editar, revisar/publicar ou compartilhar/abrir link público conforme o status. O preview não mostra CTA público “Criar o meu também”.
+
+Gifts indisponíveis no viewer público renderizam uma tela amigável genérica com HTTP 404. Essa tela não revela se o Gift existe, expirou, foi desativado, está em rascunho, pendente de pagamento ou recebeu código público incorreto.
 
 ### Mídia no viewer
 
@@ -1828,6 +1945,7 @@ O canvas salvo é tratado como dado não confiável. No viewer:
 - preview privado recebe URL autenticada em `/app/gifts/{gift}/media/{mediaItem}`;
 - viewer público recebe URL controlada em `/p/{slug}-{public_code}/media/{mediaItem}`;
 - se o `mediaItemId` for inválido, de outro Gift ou indisponível, o backend remove `src` e marca placeholder seguro.
+- `locked` não altera a aparência no viewer; é metadado de edição e não cria controles públicos.
 
 As rotas públicas de mídia também resolvem o Gift por slug + `public_code` e repetem as regras de `published`, `public_link`, não expirado e não desativado antes de servir o arquivo. A rota não expõe `storage_path` e só serve mídia pertencente ao Gift publicado.
 
@@ -1837,7 +1955,7 @@ O viewer público registra abertura básica em `gift_visits` quando possível. O
 
 ### Limites desta etapa
 
-Esta etapa não implementa gateway externo real, Pix real, cartão, QR Code, demo pública, integração musical, crop/filtros, editor drag-and-drop ou refinamento visual da landing. O checkout atual prepara o domínio de `Order`/`Payment` e usa aprovação manual/dev somente em ambiente controlado.
+Esta etapa não implementa gateway externo real, Pix real, demo pública, integração musical, crop/filtros, editor drag-and-drop, editor novo, envio automático, marketplace ou refinamento visual da landing. O checkout atual prepara o domínio de `Order`/`Payment` e usa aprovação manual/dev somente em ambiente controlado; QR Code e cartão compartilhável já existem e devem ser preservados.
 
 ## 23. Revisão, checkout e publicação condicionada a pagamento
 
@@ -1857,6 +1975,7 @@ A publicação técnica `draft -> published` foi substituída por um fluxo de ch
 10. `ProcessApprovedPayment` marca `Payment approved`, marca `Order paid` e chama `PublishGift`.
 11. `PublishGift` define `status = published`, `visibility = public_link`, `slug`, `public_code`, `published_at` e `expires_at`.
 12. O link público passa a aparecer na tela do pedido, revisão, editor e dashboard.
+13. O dono acessa `/app/gifts/{gift}/share` para copiar link, visualizar/baixar QR Code e abrir o cartão compartilhável.
 
 ### Checklist
 
@@ -1917,7 +2036,49 @@ draft -> pending_payment -> published
 - `expires_at` usa `limits_snapshot.gift_lifetime_days`, depois `plans.gift_lifetime_days`, com fallback em `config('scrapbook.gifts.default_lifetime_days')`.
 - O viewer público continua exigindo `status = published`, `visibility = public_link`, `slug + public_code`, não expirado e não desativado.
 
-## 24. Fundação visual do scrapbook
+## 24. QR Code e cartão compartilhável
+
+A entrega do presente passa a ter uma camada privada de compartilhamento para o dono autenticado.
+
+### Rotas autenticadas
+
+- `GET /app/gifts/{gift}/share`: tela de compartilhamento do Gift.
+- `GET /app/gifts/{gift}/qr-code`: retorna o QR Code como SVG seguro.
+- `GET /app/gifts/{gift}/qr-code?download=1`: baixa o QR Code como arquivo SVG.
+- `GET /app/gifts/{gift}/share-card`: mostra o cartão compartilhável.
+- `GET /app/gifts/{gift}/share-card/download`: abre a versão imprimível com impressão automática pelo navegador.
+
+### Regras de acesso
+
+- Todas as rotas acima exigem sessão autenticada.
+- `GiftPolicy::view` garante que somente o dono acesse share, QR e cartão.
+- QR Code final e cartão compartilhável exigem `Gift::isPubliclyAccessible()`.
+- Gifts `draft` e `pending_payment` não geram QR final; a tela de share pode mostrar placeholder “Publique o presente para gerar QR Code”.
+- Gifts `disabled` ou `expired` não são tratados como ativos, e o viewer público continua bloqueando a abertura.
+
+### Geração do QR Code
+
+- `GiftShareUrlGenerator` monta a URL pública absoluta do Gift publicado.
+- `GenerateGiftQrCode` usa `chillerlan/php-qrcode`, dependência já presente no projeto via Filament, para gerar SVG on-demand.
+- O payload do QR é somente a URL pública `/p/{slug}-{public_code}`.
+- O QR não contém `user_id`, e-mail, storage path, rota privada, pedido, pagamento ou dado interno.
+- A geração on-demand evita arquivo órfão e dispensa `gift_delivery_assets` nesta primeira versão; cache/storage pode entrar depois.
+
+### Cartão compartilhável
+
+- `GiftShareCardData` monta título, destinatário, remetente, URL pública, URL visível e tokens visuais básicos do tema.
+- O frontend usa `GiftShare`, `GiftQrCodePreview`, `CopyPublicLinkButton`, `GiftShareCard`, `PrintableShareCard` e `ShareActions`.
+- O cartão segue estética scrapbook/papel/kraft, com QR Code, instrução curta e URL visível.
+- O download complexo como PNG/PDF fica adiado; a versão MVP usa página imprimível com CSS `@media print` e botão “Imprimir/Salvar PDF”.
+
+### Integração com publicação
+
+- Dashboard mostra ação “Compartilhar” e “Abrir link” para Gifts publicados.
+- Revisão e tela do pedido mostram link público, QR Code e ações de compartilhamento após publicação.
+- Editor de Gift publicado mostra CTA para compartilhar.
+- Gateway real, Pix, envio automático por WhatsApp/e-mail e sistema físico de impressão/entrega continuam fora desta etapa.
+
+## 25. Fundação visual do scrapbook
 
 A fase atual consolida o contrato visual do produto. Internamente a entidade continua sendo `GiftPage`; visualmente ela deve ser renderizada como uma folha temática de diário/scrapbook dentro de um caderno/livro.
 
@@ -2093,4 +2254,4 @@ A página renderizada não deve parecer um retângulo branco simples. Ela deve m
 - placeholders bonitos para imagens vazias;
 - responsividade para mobile e desktop.
 
-Esta fase não implementa drag-and-drop completo, biblioteca de stickers, animação de virar página, autosave complexo ou gateway real.
+Esta fase não implementa drag-and-drop completo, marketplace de assets, animação de virar página, autosave paralelo/complexo ou gateway real.
