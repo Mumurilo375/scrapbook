@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { CanvasElement } from '../../domain/canvas/schema';
+import { assetFromMap, type RendererAssetMap } from './assetTypes';
+import { AssetVisual } from './AssetVisual';
 import { isRecord, resolveThemeColor, type NormalizedThemeConfig } from './theme';
 
 type StickerElementProps = {
@@ -9,10 +11,11 @@ type StickerElementProps = {
     };
     element: CanvasElement;
     style: CSSProperties;
+    assets?: RendererAssetMap;
     theme: NormalizedThemeConfig;
 };
 
-export function StickerElement({ artboard, element, style, theme }: StickerElementProps) {
+export function StickerElement({ artboard, assets, element, style, theme }: StickerElementProps) {
     const text =
         typeof element.text === 'string'
             ? element.text
@@ -22,12 +25,35 @@ export function StickerElement({ artboard, element, style, theme }: StickerEleme
                 ? element.label
                 : '';
     const elementStyle = isRecord(element.style) ? element.style : {};
+    const asset = assetFromMap(assets, (element as Record<string, unknown>).assetId ?? (element as Record<string, unknown>).asset_id);
     const fontSize =
         typeof elementStyle.fontSize === 'number' && Number.isFinite(elementStyle.fontSize)
             ? `${(elementStyle.fontSize / artboard.width) * 100}cqw`
             : '3cqw';
     const color = resolveThemeColor(theme, elementStyle.color, theme.tokens.colors.accent);
     const textAlign = safeTextAlign(elementStyle.align) ?? 'center';
+
+    if (asset) {
+        return (
+            <div
+                className="absolute flex items-center justify-center"
+                style={{
+                    ...style,
+                    filter: theme.elements.sticker.shadow ? `drop-shadow(0 9px 12px ${theme.tokens.colors.shadow})` : undefined,
+                }}
+            >
+                <AssetVisual asset={asset} theme={theme} />
+                {text !== '' ? (
+                    <span
+                        className="pointer-events-none absolute inset-[12%] flex items-center justify-center whitespace-pre-wrap break-words px-2 font-semibold"
+                        style={{ color, fontSize, textAlign }}
+                    >
+                        {text}
+                    </span>
+                ) : null}
+            </div>
+        );
+    }
 
     return (
         <div

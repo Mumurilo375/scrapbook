@@ -1,4 +1,5 @@
 import type { Canvas, CanvasElement } from '../../domain/canvas/schema';
+import type { RendererAssetMap } from './assetTypes';
 import { ElementRenderer } from './ElementRenderer';
 import type { NormalizedThemeConfig } from './theme';
 
@@ -7,10 +8,12 @@ type CanvasElementLayerProps = {
     onElementClick?: (element: CanvasElement) => void;
     onMediaDrop?: (element: CanvasElement, mediaItemId: string) => void;
     selectedElementId?: string | null;
+    assets?: RendererAssetMap;
     theme: NormalizedThemeConfig;
 };
 
 export function CanvasElementLayer({
+    assets,
     canvas,
     onElementClick,
     onMediaDrop,
@@ -23,10 +26,12 @@ export function CanvasElementLayer({
     return (
         <>
             {[...canvas.elements]
+                .filter((element) => !isElementHidden(element))
                 .sort((a, b) => a.z - b.z)
                 .map((element) => (
                     <ElementRenderer
                         artboard={{ height, width }}
+                        assets={assets}
                         element={element}
                         key={element.id}
                         onElementClick={onElementClick}
@@ -37,4 +42,8 @@ export function CanvasElementLayer({
                 ))}
         </>
     );
+}
+
+function isElementHidden(element: CanvasElement): boolean {
+    return (element as CanvasElement & Record<string, unknown>).hidden === true;
 }

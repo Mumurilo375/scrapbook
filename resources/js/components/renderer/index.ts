@@ -1,3 +1,4 @@
+export { AssetVisual } from './AssetVisual';
 export { CanvasElementLayer } from './CanvasElementLayer';
 export { ElementRenderer } from './ElementRenderer';
 export { ImageElement } from './ImageElement';
@@ -11,5 +12,7 @@ export { ScrapbookStage } from './ScrapbookStage';
 export { StickerElement } from './StickerElement';
 export { TextElement } from './TextElement';
 export { ThemedArtboard } from './ThemedArtboard';
+export { assetFromMap, assetMapFromList } from './assetTypes';
+export type { RendererAsset, RendererAssetCategory, RendererAssetMap } from './assetTypes';
 export { DEFAULT_THEME_CONFIG, normalizeThemeConfig } from './theme';
 export type { NormalizedThemeConfig, RendererContext, ThemeConfigInput } from './theme';

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Canvas } from '../../domain/canvas/schema';
+import type { RendererAssetMap } from './assetTypes';
 import { CanvasElementLayer } from './CanvasElementLayer';
 import { PageSurface } from './PageSurface';
 import { ScrapbookPageFrame } from './ScrapbookPageFrame';
@@ -9,6 +10,7 @@ import { normalizeThemeConfig, type RendererContext, type ThemeConfigInput } fro
 
 type PageRendererProps = {
     canvas: Canvas;
+    assets?: RendererAssetMap;
     children?: ReactNode;
     context?: RendererContext;
     onElementClick?: (element: Canvas['elements'][number]) => void;
@@ -18,6 +20,7 @@ type PageRendererProps = {
 };
 
 export function PageRenderer({
+    assets,
     canvas,
     children,
     context = 'preview',
@@ -33,6 +36,7 @@ export function PageRenderer({
             <PageSurface canvas={canvas} context={context} theme={normalizedTheme}>
                 <ThemedArtboard canvas={canvas} theme={normalizedTheme}>
                     <CanvasElementLayer
+                        assets={assets}
                         canvas={canvas}
                         onElementClick={onElementClick}
                         onMediaDrop={onMediaDrop}
