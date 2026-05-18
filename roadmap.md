@@ -9,15 +9,17 @@
 - Admin inicial em Filament implementado para operar temas, templates, assets, planos, gifts, mídia, pedidos, pagamentos e analytics.
 - Fluxo de criação inicial implementado: `/criar`, escolha de ocasião, escolha de template publicado, criação de `Gift` draft, cópia de páginas e dashboard simples.
 - Autenticação real mínima implementada: login, cadastro, logout, role `customer`, proteção de `/app/*` e integração com criação/retomada de draft.
-- Editor MVP implementado em `/app/gifts/{gift}/edit`, com seleção de páginas, preview, edição de textos existentes, metadados básicos e salvamento seguro de canvas.
-- Upload/mídia básica no editor implementado, com upload seguro de imagens, `media_items`, biblioteca simples e aplicação em elementos `image` existentes.
+- Editor MVP implementado em `/app/gifts/{gift}/edit`, com topbar, sidebar de páginas, palco central, painel direito em abas, preview, edição de textos existentes, metadados básicos, autosave com debounce e seleção/manipulação visual básica de elementos existentes.
+- Upload/mídia básica no editor implementado, com upload seguro de imagens, `media_items`, biblioteca simples e aplicação em elementos `image` existentes pelo fluxo contextual da página.
 - Viewer/preview do scrapbook implementado, com preview privado autenticado, viewer público por slug + `public_code`, navegação de páginas e mídia pública controlada.
 - Revisão/publicação técnica MVP implementada, com checklist de requisitos mínimos.
 - Checkout interno/publicação condicionada a pagamento implementado, com `Order`, `Payment`, provider manual/dev e publicação após aprovação.
 - Artboard/canvas padronizado com `schemaVersion/version = 1`, `artboard` válido, `elements` como array e proporção padrão `1080x1350`.
-- Fase atual: aprofundamento visual de temas e folhas, com `PageSurface`, textura CSS sem asset externo obrigatório, moldura de caderno/livro e seeds comparáveis de temas/templates.
-- Próxima fase: redesign do editor e autosave simples/robusto.
-- Depois: manipulação visual, camadas e stickers.
+- Fase visual de temas e folhas concluída como fundação atual, com `PageSurface`, textura CSS sem asset externo obrigatório, moldura de caderno/livro e seeds comparáveis de temas/templates.
+- Editor visual básico implementado para elementos existentes, com seleção, mover, redimensionar, rotação, z/camadas e autosave do canvas.
+- Fase atual: correções de UX do editor visual básico, com edição direta de texto no canvas, sticker com texto editável, painel sem overflow, folha visualmente mais larga e mobile menos cansativo.
+- Próxima fase: biblioteca de stickers/assets, categorias e aplicação controlada de assets novos.
+- Depois: camadas avançadas, duplicar/deletar, histórico/desfazer e melhorias finas de manipulação.
 - Gateway externo real, QR Code, entrega, demo pública refinada e landing final ficam para etapas futuras.
 
 ## Nota técnica de ambiente
@@ -333,39 +335,43 @@ Status: renderer compartilhado já alimenta editor, preview privado e viewer pú
 
 ## Fase 11 - Editor visual MVP
 
+Status: editor estrutural já redesenhado com topbar, sidebar, palco central, painel direito em abas, autosave com debounce, indicador global e rascunho local como proteção. O autosave foi corrigido, a aba Imagens foi limpa e a primeira versão de editor visual básico foi implementada: seleção de elementos, outline/handles, mover, redimensionar, rotacionar, controle simples de camadas e edição de texto. A fase atual é corretiva de UX antes de stickers/assets: edição direta no canvas, clique-vs-arraste, sticker com texto editável, painel de propriedades responsivo, folha mais larga e mobile com menos rolagem. Ainda não é Canva/Figma completo; biblioteca de stickers/assets novos, duplicar/deletar avançado e histórico/desfazer ficam para próximas fases.
+
 229. Criar página de editor.
 230. Carregar gift e gift_pages.
 231. Criar estado local do editor com Zustand.
 232. Criar lista de páginas.
 233. Criar canvas da página selecionada.
-234. Permitir selecionar elemento.
-235. Permitir mover elemento.
-236. Permitir redimensionar elemento.
-237. Permitir rotacionar elemento.
-238. Permitir alterar z-index.
+234. Permitir selecionar elemento. Implementado para `text`, `image` e `sticker` existente.
+235. Permitir mover elemento. Implementado em coordenadas lógicas do artboard.
+236. Permitir redimensionar elemento. Implementado com handles básicos; imagem mantém proporção por padrão.
+237. Permitir rotacionar elemento. Implementado por handle visual e campo numérico.
+238. Permitir alterar z-index. Implementado como camadas por `z` com ações frente/trás/acima/abaixo.
 239. Permitir deletar elemento.
 240. Permitir duplicar elemento.
-241. Permitir editar texto.
-242. Permitir adicionar sticker.
-243. Permitir trocar imagem de slot.
+241. Permitir editar texto. Implementado no painel do elemento selecionado, preservado no painel de conteúdo e corrigido com edição direta no canvas para texto/sticker textual.
+242. Permitir adicionar sticker. Pendente; apenas sticker já existente é manipulável/editável quando possui texto.
+243. Permitir trocar imagem de slot. Implementado por intenção explícita no elemento selecionado; upload geral segue apenas biblioteca.
 244. Permitir mudar fundo/textura.
 245. Permitir trocar moldura da imagem.
 246. Permitir reordenar páginas.
 247. Permitir ocultar/remover página.
 248. Permitir adicionar página a partir de módulos permitidos.
 249. Validar limites de plano/template mesmo no draft.
-250. Criar autosave com debounce.
-251. Criar indicador “salvando”.
-252. Criar indicador “salvo”.
-253. Criar indicador de erro de sincronização.
+250. Criar autosave com debounce. Implementado e corrigido.
+251. Criar indicador “salvando”. Implementado.
+252. Criar indicador “salvo”. Implementado.
+253. Criar indicador de erro de sincronização. Implementado.
 254. Criar botão de preview.
 255. Criar preview em tempo real ao lado ou em modal.
-256. Garantir mobile-first.
-257. Criar modo de edição simplificado para celular.
-258. Evitar menus gigantes no celular.
+256. Garantir mobile-first. Em correção: canvas e propriedades aparecem antes da lista de páginas no celular.
+257. Criar modo de edição simplificado para celular. Parcial: abas compactas e painel mais curto, sem redesign completo.
+258. Evitar menus gigantes no celular. Parcial: painel de propriedades foi agrupado e corrigido para evitar overflow.
 259. Testar edição com toque.
 260. Testar edição com mouse.
 261. Testar rotação/redimensionamento em telas pequenas.
+
+Próxima fase recomendada para o editor: biblioteca de stickers/assets com categorias e aplicação controlada no canvas. Depois disso, avançar para camadas avançadas, duplicar/deletar, histórico/desfazer e refinamentos de UX de manipulação.
 
 ## Fase 12 - Upload e processamento de fotos
 

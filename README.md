@@ -8,16 +8,16 @@ Suba os serviços principais:
 docker compose up -d postgres redis minio
 ```
 
-O PostgreSQL local usado pela suíte PHPUnit fica em `127.0.0.1:5432`, com banco/usuário/senha `scrapbook`. Essa porta está alinhada ao `compose.yaml`, `.env.example` e `phpunit.xml`.
+Os testes PHPUnit usam o banco dedicado `scrapbook_testing` no PostgreSQL local e forçam esse ambiente, então não encostam no banco principal `scrapbook`.
 
-Se os testes recusarem conexão com PostgreSQL:
+Se a suíte falhar por problema de banco de teste:
 
 ```bash
 docker compose ps
 docker compose up -d postgres
 ```
 
-Não troque a suíte para SQLite para contornar esse erro; o produto usa PostgreSQL.
+O ambiente de desenvolvimento continua usando PostgreSQL; só a suíte de testes foi isolada em `scrapbook_testing`.
 
 ## Build frontend
 

@@ -1385,17 +1385,29 @@ gifts/{gift_ulid}/delivery/card.pdf
 
 ## 12. Autosave
 
-O editor precisa de autosave bom.
+O editor mantém autosave confiável como mecanismo único de persistência também para a manipulação visual básica.
 
-Recomendação:
+Contrato atual:
 
-- salvar alterações com debounce, por exemplo 1 a 3 segundos;
-- salvar por página, não o presente inteiro sempre;
-- manter `last_edited_at` em gifts;
-- em caso de falha, mostrar indicador;
-- persistir draft local temporário para evitar perda imediata;
-- servidor é a fonte da verdade;
+- alterações de metadados usam `PATCH /app/gifts/{gift}`;
+- alterações de canvas usam `PATCH /app/gifts/{gift}/pages/{giftPage}`;
+- requests de autosave usam JSON e não devem receber redirect;
+- respostas JSON retornam `success`, `data`, `last_edited_at` quando aplicável e `message` opcional;
+- o frontend salva com debounce curto, por página, sem disparar request a cada tecla;
+- o estado visual deve sair de pendente/salvando para salvo, erro ou sem conexão;
+- em caso de falha, a alteração local continua na tela e o erro fica visível;
+- `last_edited_at` do gift é atualizado a cada salvamento de metadados ou página;
+- o servidor continua sendo a fonte da verdade e sempre normaliza/sanitiza o canvas antes de persistir;
+- quando o backend confirma sucesso e não há edição mais nova em andamento, o frontend adota o canvas normalizado retornado pelo servidor;
 - antes de checkout, forçar sincronização final.
+
+`localStorage` é apenas proteção temporária contra perda acidental:
+
+- chaves devem incluir `giftId` e, para páginas, `pageId`;
+- rascunhos locais só devem ser restaurados quando forem mais recentes que o estado conhecido do servidor;
+- rascunhos antigos não devem sobrescrever dados já salvos;
+- rascunhos devem ser limpos após sucesso confirmado do backend;
+- ele não substitui o servidor como fonte de verdade.
 
 Tabelas adicionais opcionais:
 
@@ -1620,7 +1632,7 @@ Rotas autenticadas:
 
 ### Área do usuário
 
-O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é o Editor MVP: permite navegar entre páginas copiadas do template, visualizar preview via renderer compartilhado, editar textos existentes, enviar imagens do Gift, aplicar imagens em elementos `image` existentes no canvas e salvar metadados básicos do gift.
+O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/app/gifts/{gift}/edit` é o Editor MVP: permite navegar entre páginas copiadas do template, visualizar preview via renderer compartilhado, selecionar/manipular elementos existentes, editar textos direto no canvas ou pelo painel, enviar imagens do Gift, aplicar imagens em elementos `image` existentes no canvas e salvar metadados básicos do gift por autosave.
 
 ### Segurança aplicada
 
@@ -1633,22 +1645,49 @@ O painel em `/app/gifts` mostra apenas gifts do usuário autenticado. A tela `/a
 
 ## 21. Editor MVP de drafts
 
-O Editor MVP é uma camada de produto sobre drafts já existentes. Ele não é um editor livre estilo Canva; nesta etapa o usuário edita conteúdo textual e troca imagens em elementos já presentes no canvas.
+O Editor MVP é uma camada de produto sobre drafts já existentes. Ele não é um editor livre estilo Canva; nesta etapa o usuário manipula elementos existentes do canvas de forma controlada: textos, imagens e stickers quando já existem no schema/renderizador.
 
 ### Fluxo de edição
 
 - O usuário autenticado abre `/app/gifts/{gift}/edit`.
 - A policy garante que o gift pertence ao usuário.
 - O backend envia somente resumo seguro do gift, páginas ordenadas, canvas, mídias processadas do Gift, flags `is_visible`/`locked`, URLs de update/upload e limite de texto.
-- O frontend mantém estado local para página selecionada, canvas local, dirty state, salvamento e metadados básicos.
-- O usuário seleciona uma página, vê o preview, edita elementos `type: text`, envia imagens, aplica mídia em elementos `type: image` e salva manualmente.
+- O frontend mantém estado local para página selecionada, canvas local, dirty state, autosave, rascunho local temporário e metadados básicos.
+- O usuário seleciona uma página, vê o preview, seleciona elementos no canvas, move/redimensiona/rotaciona elementos suportados, edita textos direto no canvas ou pelo painel e aplica mídia em elementos `type: image` existentes.
+- Metadados e canvas são salvos por autosave com debounce; não deve haver botão manual destacado como ação principal do editor.
+- O indicador global de salvamento mostra pendente, salvando, salvo, erro ou sem conexão.
+- Erros de validação do autosave devem ficar visíveis e não podem descartar alterações locais.
 - `PATCH /app/gifts/{gift}/pages/{giftPage}` persiste o canvas por `UpdateGiftPageCanvas`.
 
 ### Separação renderer/editor
 
 - `resources/js/components/renderer` é a base compartilhada de renderização para editor e futuro viewer público.
 - O editor não duplica regras visuais do renderer; ele monta UI de navegação e propriedades ao redor do preview.
+- A seleção/manipulação fica em componentes do editor, como overlay e handles sobre o `PageRenderer`; preview privado e viewer público continuam read-only.
 - O renderer aceita fallback seguro para canvas simples, elementos desconhecidos e mídia ainda não disponível.
+
+### Editor visual básico
+
+- O canvas continua usando coordenadas lógicas do artboard, com padrão `1080x1350`; movimento e resize convertem ponteiro/tela para esse sistema antes de salvar.
+- Elementos manipuláveis usam o contrato atual `x`, `y`, `w`, `h`, `rotation` e `z`. Aliases antigos/conceituais como `width`, `height` e `zIndex` podem ser normalizados para `w`, `h` e `z`.
+- O primeiro clique em imagem seleciona o elemento e mostra outline, handles de resize e handle simples de rotação.
+- Em elementos `text` e stickers com texto editável, clique rápido seleciona e abre edição direta no canvas com textarea controlado. O texto é tratado como texto puro; não há `contentEditable` livre nem `dangerouslySetInnerHTML`.
+- A diferença entre clique e arraste é feita por threshold simples de ponteiro. Movimentos curtos entram em edição; deslocamento acima do threshold move o elemento.
+- Arrastar o elemento move; arrastar handles redimensiona; imagens mantêm proporção por padrão nesta primeira versão.
+- A rotação pode ser feita por handle visual e também por campo numérico no painel.
+- O painel de elemento selecionado permite editar posição, tamanho, rotação, camada, texto, fonte, cor, alinhamento e ações de imagem.
+- O painel de elemento selecionado usa grupos responsivos para posição, tamanho e transformação, sem overflow horizontal em desktop ou mobile.
+- Camadas são persistidas como `z`, recalculadas de forma previsível em passos de 10. A UI oferece trazer para frente, enviar para trás, mover acima e mover abaixo.
+- Para imagem, o primeiro clique apenas seleciona. Troca de imagem exige intenção explícita pelo painel do elemento ou duplo clique no elemento; upload geral continua apenas adicionando à biblioteca.
+- Stickers renderizados com texto visível (`text`, `content` ou `label`) podem ser editados como texto quando o elemento for textual/editável. Stickers sem texto visível continuam sem campo de texto.
+- Elementos desconhecidos continuam preservados quando seguros, mas ficam read-only no editor visual básico.
+
+### Correções de UX do editor visual
+
+- A folha/página mantém artboard lógico `1080x1350`, mas o limite visual do renderer foi ampliado em cerca de 25%; editor, preview e viewer escalam o mesmo canvas sem alterar coordenadas salvas.
+- No mobile, a ordem do editor prioriza canvas e painel de propriedades antes da lista de páginas, reduzindo rolagem até os controles essenciais.
+- As abas do painel direito ficam mais compactas no mobile. Debug continua restrito ao ambiente de desenvolvimento/teste.
+- A biblioteca de imagens permanece limpa: upload geral adiciona mídia; trocar imagem exige elemento selecionado, botão do painel ou duplo clique.
 
 ### Metadados permitidos
 
@@ -1664,6 +1703,9 @@ O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de 
 
 - Canvas é dado não confiável e sempre passa por validação server-side.
 - `schemaVersion` precisa ser `1` e `elements` precisa ser uma lista.
+- Elementos precisam ter `id`, `type`, `x`, `y`, `w`, `h`, `rotation` e `z` normalizados antes de persistir.
+- Números de transformação precisam ser finitos e dentro de limites seguros; `NaN`, `Infinity`, strings inválidas, dimensões negativas/zero e valores extremos são rejeitados.
+- O backend normaliza aliases `width`/`height`/`zIndex`, remove aliases depois de persistir, normaliza rotação e evita camadas duplicadas problemáticas.
 - Textos são tratados como texto puro, sem HTML, `script`, `innerHTML`, URLs externas ou protocolos inseguros.
 - O limite de texto vem de `constraints.maxTextLength` quando existir, com fallback seguro.
 - Páginas `locked` podem ser visualizadas, mas não editadas.
@@ -1676,11 +1718,15 @@ O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de 
 - `StoreGiftMediaRequest` aceita apenas um arquivo por upload, com MIME/extensão de JPG/JPEG, PNG ou WebP, tamanho e dimensões máximas centralizados em `config/scrapbook.php`.
 - `ProcessUploadedImage` é a action central: valida Gift próprio em `draft`, checa limites do plano/config, reprocessa com Intervention Image, salva WebP otimizado e thumbnail no disco configurado e cria `MediaItem` `processed`.
 - O editor recebe somente `id`, tipo, nome original, URL segura, thumbnail, dimensões, tamanho, status e data; não recebe `storage_path` nem metadata interna.
+- A aba Imagens do editor é uma biblioteca simples do Gift, com upload geral, lista/grid de imagens e instrução de uso.
+- Upload geral na biblioteca apenas adiciona a imagem à biblioteca; ele não altera automaticamente o canvas.
+- Para substituir uma foto da página, o usuário deve selecionar a imagem e usar o painel do elemento ou duplo clique; upload geral não altera canvas automaticamente.
+- Não recriar o card técnico "Usar na página", nem listar slots como `photo 1`/`photo 2` fora de debug local.
 - Storage continua S3-compatible/MinIO em desenvolvimento via `FILESYSTEM_DISK=s3`, mas o browser usa rotas autenticadas do Laravel.
 
 ### Limites desta etapa
 
-Não entram no Editor MVP: drag-and-drop, redimensionamento, rotação livre, crop/filtros, checkout, cobrança, demo pública, integração musical externa e builder visual de templates no admin. Preview, viewer público e publicação técnica são fluxos separados do editor.
+Não entram no Editor MVP atual: biblioteca completa de stickers, adicionar novos stickers/assets pelo painel, deletar/duplicar com histórico/desfazer, crop/filtros, animação de virar página, QR Code, gateway real, demo pública, integração musical externa e builder visual de templates no admin. Preview, viewer público e publicação técnica são fluxos separados do editor.
 
 ## 20. Autenticação real mínima do cliente
 
