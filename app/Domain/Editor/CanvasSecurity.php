@@ -10,6 +10,8 @@ final class CanvasSecurity
 {
     public const DEFAULT_TEXT_MAX_LENGTH = 1000;
 
+    public function __construct(private readonly CanvasNormalizer $normalizer) {}
+
     /**
      * @param  array<string, mixed>  $canvas
      * @return array<string, mixed>
@@ -17,6 +19,7 @@ final class CanvasSecurity
     public function sanitizeAndValidate(array $canvas, int $textMaxLength = self::DEFAULT_TEXT_MAX_LENGTH): array
     {
         $canvas = $this->sanitizeStrings($canvas);
+        $canvas = $this->normalizer->normalize($canvas);
 
         $this->validate($canvas, $textMaxLength);
 
@@ -34,11 +37,25 @@ final class CanvasSecurity
             ]);
         }
 
+        if (array_key_exists('version', $canvas) && ($canvas['version'] ?? null) !== 1) {
+            throw ValidationException::withMessages([
+                'canvas.version' => 'O canvas precisa declarar version 1.',
+            ]);
+        }
+
+        if (! $this->normalizer->hasValidArtboard($canvas)) {
+            throw ValidationException::withMessages([
+                'canvas.artboard' => 'O canvas precisa ter artboard com width e height positivos.',
+            ]);
+        }
+
         if (! isset($canvas['elements']) || ! is_array($canvas['elements'])) {
             throw ValidationException::withMessages([
                 'canvas.elements' => 'O canvas precisa ter uma lista de elementos.',
             ]);
         }
+
+        $this->validateArtboard($canvas['artboard']);
 
         $this->inspectValue($canvas, max(1, $textMaxLength));
     }
@@ -125,6 +142,34 @@ final class CanvasSecurity
             throw ValidationException::withMessages([
                 'canvas.text' => "Textos do canvas devem ter no máximo {$textMaxLength} caracteres.",
             ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $artboard
+     */
+    private function validateArtboard(array $artboard): void
+    {
+        if (array_key_exists('unit', $artboard) && $artboard['unit'] !== 'px') {
+            throw ValidationException::withMessages([
+                'canvas.artboard.unit' => 'O artboard precisa usar unidade px.',
+            ]);
+        }
+
+        $safeArea = $artboard['safeArea'] ?? null;
+
+        if (! is_array($safeArea)) {
+            throw ValidationException::withMessages([
+                'canvas.artboard.safeArea' => 'O artboard precisa ter safeArea válido.',
+            ]);
+        }
+
+        foreach (['top', 'right', 'bottom', 'left'] as $side) {
+            if (! is_numeric($safeArea[$side] ?? null) || (float) $safeArea[$side] < 0) {
+                throw ValidationException::withMessages([
+                    "canvas.artboard.safeArea.{$side}" => 'O safeArea do artboard precisa usar valores não negativos.',
+                ]);
+            }
         }
     }
 }
