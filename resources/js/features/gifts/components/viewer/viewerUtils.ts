@@ -49,10 +49,10 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
             type: typeof element.type === 'string' && element.type !== '' ? element.type : 'unknown',
             x: numberValue(element.x, 0),
             y: numberValue(element.y, 0),
-            w: positiveNumber(element.w, 120),
-            h: positiveNumber(element.h, 40),
+            w: positiveNumber(element.w ?? element.width, 120),
+            h: positiveNumber(element.h ?? element.height, 40),
             rotation: numberValue(element.rotation, 0),
-            z: numberValue(element.z, index),
+            z: numberValue(element.z ?? element.zIndex, index),
         })),
     };
 }

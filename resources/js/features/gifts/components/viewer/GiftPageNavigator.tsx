@@ -12,7 +12,7 @@ export function GiftPageNavigator({ activePageIndex, onSelectPage, pages }: Gift
     }
 
     return (
-        <nav aria-label="Páginas do scrapbook" className="mx-auto flex w-full max-w-[680px] gap-2 overflow-x-auto pb-1">
+        <nav aria-label="Páginas do scrapbook" className="mx-auto flex w-full max-w-[850px] gap-2 overflow-x-auto pb-1">
             {pages.map((page, index) => {
                 const selected = index === activePageIndex;
 
