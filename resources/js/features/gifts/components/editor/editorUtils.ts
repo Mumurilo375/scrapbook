@@ -2,9 +2,9 @@ import { canvasSchema, type Canvas } from '../../../../domain/canvas/schema';
 import type { CanvasElementRecord, EditableImageElement, EditableTextElement, EditorMediaItem } from './editorTypes';
 
 const DEFAULT_ARTBOARD = {
-    width: 390,
-    height: 844,
-    safeArea: { top: 24, right: 16, bottom: 24, left: 16 },
+    width: 1080,
+    height: 1350,
+    safeArea: { top: 80, right: 80, bottom: 80, left: 80 },
 };
 
 export function normalizeCanvas(rawCanvas: unknown): Canvas {
@@ -20,9 +20,12 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
 
     return {
         schemaVersion: 1,
+        version: 1,
         artboard: {
             width: positiveNumber(artboard.width, DEFAULT_ARTBOARD.width),
             height: positiveNumber(artboard.height, DEFAULT_ARTBOARD.height),
+            unit: 'px',
+            background: isRecord(artboard.background) ? artboard.background : { type: 'theme' },
             safeArea: isRecord(artboard.safeArea)
                 ? {
                       top: nonNegativeNumber(artboard.safeArea.top, DEFAULT_ARTBOARD.safeArea.top),

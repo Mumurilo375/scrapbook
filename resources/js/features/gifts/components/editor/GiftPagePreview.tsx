@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { PageRenderer } from '../../../../components/renderer';
+import { normalizeThemeConfig, PageRenderer, ScrapbookStage } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
+import type { ThemeConfigInput } from '../../../../components/renderer';
 import type { EditorPage } from './editorTypes';
 
 type GiftPagePreviewProps = {
@@ -14,6 +15,7 @@ type GiftPagePreviewProps = {
     onSelectImageElement?: (elementId: string) => void;
     page: EditorPage | null;
     selectedImageElementId?: string | null;
+    theme?: ThemeConfigInput;
 };
 
 export function GiftPagePreview({
@@ -26,7 +28,10 @@ export function GiftPagePreview({
     onSelectImageElement,
     page,
     selectedImageElementId = null,
+    theme,
 }: GiftPagePreviewProps) {
+    const rendererTheme = normalizeThemeConfig(theme);
+
     function selectElement(element: CanvasElement) {
         if (element.type === 'image') {
             onSelectImageElement?.(element.id);
@@ -40,11 +45,24 @@ export function GiftPagePreview({
     }
 
     return (
-        <div className="rounded-[8px] border border-[#D8B991] bg-[#EAD2B8] p-4 shadow-sm">
+        <div
+            className="min-h-full rounded-[8px] border p-3 shadow-sm sm:p-4"
+            style={{
+                backgroundColor: `color-mix(in srgb, ${rendererTheme.tokens.colors.bookBackground} 86%, white)`,
+                borderColor: rendererTheme.tokens.colors.muted,
+            }}
+        >
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h2 className="truncate text-lg font-semibold text-[#1F150A]">{page?.name ?? 'Sem página'}</h2>
-                    <p className="mt-1 text-xs font-semibold uppercase text-[#7A2634]">Preview do scrapbook</p>
+                    <h2 className="truncate text-lg font-semibold" style={{ color: rendererTheme.tokens.colors.ink }}>
+                        {page?.name ?? 'Sem página'}
+                    </h2>
+                    <p
+                        className="mt-1 text-xs font-semibold uppercase"
+                        style={{ color: rendererTheme.tokens.colors.accent }}
+                    >
+                        {page?.page_type ?? 'scrapbook'}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -68,20 +86,22 @@ export function GiftPagePreview({
                 </div>
             </div>
 
-            <div className="mx-auto w-full max-w-[430px]">
+            <ScrapbookStage context="editor" theme={theme}>
                 {canvas ? (
                     <PageRenderer
                         canvas={canvas}
+                        context="editor"
                         onElementClick={selectElement}
                         onMediaDrop={dropMediaOnElement}
                         selectedElementId={selectedImageElementId}
+                        theme={theme}
                     />
                 ) : (
-                    <div className="flex aspect-[390/844] items-center justify-center rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFF7EE] text-sm font-semibold text-[#6F5A4A]">
+                    <div className="flex aspect-[3/4] items-center justify-center rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFF7EE] text-sm font-semibold text-[#6F5A4A]">
                         Nenhuma página disponível.
                     </div>
                 )}
-            </div>
+            </ScrapbookStage>
         </div>
     );
 }

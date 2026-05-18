@@ -1,6 +1,15 @@
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 
-export type EditorSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error' | 'offline';
+
+export type EditorSaveState = SaveStatus;
+
+export type EditorTab = 'content' | 'images' | 'gift' | 'debug';
+
+export type ImageUploadTarget = {
+    pageId: string;
+    elementId: string;
+};
 
 export type EditableTextElement = {
     id: string;
