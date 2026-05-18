@@ -78,6 +78,9 @@ export type GiftSummary = {
     checkout_url: string;
     order_url: string | null;
     public_url: string | null;
+    share_url: string | null;
+    qr_code_download_url?: string | null;
+    share_card_url?: string | null;
 };
 
 export type EditableGift = {
@@ -108,6 +111,8 @@ export type EditableGift = {
     checkout_url: string;
     order_url: string | null;
     public_url: string | null;
+    share_url: string | null;
+    assets_index_url: string;
     media_index_url: string;
     media_store_url: string;
     dashboard_url: string;

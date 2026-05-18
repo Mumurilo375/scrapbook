@@ -2,10 +2,11 @@ import { Head } from '@inertiajs/react';
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { normalizeThemeConfig } from '../../../../components/renderer';
+import { assetMapFromList, normalizeThemeConfig } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import { ElementPropertiesPanel } from '../../components/editor/ElementPropertiesPanel';
 import { EditorTabs } from '../../components/editor/EditorTabs';
+import { GiftAssetsPanel } from '../../components/editor/GiftAssetsPanel';
 import { GiftContentPanel } from '../../components/editor/GiftContentPanel';
 import { GiftDebugPanel } from '../../components/editor/GiftDebugPanel';
 import { GiftEditorLayout } from '../../components/editor/GiftEditorLayout';
@@ -17,6 +18,9 @@ import { GiftMetadataPanel, type GiftMetadataDraft } from '../../components/edit
 import { GiftPagePreview } from '../../components/editor/GiftPagePreview';
 import { GiftPageSidebar } from '../../components/editor/GiftPageSidebar';
 import {
+    isElementHidden,
+    isElementLocked,
+    isTransformableElement,
     patchCanvasElement,
     patchElementStyle,
     textFieldForElement,
@@ -24,6 +28,8 @@ import {
 } from '../../components/editor/canvasTransformUtils';
 import type {
     EditableTextElement,
+    EditorAsset,
+    EditorAssetCategory,
     EditorMediaItem,
     EditorPage,
     EditorTab,
@@ -38,7 +44,17 @@ import {
     textElementsFromCanvas,
     updateCanvasText,
 } from '../../components/editor/editorUtils';
-import { applyLayerAction, normalizeCanvasLayerOrder, type LayerAction } from '../../components/editor/layerUtils';
+import {
+    applyLayerAction,
+    deleteElement,
+    duplicateElement,
+    normalizeCanvasLayerOrder,
+    renameElement,
+    toggleHidden,
+    toggleLocked,
+    type LayerAction,
+} from '../../components/editor/layerUtils';
+import { useEditorHistory } from '../../components/editor/useEditorHistory';
 import {
     AutosaveRequestError,
     clearLocalDraft,
@@ -49,8 +65,10 @@ import {
     useAutosave,
     useOnlineStatus,
     writeLocalDraft,
+    type LocalDraft,
 } from '../../components/editor/useAutosave';
 import { useCanvasSelection } from '../../components/editor/useCanvasSelection';
+import type { TransformMode } from '../../components/editor/useElementTransform';
 import { useUnsavedChangesWarning } from '../../components/editor/useUnsavedChangesWarning';
 import type { EditableGift, GiftPageSummary } from '../../types';
 
@@ -83,6 +101,37 @@ type PageSaveData = {
     };
 };
 
+type AssetIndexResponse = {
+    data: {
+        assets: EditorAsset[];
+        categories: EditorAssetCategory[];
+    };
+    success: boolean;
+};
+
+type AssetLibraryStatus = 'loading' | 'ready' | 'error';
+
+type ImageUploadResponse = {
+    data?: EditorMediaItem;
+    errors?: Record<string, string[] | string>;
+    message?: string;
+};
+
+type CanvasHistoryMode = 'debounce' | 'push' | 'skip';
+
+type UpdatePageCanvasOptions = {
+    groupKey?: string;
+    history?: CanvasHistoryMode;
+    label?: string;
+};
+
+type TransformHistorySession = {
+    before: Canvas;
+    elementId: string;
+    mode: TransformMode;
+    pageId: string;
+};
+
 export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditProps) {
     const normalizedTheme = useMemo(() => normalizeThemeConfig(gift.theme?.config), [gift.theme?.config]);
     const editorPages = useMemo<EditorPage[]>(
@@ -95,40 +144,49 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     );
     const editorPageById = useMemo(() => new Map(editorPages.map((page) => [page.id, page] as const)), [editorPages]);
     const initialMetadata = useMemo(() => metadataFromGift(gift), [gift]);
-    const recoveredMetadataDraft = useMemo(() => {
+    const localDraftRecovery = useMemo(() => {
+        const errors: string[] = [];
         const key = metadataDraftKey(gift.id);
-        const draft = readLocalDraft<GiftMetadataDraft>(key);
+        const metadataDraft = readLocalDraft<GiftMetadataDraft>(key, {
+            onError: () => errors.push('Não foi possível recuperar os dados do presente salvos neste navegador.'),
+        });
+        const pageDrafts: Record<string, Canvas> = {};
+        let recoveredMetadataDraft: LocalDraft<GiftMetadataDraft> | null = null;
 
-        if (!draft || localDraftIsNewer(draft.savedAt, gift.last_edited_at)) {
-            return draft;
+        if (!metadataDraft || localDraftIsNewer(metadataDraft.savedAt, gift.last_edited_at)) {
+            recoveredMetadataDraft = metadataDraft;
+        } else {
+            clearLocalDraft(key);
         }
 
-        clearLocalDraft(key);
-
-        return null;
-    }, [gift.id, gift.last_edited_at]);
-    const recoveredPageDrafts = useMemo(() => {
-        const drafts: Record<string, Canvas> = {};
-
         for (const page of editorPages) {
-            const key = pageDraftKey(gift.id, page.id);
-            const draft = readLocalDraft<Canvas>(key);
+            const pageKey = pageDraftKey(gift.id, page.id);
+            const draft = readLocalDraft<Canvas>(pageKey, {
+                onError: () =>
+                    errors.push(`Não foi possível recuperar o rascunho local da página "${page.name}".`),
+            });
 
             if (!draft) {
                 continue;
             }
 
             if (localDraftIsNewer(draft.savedAt, page.updated_at ?? gift.last_edited_at)) {
-                drafts[page.id] = normalizeCanvas(draft.value);
+                pageDrafts[page.id] = normalizeCanvas(draft.value);
 
                 continue;
             }
 
-            clearLocalDraft(key);
+            clearLocalDraft(pageKey);
         }
 
-        return drafts;
+        return {
+            errors: [...new Set(errors)],
+            metadataDraft: recoveredMetadataDraft,
+            pageDrafts,
+        };
     }, [editorPages, gift.id, gift.last_edited_at]);
+    const recoveredMetadataDraft = localDraftRecovery.metadataDraft;
+    const recoveredPageDrafts = localDraftRecovery.pageDrafts;
 
     const [selectedPageId, setSelectedPageId] = useState<string | null>(editorPages[0]?.id ?? null);
     const [activeTab, setActiveTab] = useState<EditorTab>('content');
@@ -152,9 +210,17 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const [savedMetadata, setSavedMetadata] = useState<GiftMetadataDraft>(initialMetadata);
     const [metadataStatus, setMetadataStatus] = useState<SaveStatus>(recoveredMetadataDraft ? 'dirty' : 'idle');
     const [metadataErrors, setMetadataErrors] = useState<Partial<Record<keyof GiftMetadataDraft, string>>>({});
+    const [assetCategories, setAssetCategories] = useState<EditorAssetCategory[]>([]);
+    const [assets, setAssets] = useState<EditorAsset[]>([]);
+    const [assetLibraryStatus, setAssetLibraryStatus] = useState<AssetLibraryStatus>('loading');
+    const [assetLibraryError, setAssetLibraryError] = useState<string | null>(null);
     const [localDraftNotice, setLocalDraftNotice] = useState(
         () => Boolean(recoveredMetadataDraft) || Object.keys(recoveredPageDrafts).length > 0,
     );
+    const [localDraftErrors, setLocalDraftErrors] = useState<string[]>(() => localDraftRecovery.errors);
+    const editorHistory = useEditorHistory();
+    const directImageInputRef = useRef<HTMLInputElement | null>(null);
+    const directImageUploadTargetRef = useRef<ImageUploadTarget | null>(null);
     const mediaLibraryRef = useRef<GiftMediaLibraryHandle | null>(null);
     const metadataSaveTokenRef = useRef(0);
     const pageSaveTokensRef = useRef<Record<string, number>>({});
@@ -162,6 +228,8 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const savedCanvasesRef = useRef(savedCanvases);
     const metadataRef = useRef(metadata);
     const savedMetadataRef = useRef(savedMetadata);
+    const transformHistoryRef = useRef<TransformHistorySession | null>(null);
+    const [directImageUploading, setDirectImageUploading] = useState(false);
     const online = useOnlineStatus();
     const canEditGift = gift.status === 'draft';
 
@@ -186,6 +254,46 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
             setActiveTab('content');
         }
     }, [activeTab, debugEnabled]);
+
+    const loadAssets = useCallback(async () => {
+        if (!canEditGift) {
+            setAssetCategories([]);
+            setAssets([]);
+            setAssetLibraryStatus('ready');
+            setAssetLibraryError(null);
+
+            return;
+        }
+
+        setAssetLibraryStatus('loading');
+        setAssetLibraryError(null);
+
+        try {
+            const response = await fetch(gift.assets_index_url, {
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const payload = (await response.json().catch(() => null)) as AssetIndexResponse | null;
+
+            if (!response.ok || !payload?.success) {
+                throw new Error('Não foi possível carregar os adesivos.');
+            }
+
+            setAssetCategories(Array.isArray(payload.data.categories) ? payload.data.categories : []);
+            setAssets(Array.isArray(payload.data.assets) ? payload.data.assets : []);
+            setAssetLibraryStatus('ready');
+        } catch (error) {
+            setAssetLibraryError(error instanceof Error ? error.message : 'Não foi possível carregar os adesivos.');
+            setAssetLibraryStatus('error');
+        }
+    }, [canEditGift, gift.assets_index_url]);
+
+    useEffect(() => {
+        void loadAssets();
+    }, [loadAssets]);
 
     const selectedPageIndex = editorPages.findIndex((page) => page.id === selectedPageId);
     const selectedPage = selectedPageIndex >= 0 ? editorPages[selectedPageIndex] : null;
@@ -233,8 +341,9 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const selectedPageError = selectedPage ? (pageErrors[selectedPage.id] ?? null) : null;
     const textElements =
         selectedCanvas && selectedPage ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length) : [];
-    const selectedMediaItem = selectedMediaId ? (mediaItems.find((item) => item.id === selectedMediaId) ?? null) : null;
+    const assetMap = useMemo(() => assetMapFromList(assets), [assets]);
     const editorDisabled = Boolean(selectedPage?.locked || !canEditGift);
+    const selectedPageHistory = editorHistory.availability(selectedPage?.id);
     const hasSaving =
         metadataStatus === 'saving' || Object.values(pageSaveStates).some((status) => status === 'saving');
     const hasError = metadataStatus === 'error' || Object.values(pageSaveStates).some((status) => status === 'error');
@@ -246,11 +355,8 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
         hasSaving,
         online,
     });
-    const globalSaveDetail = saveDetail(
-        globalSaveStatus,
-        firstVisibleError(metadataErrors, pageErrors),
-        localDraftNotice,
-    );
+    const visibleSaveError = firstVisibleError(metadataErrors, pageErrors);
+    const globalSaveDetail = saveDetail(globalSaveStatus, visibleSaveError, localDraftNotice);
     const pageAutosaveSignature = useMemo(
         () => dirtyPageIds.map((pageId) => JSON.stringify(pageCanvases[pageId] ?? null)).join('|'),
         [dirtyPageIds, pageCanvases],
@@ -400,6 +506,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     });
 
     function selectPage(pageId: string) {
+        editorHistory.flushPending(selectedPageId);
         setSelectedPageId(pageId);
         selection.clearSelection();
     }
@@ -417,7 +524,23 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
             return;
         }
 
-        updatePageCanvas(selectedPage.id, (canvas) => updateCanvasText(canvas, element.id, element.field, value));
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => {
+                const targetElement = canvas.elements.find((item) => item.id === element.id);
+
+                if (!canModifyElement(targetElement)) {
+                    return canvas;
+                }
+
+                return updateCanvasText(canvas, element.id, element.field, value);
+            },
+            {
+                groupKey: `text:${element.id}:${element.field}`,
+                history: 'debounce',
+                label: 'Editar texto',
+            },
+        );
     }
 
     function addUploadedMedia(mediaItem: EditorMediaItem, target: ImageUploadTarget | null) {
@@ -440,10 +563,14 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
             return;
         }
 
-        updatePageCanvas(selectedPage.id, (canvas) => ({
-            ...canvas,
-            elements: canvas.elements.map((element) => (element.id === elementId ? nextElement : element)),
-        }));
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => ({
+                ...canvas,
+                elements: canvas.elements.map((element) => (element.id === elementId ? nextElement : element)),
+            }),
+            { history: 'skip' },
+        );
     }
 
     function patchSelectedElement(patch: ElementPatch) {
@@ -453,11 +580,25 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
 
         const elementId = selection.selectedElement.id;
 
-        updatePageCanvas(selectedPage.id, (canvas) => {
-            const nextCanvas = patchCanvasElement(canvas, elementId, patch);
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => {
+                const targetElement = canvas.elements.find((element) => element.id === elementId);
 
-            return patch.z === undefined ? nextCanvas : normalizeCanvasLayerOrder(nextCanvas);
-        });
+                if (!canModifyElement(targetElement)) {
+                    return canvas;
+                }
+
+                const nextCanvas = patchCanvasElement(canvas, elementId, patch);
+
+                return patch.z === undefined ? nextCanvas : normalizeCanvasLayerOrder(nextCanvas);
+            },
+            {
+                groupKey: `element:${elementId}:properties`,
+                history: 'debounce',
+                label: patch.z === undefined ? 'Editar elemento' : 'Alterar camada',
+            },
+        );
     }
 
     function patchSelectedElementStyle(stylePatch: Record<string, unknown>) {
@@ -467,7 +608,23 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
 
         const elementId = selection.selectedElement.id;
 
-        updatePageCanvas(selectedPage.id, (canvas) => patchElementStyle(canvas, elementId, stylePatch));
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => {
+                const targetElement = canvas.elements.find((element) => element.id === elementId);
+
+                if (!canModifyElement(targetElement)) {
+                    return canvas;
+                }
+
+                return patchElementStyle(canvas, elementId, stylePatch);
+            },
+            {
+                groupKey: `element:${elementId}:style`,
+                history: 'debounce',
+                label: 'Editar estilo',
+            },
+        );
     }
 
     function changeSelectedElementText(element: CanvasElement, value: string) {
@@ -475,9 +632,17 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
             return;
         }
 
+        if (!canModifyElement(element)) {
+            return;
+        }
+
         const field = textFieldForElement(element);
 
-        updatePageCanvas(selectedPage.id, (canvas) => updateCanvasText(canvas, element.id, field, value));
+        updatePageCanvas(selectedPage.id, (canvas) => updateCanvasText(canvas, element.id, field, value), {
+            groupKey: `text:${element.id}:${field}`,
+            history: 'debounce',
+            label: 'Editar texto',
+        });
     }
 
     function changeSelectedElementLayer(action: LayerAction) {
@@ -487,35 +652,230 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
 
         const elementId = selection.selectedElement.id;
 
-        updatePageCanvas(selectedPage.id, (canvas) => applyLayerAction(canvas, elementId, action));
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => {
+                const targetElement = canvas.elements.find((element) => element.id === elementId);
+
+                if (!canModifyElement(targetElement)) {
+                    return canvas;
+                }
+
+                return applyLayerAction(canvas, elementId, action);
+            },
+            { label: 'Alterar camada' },
+        );
+    }
+
+    function duplicateCanvasElement(elementId: string) {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const targetElement = selectedCanvas?.elements.find((element) => element.id === elementId);
+
+        if (!targetElement || isElementLocked(targetElement) || isElementHidden(targetElement)) {
+            return;
+        }
+
+        let duplicatedElementId: string | null = null;
+
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => {
+                const result = duplicateElement(canvas, elementId);
+                duplicatedElementId = result.duplicatedElementId;
+
+                return result.canvas;
+            },
+            {
+                label: 'Duplicar elemento',
+            },
+        );
+
+        if (duplicatedElementId) {
+            selection.selectElement(duplicatedElementId);
+        }
+    }
+
+    function deleteCanvasElement(elementId: string, confirmDelete = true) {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const targetElement = selectedCanvas?.elements.find((element) => element.id === elementId);
+
+        if (!targetElement || isElementLocked(targetElement)) {
+            return;
+        }
+
+        if (confirmDelete && !window.confirm('Excluir este item da página?')) {
+            return;
+        }
+
+        let nextSelectedElementId: string | null = null;
+
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => {
+                const result = deleteElement(canvas, elementId);
+                nextSelectedElementId = result.nextSelectedElementId;
+
+                return result.canvas;
+            },
+            {
+                label: 'Excluir item',
+            },
+        );
+
+        if (nextSelectedElementId) {
+            selection.selectElement(nextSelectedElementId);
+        } else {
+            selection.clearSelection();
+        }
+    }
+
+    function toggleElementLocked(elementId: string) {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const targetElement = selectedCanvas?.elements.find((element) => element.id === elementId);
+
+        updatePageCanvas(selectedPage.id, (canvas) => toggleLocked(canvas, elementId), {
+            label: isElementLocked(targetElement) ? 'Desbloquear elemento' : 'Bloquear elemento',
+        });
+        selection.selectElement(elementId);
+    }
+
+    function toggleElementHidden(elementId: string) {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const targetElement = selectedCanvas?.elements.find((element) => element.id === elementId);
+
+        updatePageCanvas(selectedPage.id, (canvas) => toggleHidden(canvas, elementId), {
+            label: isElementHidden(targetElement) ? 'Exibir elemento' : 'Ocultar elemento',
+        });
+        selection.selectElement(elementId);
+    }
+
+    function renameCanvasElement(elementId: string, name: string) {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const currentName = selectedCanvas?.elements.find((element) => element.id === elementId)?.name;
+
+        if ((typeof currentName === 'string' ? currentName.trim() : '') === name.trim()) {
+            return;
+        }
+
+        updatePageCanvas(selectedPage.id, (canvas) => renameElement(canvas, elementId, name), {
+            label: 'Renomear camada',
+        });
     }
 
     function selectElementFromCanvas(elementId: string) {
         selection.selectElement(elementId);
     }
 
-    function replaceSelectedImage() {
-        if (!selectedPage || !selection.selectedElement || selection.selectedElement.type !== 'image' || editorDisabled) {
+    function openImageUpload(element: CanvasElement) {
+        if (!selectedPage || editorDisabled || directImageUploading || element.type !== 'image') {
             return;
         }
 
-        mediaLibraryRef.current?.openFilePicker({ pageId: selectedPage.id, elementId: selection.selectedElement.id });
+        if (!canModifyElement(element)) {
+            return;
+        }
+
+        selection.selectElement(element.id);
+        directImageUploadTargetRef.current = { pageId: selectedPage.id, elementId: element.id };
+        directImageInputRef.current?.click();
     }
 
-    function handleElementDoubleClick(element: CanvasElement) {
-        if (!selectedPage || editorDisabled || element.type !== 'image') {
+    async function uploadDirectImage(file: File | null) {
+        const target = directImageUploadTargetRef.current;
+
+        if (!file || !target || editorDisabled) {
+            directImageUploadTargetRef.current = null;
+
             return;
         }
 
-        mediaLibraryRef.current?.openFilePicker({ pageId: selectedPage.id, elementId: element.id });
+        const formData = new FormData();
+        formData.append('image', file);
+
+        setDirectImageUploading(true);
+        setPageErrors((current) => withoutKey(current, target.pageId));
+
+        try {
+            const response = await fetch(gift.media_store_url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const payload = (await response.json().catch(() => ({}))) as ImageUploadResponse;
+
+            if (!response.ok || !payload.data) {
+                throw new Error(uploadErrorMessage(payload));
+            }
+
+            addUploadedMedia(payload.data, target);
+        } catch (error) {
+            setPageErrors((current) => ({
+                ...current,
+                [target.pageId]: error instanceof Error ? error.message : 'Não foi possível enviar a imagem.',
+            }));
+            setPageSaveStates((current) => ({ ...current, [target.pageId]: navigator.onLine ? 'error' : 'offline' }));
+        } finally {
+            directImageUploadTargetRef.current = null;
+            setDirectImageUploading(false);
+
+            if (directImageInputRef.current) {
+                directImageInputRef.current.value = '';
+            }
+        }
     }
 
-    function useSelectedMediaOnSelectedImage() {
-        if (!selectedPage || !selection.selectedElement || selection.selectedElement.type !== 'image' || !selectedMediaItem) {
+    function addAssetToCurrentPage(asset: EditorAsset) {
+        if (!selectedPage || !selectedCanvas || editorDisabled) {
             return;
         }
 
-        applyMediaToPage(selectedPage.id, selection.selectedElement.id, selectedMediaItem);
+        const elementId = generatedStickerId(asset);
+        const size = defaultAssetSize(asset, selectedCanvas);
+        const nextElement: CanvasElement = {
+            id: elementId,
+            type: 'sticker',
+            assetId: asset.id,
+            x: Math.max(0, Math.round((selectedCanvas.artboard.width - size.w) / 2)),
+            y: Math.max(0, Math.round((selectedCanvas.artboard.height - size.h) / 2)),
+            w: size.w,
+            h: size.h,
+            rotation: 0,
+            z: Math.max(0, ...selectedCanvas.elements.map((element) => element.z)) + 10,
+            locked: false,
+            hidden: false,
+        };
+
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) =>
+                normalizeCanvasLayerOrder({
+                    ...canvas,
+                    elements: [...canvas.elements, nextElement],
+                }),
+            {
+                label: 'Adicionar adesivo',
+            },
+        );
+        selection.selectElement(elementId);
     }
 
     function changeMetadata(field: keyof GiftMetadataDraft, value: string) {
@@ -534,29 +894,243 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     }
 
     function applyMediaToPage(pageId: string, elementId: string, mediaItem: EditorMediaItem) {
-        updatePageCanvas(pageId, (canvas) => applyMediaToImageElement(canvas, elementId, mediaItem));
+        updatePageCanvas(
+            pageId,
+            (canvas) => {
+                const targetElement = canvas.elements.find((element) => element.id === elementId);
+
+                if (!canModifyElement(targetElement)) {
+                    return canvas;
+                }
+
+                return applyMediaToImageElement(canvas, elementId, mediaItem);
+            },
+            {
+                label: 'Trocar imagem',
+            },
+        );
     }
 
-    function updatePageCanvas(pageId: string, updater: (canvas: Canvas) => Canvas) {
+    function recordCanvasHistory(pageId: string, before: Canvas, after: Canvas, options: UpdatePageCanvasOptions) {
+        const historyMode = options.history ?? 'push';
+
+        if (historyMode === 'skip') {
+            return;
+        }
+
+        const label = options.label ?? 'Editar página';
+
+        if (historyMode === 'debounce') {
+            editorHistory.pushDebounced(pageId, options.groupKey ?? label, before, after, label);
+
+            return;
+        }
+
+        editorHistory.push(pageId, before, after, label);
+    }
+
+    function updatePageCanvas(
+        pageId: string,
+        updater: (canvas: Canvas) => Canvas,
+        options: UpdatePageCanvasOptions = {},
+    ) {
         const page = editorPageById.get(pageId);
 
         if (!page || page.locked || !canEditGift) {
             return;
         }
 
-        setPageCanvases((current) => {
-            const baseCanvas = current[pageId] ?? page.canvas;
-            const nextCanvas = updater(baseCanvas);
-            writeLocalDraft(pageDraftKey(gift.id, pageId), nextCanvas);
+        const baseCanvas = pageCanvasesRef.current[pageId] ?? page.canvas;
+        const nextCanvas = updater(baseCanvas);
 
-            return {
-                ...current,
-                [pageId]: nextCanvas,
-            };
-        });
+        if (canvasesAreEqual(baseCanvas, nextCanvas)) {
+            return;
+        }
+
+        recordCanvasHistory(pageId, baseCanvas, nextCanvas, options);
+        protectPageDraft(pageId, page, nextCanvas);
+        pageCanvasesRef.current = {
+            ...pageCanvasesRef.current,
+            [pageId]: nextCanvas,
+        };
+        setPageCanvases(pageCanvasesRef.current);
         setPageErrors((current) => withoutKey(current, pageId));
         setPageSaveStates((current) => ({ ...current, [pageId]: 'dirty' }));
     }
+
+    function applyHistoryCanvas(pageId: string, canvas: Canvas) {
+        const page = editorPageById.get(pageId);
+
+        if (!page || page.locked || !canEditGift) {
+            return;
+        }
+
+        const nextCanvas = cloneCanvas(canvas);
+        protectPageDraft(pageId, page, nextCanvas);
+        pageCanvasesRef.current = {
+            ...pageCanvasesRef.current,
+            [pageId]: nextCanvas,
+        };
+        setPageCanvases(pageCanvasesRef.current);
+        setPageErrors((current) => withoutKey(current, pageId));
+        setPageSaveStates((current) => ({ ...current, [pageId]: 'dirty' }));
+
+        if (
+            pageId === selectedPageId &&
+            selection.selectedElementId &&
+            !nextCanvas.elements.some((element) => element.id === selection.selectedElementId)
+        ) {
+            selection.clearSelection();
+        }
+    }
+
+    function protectPageDraft(pageId: string, page: EditorPage, canvas: Canvas) {
+        const savedCanvas = savedCanvasesRef.current[pageId] ?? page.canvas;
+        const key = pageDraftKey(gift.id, pageId);
+
+        if (canvasesAreEqual(canvas, savedCanvas)) {
+            clearLocalDraft(key);
+
+            return;
+        }
+
+        writeLocalDraft(key, canvas);
+    }
+
+    function undoCurrentPage() {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const result = editorHistory.undo(selectedPage.id);
+
+        if (result.canvas) {
+            applyHistoryCanvas(selectedPage.id, result.canvas);
+        }
+    }
+
+    function redoCurrentPage() {
+        if (!selectedPage || editorDisabled) {
+            return;
+        }
+
+        const result = editorHistory.redo(selectedPage.id);
+
+        if (result.canvas) {
+            applyHistoryCanvas(selectedPage.id, result.canvas);
+        }
+    }
+
+    function beginElementTransform(elementId: string, mode: TransformMode) {
+        if (!selectedPage || !selectedCanvas || editorDisabled) {
+            return;
+        }
+
+        transformHistoryRef.current = {
+            before: cloneCanvas(pageCanvasesRef.current[selectedPage.id] ?? selectedCanvas),
+            elementId,
+            mode,
+            pageId: selectedPage.id,
+        };
+    }
+
+    function endElementTransform(elementId: string, mode: TransformMode) {
+        const session = transformHistoryRef.current;
+        transformHistoryRef.current = null;
+
+        if (!session || session.elementId !== elementId || session.mode !== mode) {
+            return;
+        }
+
+        const after = pageCanvasesRef.current[session.pageId];
+
+        if (!after) {
+            return;
+        }
+
+        editorHistory.push(session.pageId, session.before, after, transformHistoryLabel(mode));
+    }
+
+    useEffect(() => {
+        function handleKeyDown(event: KeyboardEvent) {
+            if (isEditableKeyboardTarget(event.target)) {
+                return;
+            }
+
+            const key = event.key.toLowerCase();
+            const modifierPressed = event.metaKey || event.ctrlKey;
+
+            if (modifierPressed && key === 'z' && !event.repeat && !editorDisabled) {
+                event.preventDefault();
+
+                if (event.shiftKey) {
+                    redoCurrentPage();
+                } else {
+                    undoCurrentPage();
+                }
+
+                return;
+            }
+
+            if (modifierPressed && key === 'y' && !event.repeat && !editorDisabled) {
+                event.preventDefault();
+                redoCurrentPage();
+
+                return;
+            }
+
+            if (!selection.selectedElement || editorDisabled) {
+                return;
+            }
+
+            const selectedElement = selection.selectedElement;
+
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                selection.clearSelection();
+
+                return;
+            }
+
+            if ((event.key === 'Delete' || event.key === 'Backspace') && !event.repeat) {
+                event.preventDefault();
+                deleteCanvasElement(selectedElement.id, true);
+
+                return;
+            }
+
+            if (isElementLocked(selectedElement) || isElementHidden(selectedElement)) {
+                return;
+            }
+
+            if (modifierPressed && key === 'd' && !event.repeat) {
+                event.preventDefault();
+                duplicateCanvasElement(selectedElement.id);
+
+                return;
+            }
+
+            const step = event.shiftKey ? 24 : 8;
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                patchSelectedElement({ x: selectedElement.x - step });
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                patchSelectedElement({ x: selectedElement.x + step });
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                patchSelectedElement({ y: selectedElement.y - step });
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                patchSelectedElement({ y: selectedElement.y + step });
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    });
 
     return (
         <>
@@ -572,15 +1146,30 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                 }
             >
                 <GiftEditorTopBar
+                    canRedo={selectedPageHistory.canRedo}
+                    canUndo={selectedPageHistory.canUndo}
                     dashboardUrl={gift.dashboard_url}
+                    historyDisabled={editorDisabled}
+                    onRedo={redoCurrentPage}
+                    onUndo={undoCurrentPage}
                     orderUrl={gift.order_url}
                     previewUrl={gift.preview_url}
-                    publicUrl={gift.public_url}
                     reviewUrl={gift.review_url}
                     saveDetail={globalSaveDetail}
                     saveStatus={globalSaveStatus}
+                    shareUrl={gift.share_url}
                     status={gift.status}
                     title={metadata.title}
+                />
+                <input
+                    ref={directImageInputRef}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={editorDisabled || directImageUploading}
+                    onChange={(event) => {
+                        void uploadDirectImage(event.target.files?.[0] ?? null);
+                    }}
+                    type="file"
                 />
 
                 <GiftEditorLayout
@@ -597,19 +1186,32 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                             {localDraftNotice ? (
                                 <LocalDraftNotice onDismiss={() => setLocalDraftNotice(false)} />
                             ) : null}
+                            {localDraftErrors.length > 0 ? (
+                                <LocalDraftErrorNotice
+                                    errors={localDraftErrors}
+                                    onDismiss={() => setLocalDraftErrors([])}
+                                />
+                            ) : null}
+                            {globalSaveStatus === 'error' && visibleSaveError ? (
+                                <EditorAlert message={visibleSaveError} title="Não foi possível salvar tudo agora" />
+                            ) : null}
                             <GiftPagePreview
+                                assets={assetMap}
                                 canGoNext={selectedPageIndex < editorPages.length - 1}
                                 canGoPrevious={selectedPageIndex > 0}
                                 canvas={selectedCanvas}
                                 disabled={editorDisabled}
+                                imageReplacing={directImageUploading}
                                 maxTextLength={selectedPage?.text_max_length ?? 1000}
                                 onChangeElement={changeElementFromStage}
                                 onChangeText={changeSelectedElementText}
                                 onClearSelection={selection.clearSelection}
-                                onElementDoubleClick={handleElementDoubleClick}
                                 onNext={() => goToPage(1)}
                                 onPrevious={() => goToPage(-1)}
+                                onReplaceImage={openImageUpload}
                                 onSelectElement={selectElementFromCanvas}
+                                onTransformEnd={endElementTransform}
+                                onTransformStart={beginElementTransform}
                                 page={selectedPage}
                                 selectedElementId={selection.selectedElementId}
                                 theme={gift.theme?.config}
@@ -626,9 +1228,6 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                                 onLayerAction={changeSelectedElementLayer}
                                 onPatchElement={patchSelectedElement}
                                 onPatchStyle={patchSelectedElementStyle}
-                                onReplaceImage={replaceSelectedImage}
-                                onUseSelectedMedia={useSelectedMediaOnSelectedImage}
-                                selectedMediaItem={selectedMediaItem}
                             />
                             <EditorTabs activeTab={activeTab} onChange={setActiveTab} showDebug={debugEnabled} />
                             <div className="mt-5">
@@ -652,6 +1251,19 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                                         uploadUrl={gift.media_store_url}
                                     />
                                 ) : null}
+                                {activeTab === 'stickers' ? (
+                                    <GiftAssetsPanel
+                                        assets={assets}
+                                        categories={assetCategories}
+                                        disabled={editorDisabled || !selectedPage || !selectedCanvas}
+                                        error={assetLibraryError}
+                                        onAddAsset={addAssetToCurrentPage}
+                                        onRetry={loadAssets}
+                                        saveStatus={selectedPageSaveStatus}
+                                        status={assetLibraryStatus}
+                                        theme={gift.theme?.config}
+                                    />
+                                ) : null}
                                 {activeTab === 'gift' ? (
                                     <GiftMetadataPanel
                                         disabled={!canEditGift}
@@ -662,10 +1274,16 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                                 ) : null}
                                 {activeTab === 'layers' ? (
                                     <GiftLayersPanel
+                                        assets={assetMap}
                                         canvas={selectedCanvas}
                                         disabled={editorDisabled}
+                                        onDeleteElement={deleteCanvasElement}
+                                        onDuplicateElement={duplicateCanvasElement}
                                         onLayerAction={changeSelectedElementLayer}
+                                        onRenameElement={renameCanvasElement}
                                         onSelectElement={selectElementFromCanvas}
+                                        onToggleHidden={toggleElementHidden}
+                                        onToggleLocked={toggleElementLocked}
                                         selectedElementId={selection.selectedElementId}
                                     />
                                 ) : null}
@@ -698,6 +1316,55 @@ function LocalDraftNotice({ onDismiss }: LocalDraftNoticeProps) {
             >
                 Entendi
             </button>
+        </div>
+    );
+}
+
+type LocalDraftErrorNoticeProps = {
+    errors: string[];
+    onDismiss: () => void;
+};
+
+function LocalDraftErrorNotice({ errors, onDismiss }: LocalDraftErrorNoticeProps) {
+    return (
+        <div
+            className="grid gap-3 rounded-[8px] border border-[#D99A8B] bg-[#FFF0EC] px-4 py-3 text-sm text-[#8A2E21] shadow-sm"
+            role="alert"
+        >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="grid gap-1">
+                    <p className="font-semibold">Algum rascunho local não pôde ser recuperado.</p>
+                    {errors.map((error) => (
+                        <p className="text-xs font-medium" key={error}>
+                            {error}
+                        </p>
+                    ))}
+                </div>
+                <button
+                    className="min-h-9 rounded-[6px] border border-[#D99A8B] bg-white px-3 text-sm font-semibold text-[#8A2E21] hover:bg-[#F9DDD6]"
+                    onClick={onDismiss}
+                    type="button"
+                >
+                    Fechar
+                </button>
+            </div>
+        </div>
+    );
+}
+
+type EditorAlertProps = {
+    message: string;
+    title: string;
+};
+
+function EditorAlert({ message, title }: EditorAlertProps) {
+    return (
+        <div
+            className="rounded-[8px] border border-[#D99A8B] bg-[#FFF0EC] px-4 py-3 text-sm text-[#8A2E21] shadow-sm"
+            role="alert"
+        >
+            <p className="font-semibold">{title}</p>
+            <p className="mt-1 font-medium">{message}</p>
         </div>
     );
 }
@@ -847,9 +1514,84 @@ function saveDetail(status: SaveStatus, visibleError: string | null, hasRecovere
     return null;
 }
 
+function transformHistoryLabel(mode: TransformMode): string {
+    if (mode === 'move') {
+        return 'Mover elemento';
+    }
+
+    if (mode === 'rotate') {
+        return 'Rotacionar elemento';
+    }
+
+    return 'Redimensionar elemento';
+}
+
 function firstVisibleError(
     metadataErrors: Partial<Record<keyof GiftMetadataDraft, string>>,
     pageErrors: Record<string, string>,
 ): string | null {
     return Object.values(metadataErrors).find(Boolean) ?? Object.values(pageErrors).find(Boolean) ?? null;
+}
+
+function uploadErrorMessage(payload: ImageUploadResponse): string {
+    const firstError = payload.errors
+        ? Object.values(payload.errors)
+              .flat()
+              .find((message): message is string => typeof message === 'string' && message !== '')
+        : null;
+
+    return firstError ?? payload.message ?? 'Não foi possível enviar a imagem.';
+}
+
+function csrfToken(): string {
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function generatedStickerId(asset: EditorAsset): string {
+    const suffix =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    return `sticker_${String(asset.id).replace(/[^a-z0-9_-]/gi, '_')}_${suffix}`;
+}
+
+function defaultAssetSize(asset: EditorAsset, canvas: Canvas): { h: number; w: number } {
+    const defaultSize = isRecord(asset.config?.defaultSize) ? asset.config.defaultSize : {};
+    const fallback = asset.type === 'tape' ? { w: 240, h: 86 } : { w: 220, h: 220 };
+    const w = positiveConfigNumber(defaultSize.w, fallback.w);
+    const h = positiveConfigNumber(defaultSize.h, fallback.h);
+
+    return {
+        w: Math.min(w, Math.round(canvas.artboard.width * 0.8)),
+        h: Math.min(h, Math.round(canvas.artboard.height * 0.8)),
+    };
+}
+
+function positiveConfigNumber(value: unknown, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function canModifyElement(element: CanvasElement | null | undefined): element is CanvasElement {
+    return Boolean(
+        element && isTransformableElement(element) && !isElementLocked(element) && !isElementHidden(element),
+    );
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) {
+        return false;
+    }
+
+    if (target.isContentEditable) {
+        return true;
+    }
+
+    const tagName = target.tagName.toLowerCase();
+
+    return tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 }
