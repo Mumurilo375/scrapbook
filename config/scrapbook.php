@@ -35,4 +35,13 @@ return [
         'max_images_per_gift' => (int) env('SCRAPBOOK_MEDIA_MAX_IMAGES_PER_GIFT', 8),
         'max_storage_mb' => (int) env('SCRAPBOOK_MEDIA_MAX_STORAGE_MB', 50),
     ],
+
+    'gifts' => [
+        'default_lifetime_days' => (int) env('SCRAPBOOK_GIFT_DEFAULT_LIFETIME_DAYS', 180),
+    ],
+
+    'payments' => [
+        'provider' => env('SCRAPBOOK_PAYMENT_PROVIDER', 'manual_dev'),
+        'dev_approval_enabled' => (bool) env('SCRAPBOOK_DEV_PAYMENT_APPROVAL', true),
+    ],
 ];

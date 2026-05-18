@@ -5,11 +5,13 @@ namespace App\Providers;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
 use App\Domain\Media\Models\MediaItem;
+use App\Domain\Payments\Models\Order;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Themes\Models\Theme;
 use App\Policies\GiftPagePolicy;
 use App\Policies\GiftPolicy;
 use App\Policies\MediaItemPolicy;
+use App\Policies\OrderPolicy;
 use App\Policies\TemplatePolicy;
 use App\Policies\ThemePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -37,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Gift::class, GiftPolicy::class);
         Gate::policy(GiftPage::class, GiftPagePolicy::class);
         Gate::policy(MediaItem::class, MediaItemPolicy::class);
+        Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(Template::class, TemplatePolicy::class);
         Gate::policy(Theme::class, ThemePolicy::class);
 

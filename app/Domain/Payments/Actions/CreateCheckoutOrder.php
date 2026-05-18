@@ -4,23 +4,74 @@ namespace App\Domain\Payments\Actions;
 
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
+use App\Domain\Gifts\Services\GiftPublicationChecklist;
 use App\Domain\Payments\Enums\OrderStatus;
 use App\Domain\Payments\Models\Order;
 use App\Domain\Payments\Models\Plan;
+use App\Domain\Payments\PaymentProviderManager;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 final class CreateCheckoutOrder
 {
+    public function __construct(
+        private readonly GiftPublicationChecklist $checklist,
+        private readonly PaymentProviderManager $providers,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $attributes
      */
     public function handle(User $user, Gift $gift, Plan $plan, array $attributes = []): Order
     {
-        Gate::forUser($user)->authorize('update', $gift);
+        Gate::forUser($user)->authorize('view', $gift);
 
-        return DB::transaction(function () use ($attributes, $gift, $plan, $user): Order {
+        if (! $plan->is_active) {
+            throw ValidationException::withMessages([
+                'plan' => 'O plano selecionado não está ativo.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($gift, $plan, $user): Order {
+            $pendingOrder = Order::query()
+                ->where('user_id', $user->id)
+                ->where('gift_id', $gift->id)
+                ->where('status', OrderStatus::Pending->value)
+                ->latest()
+                ->first();
+
+            if ($pendingOrder instanceof Order) {
+                if ($gift->statusEnum() !== GiftStatus::PendingPayment) {
+                    $gift->forceFill([
+                        'status' => GiftStatus::PendingPayment,
+                    ])->save();
+                }
+
+                return $pendingOrder->load(['user', 'gift', 'plan', 'payments']);
+            }
+
+            $paidOrder = Order::query()
+                ->where('user_id', $user->id)
+                ->where('gift_id', $gift->id)
+                ->where('status', OrderStatus::Paid->value)
+                ->latest('paid_at')
+                ->first();
+
+            if ($paidOrder instanceof Order) {
+                return $paidOrder->load(['user', 'gift', 'plan', 'payments']);
+            }
+
+            $checks = $this->checklist->evaluate($user, $gift);
+
+            if (! $this->checklist->canPublish($checks)) {
+                throw ValidationException::withMessages([
+                    'checkout' => 'Este gift ainda não pode avançar para checkout.',
+                    ...$this->checklist->errorMessages($checks),
+                ]);
+            }
+
             $order = Order::query()->create([
                 'user_id' => $user->id,
                 'gift_id' => $gift->id,
@@ -28,8 +79,8 @@ final class CreateCheckoutOrder
                 'status' => OrderStatus::Pending,
                 'amount_cents' => $plan->price_cents,
                 'currency' => $plan->currency,
-                'provider' => $attributes['provider'] ?? null,
-                'provider_reference' => $attributes['provider_reference'] ?? null,
+                'provider' => null,
+                'provider_reference' => null,
                 'checkout_url' => null,
                 'metadata' => [
                     'schemaVersion' => 1,
@@ -44,13 +95,24 @@ final class CreateCheckoutOrder
                 'expires_at' => now()->addMinutes(30),
             ]);
 
+            $checkoutSession = $this->providers->checkoutProvider()->createCheckout($order);
+
+            $order->forceFill([
+                'provider' => $checkoutSession->provider,
+                'provider_reference' => $checkoutSession->providerReference,
+                'checkout_url' => $checkoutSession->checkoutUrl,
+                'metadata' => array_merge($order->metadata ?? [], [
+                    'checkout_session' => $checkoutSession->metadata,
+                ]),
+            ])->save();
+
             $gift->forceFill([
                 'plan_id' => $plan->id,
                 'status' => GiftStatus::PendingPayment,
                 'limits_snapshot' => $plan->limitsSnapshot(),
             ])->save();
 
-            return $order->load(['user', 'gift', 'plan']);
+            return $order->load(['user', 'gift', 'plan', 'payments']);
         });
     }
 }
