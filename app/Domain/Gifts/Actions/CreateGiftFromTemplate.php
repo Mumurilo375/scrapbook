@@ -2,6 +2,7 @@
 
 namespace App\Domain\Gifts\Actions;
 
+use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Enums\GiftVisibility;
 use App\Domain\Gifts\Models\Gift;
@@ -22,6 +23,8 @@ use Illuminate\Validation\ValidationException;
 
 final class CreateGiftFromTemplate
 {
+    public function __construct(private readonly CanvasSecurity $canvasSecurity) {}
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -70,13 +73,14 @@ final class CreateGiftFromTemplate
             foreach ($pages as $page) {
                 $pageType = $page->getAttribute('page_type');
                 $pageType = $pageType instanceof PageType ? $pageType->value : (string) $pageType;
+                $canvas = is_array($page->canvas) ? $page->canvas : [];
 
                 $gift->pages()->create([
                     'source_template_page_id' => $page->id,
                     'page_type' => $pageType,
                     'name' => $page->name,
                     'sort_order' => $page->sort_order,
-                    'canvas' => $page->canvas,
+                    'canvas' => $this->canvasSecurity->sanitizeAndValidate($canvas),
                     'settings' => [
                         'editable_schema' => $page->editable_schema,
                         'constraints' => $page->constraints,

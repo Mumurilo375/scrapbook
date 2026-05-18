@@ -2,6 +2,7 @@
 
 namespace App\Domain\Gifts\Services;
 
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
@@ -16,7 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 final class GiftPublicationChecklist
 {
-    public function __construct(private readonly CanvasSecurity $canvasSecurity) {}
+    public function __construct(
+        private readonly CanvasSecurity $canvasSecurity,
+        private readonly CanvasNormalizer $canvasNormalizer,
+    ) {}
 
     /**
      * @return array<int, array{key: string, label: string, passed: bool, severity: string, message?: string}>
@@ -138,28 +142,23 @@ final class GiftPublicationChecklist
         foreach ($visiblePages as $page) {
             try {
                 $canvas = is_array($page->canvas) ? $page->canvas : [];
+                $normalizedCanvas = $this->canvasNormalizer->normalize($canvas);
 
                 $this->canvasSecurity->validate(
-                    $canvas,
+                    $normalizedCanvas,
                     $this->canvasSecurity->textMaxLengthForPage($page),
                 );
 
-                if (! $this->hasValidArtboard($canvas)) {
-                    return $this->check(
-                        'canvas',
-                        'Canvas das páginas é válido',
-                        false,
-                        'error',
-                        "A página {$page->name} precisa de artboard válido.",
-                    );
+                if ($normalizedCanvas !== $canvas) {
+                    $page->forceFill(['canvas' => $normalizedCanvas])->save();
                 }
-            } catch (ValidationException) {
+            } catch (ValidationException $exception) {
                 return $this->check(
                     'canvas',
                     'Canvas das páginas é válido',
                     false,
                     'error',
-                    "Revise o canvas da página {$page->name}: não pode conter HTML, scripts, protocolos inseguros ou URLs externas.",
+                    $this->canvasValidationMessage($page, $exception),
                 );
             }
         }
@@ -220,6 +219,21 @@ final class GiftPublicationChecklist
             true,
             'error',
         );
+    }
+
+    private function canvasValidationMessage(GiftPage $page, ValidationException $exception): string
+    {
+        $errors = $exception->errors();
+
+        if (collect(array_keys($errors))->contains(fn (string $key): bool => str_starts_with($key, 'canvas.artboard'))) {
+            return "A página {$page->name} precisa de artboard válido.";
+        }
+
+        if (isset($errors['canvas.elements'])) {
+            return "A página {$page->name} precisa de elements como array.";
+        }
+
+        return "Revise o canvas da página {$page->name}: não pode conter HTML, scripts, protocolos inseguros ou URLs externas.";
     }
 
     /**
@@ -309,20 +323,6 @@ final class GiftPublicationChecklist
             ->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'image')
             ->values()
             ->all();
-    }
-
-    /**
-     * @param  array<string, mixed>  $canvas
-     */
-    private function hasValidArtboard(array $canvas): bool
-    {
-        $artboard = $canvas['artboard'] ?? null;
-
-        return is_array($artboard)
-            && is_numeric($artboard['width'] ?? null)
-            && is_numeric($artboard['height'] ?? null)
-            && (float) $artboard['width'] > 0
-            && (float) $artboard['height'] > 0;
     }
 
     private function mediaCanBePublished(Gift $gift, MediaItem $mediaItem): bool
