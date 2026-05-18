@@ -4,7 +4,7 @@ export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error' | 'offl
 
 export type EditorSaveState = SaveStatus;
 
-export type EditorTab = 'content' | 'images' | 'gift' | 'debug';
+export type EditorTab = 'content' | 'images' | 'gift' | 'layers' | 'debug';
 
 export type ImageUploadTarget = {
     pageId: string;
@@ -47,6 +47,7 @@ export type EditorPage = {
     is_visible: boolean;
     locked: boolean;
     text_max_length: number;
+    updated_at: string | null;
     update_url: string;
 };
 

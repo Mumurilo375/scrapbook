@@ -3,37 +3,46 @@ import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { normalizeThemeConfig } from '../../../../components/renderer';
-import type { Canvas } from '../../../../domain/canvas/schema';
+import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
+import { ElementPropertiesPanel } from '../../components/editor/ElementPropertiesPanel';
 import { EditorTabs } from '../../components/editor/EditorTabs';
 import { GiftContentPanel } from '../../components/editor/GiftContentPanel';
 import { GiftDebugPanel } from '../../components/editor/GiftDebugPanel';
 import { GiftEditorLayout } from '../../components/editor/GiftEditorLayout';
 import { GiftEditorTopBar } from '../../components/editor/GiftEditorTopBar';
 import { GiftImagesPanel } from '../../components/editor/GiftImagesPanel';
+import { GiftLayersPanel } from '../../components/editor/GiftLayersPanel';
 import type { GiftMediaLibraryHandle } from '../../components/editor/GiftMediaLibrary';
 import { GiftMetadataPanel, type GiftMetadataDraft } from '../../components/editor/GiftMetadataPanel';
 import { GiftPagePreview } from '../../components/editor/GiftPagePreview';
 import { GiftPageSidebar } from '../../components/editor/GiftPageSidebar';
+import {
+    patchCanvasElement,
+    patchElementStyle,
+    textFieldForElement,
+    type ElementPatch,
+} from '../../components/editor/canvasTransformUtils';
 import type {
+    EditableTextElement,
     EditorMediaItem,
     EditorPage,
     EditorTab,
     ImageUploadTarget,
     SaveStatus,
-    EditableTextElement,
 } from '../../components/editor/editorTypes';
 import {
     applyMediaToImageElement,
     canvasesAreEqual,
     cloneCanvas,
-    imageElementsFromCanvas,
     normalizeCanvas,
     textElementsFromCanvas,
     updateCanvasText,
 } from '../../components/editor/editorUtils';
+import { applyLayerAction, normalizeCanvasLayerOrder, type LayerAction } from '../../components/editor/layerUtils';
 import {
     AutosaveRequestError,
     clearLocalDraft,
+    debugAutosave,
     firstAutosaveError,
     patchJson,
     readLocalDraft,
@@ -41,6 +50,7 @@ import {
     useOnlineStatus,
     writeLocalDraft,
 } from '../../components/editor/useAutosave';
+import { useCanvasSelection } from '../../components/editor/useCanvasSelection';
 import { useUnsavedChangesWarning } from '../../components/editor/useUnsavedChangesWarning';
 import type { EditableGift, GiftPageSummary } from '../../types';
 
@@ -53,6 +63,7 @@ type GiftEditProps = {
 
 type AutosaveResponse<TData> = {
     data: TData;
+    success: boolean;
 };
 
 type MetadataSaveData = {
@@ -84,23 +95,40 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     );
     const editorPageById = useMemo(() => new Map(editorPages.map((page) => [page.id, page] as const)), [editorPages]);
     const initialMetadata = useMemo(() => metadataFromGift(gift), [gift]);
-    const recoveredMetadataDraft = useMemo(
-        () => readLocalDraft<GiftMetadataDraft>(metadataDraftKey(gift.id)),
-        [gift.id],
-    );
+    const recoveredMetadataDraft = useMemo(() => {
+        const key = metadataDraftKey(gift.id);
+        const draft = readLocalDraft<GiftMetadataDraft>(key);
+
+        if (!draft || localDraftIsNewer(draft.savedAt, gift.last_edited_at)) {
+            return draft;
+        }
+
+        clearLocalDraft(key);
+
+        return null;
+    }, [gift.id, gift.last_edited_at]);
     const recoveredPageDrafts = useMemo(() => {
         const drafts: Record<string, Canvas> = {};
 
         for (const page of editorPages) {
-            const draft = readLocalDraft<Canvas>(pageDraftKey(gift.id, page.id));
+            const key = pageDraftKey(gift.id, page.id);
+            const draft = readLocalDraft<Canvas>(key);
 
-            if (draft) {
-                drafts[page.id] = normalizeCanvas(draft.value);
+            if (!draft) {
+                continue;
             }
+
+            if (localDraftIsNewer(draft.savedAt, page.updated_at ?? gift.last_edited_at)) {
+                drafts[page.id] = normalizeCanvas(draft.value);
+
+                continue;
+            }
+
+            clearLocalDraft(key);
         }
 
         return drafts;
-    }, [editorPages, gift.id]);
+    }, [editorPages, gift.id, gift.last_edited_at]);
 
     const [selectedPageId, setSelectedPageId] = useState<string | null>(editorPages[0]?.id ?? null);
     const [activeTab, setActiveTab] = useState<EditorTab>('content');
@@ -118,7 +146,6 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const [pageErrors, setPageErrors] = useState<Record<string, string>>({});
     const [mediaItems, setMediaItems] = useState<EditorMediaItem[]>(media);
     const [selectedMediaId, setSelectedMediaId] = useState<string | null>(media[0]?.id ?? null);
-    const [selectedImageElementId, setSelectedImageElementId] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<GiftMetadataDraft>(() =>
         metadataDraftFromLocal(recoveredMetadataDraft?.value, initialMetadata),
     );
@@ -163,6 +190,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const selectedPageIndex = editorPages.findIndex((page) => page.id === selectedPageId);
     const selectedPage = selectedPageIndex >= 0 ? editorPages[selectedPageIndex] : null;
     const selectedCanvas = selectedPage ? (pageCanvases[selectedPage.id] ?? selectedPage.canvas) : null;
+    const selection = useCanvasSelection(selectedCanvas);
     const metadataDirty = !metadataEquals(metadata, savedMetadata);
     const dirtyPageIds = useMemo(
         () =>
@@ -205,11 +233,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const selectedPageError = selectedPage ? (pageErrors[selectedPage.id] ?? null) : null;
     const textElements =
         selectedCanvas && selectedPage ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length) : [];
-    const imageElements = selectedCanvas ? imageElementsFromCanvas(selectedCanvas) : [];
-    const activeImageElementId =
-        selectedImageElementId && imageElements.some((element) => element.id === selectedImageElementId)
-            ? selectedImageElementId
-            : (imageElements[0]?.id ?? null);
+    const selectedMediaItem = selectedMediaId ? (mediaItems.find((item) => item.id === selectedMediaId) ?? null) : null;
     const editorDisabled = Boolean(selectedPage?.locked || !canEditGift);
     const hasSaving =
         metadataStatus === 'saving' || Object.values(pageSaveStates).some((status) => status === 'saving');
@@ -250,6 +274,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
         metadataSaveTokenRef.current = saveToken;
         setMetadataStatus('saving');
         setMetadataErrors({});
+        debugAutosave('metadata-save-started');
 
         try {
             const response = await patchJson<AutosaveResponse<MetadataSaveData>>(gift.update_url, snapshot);
@@ -260,13 +285,18 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
 
             const savedDraft = metadataFromResponse(response.data.gift, snapshot);
             const currentDraft = metadataRef.current;
+            const latestMatchesSnapshot = metadataEquals(currentDraft, snapshot);
             setSavedMetadata(savedDraft);
             savedMetadataRef.current = savedDraft;
-            setMetadataStatus(metadataEquals(currentDraft, savedDraft) ? 'saved' : 'dirty');
 
-            if (metadataEquals(currentDraft, savedDraft)) {
+            if (latestMatchesSnapshot) {
+                setMetadata(savedDraft);
+                metadataRef.current = savedDraft;
                 clearLocalDraft(metadataDraftKey(gift.id));
             }
+
+            setMetadataStatus(latestMatchesSnapshot ? 'saved' : 'dirty');
+            debugAutosave('metadata-save-succeeded', { hasNewerChanges: !latestMatchesSnapshot });
         } catch (error) {
             if (metadataSaveTokenRef.current !== saveToken) {
                 return;
@@ -274,6 +304,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
 
             setMetadataErrors(metadataErrorsFrom(error));
             setMetadataStatus(navigator.onLine ? 'error' : 'offline');
+            debugAutosave('metadata-save-failed', { message: errorMessageFrom(error, 'Erro ao salvar metadados.') });
         }
     }, [canEditGift, gift.id, gift.update_url, online]);
 
@@ -297,6 +328,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
             pageSaveTokensRef.current[pageId] = saveToken;
             setPageSaveStates((current) => ({ ...current, [pageId]: 'saving' }));
             setPageErrors((current) => withoutKey(current, pageId));
+            debugAutosave('page-save-started', { pageId });
 
             try {
                 const response = await patchJson<AutosaveResponse<PageSaveData>>(page.update_url, { canvas: snapshot });
@@ -307,17 +339,24 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                 }
 
                 const latestCanvas = pageCanvasesRef.current[pageId] ?? snapshot;
-                const latestIsSaved = canvasesAreEqual(latestCanvas, savedCanvasFromServer);
+                const latestMatchesSnapshot = canvasesAreEqual(latestCanvas, snapshot);
                 setSavedCanvases((current) => ({ ...current, [pageId]: cloneCanvas(savedCanvasFromServer) }));
                 savedCanvasesRef.current = {
                     ...savedCanvasesRef.current,
                     [pageId]: cloneCanvas(savedCanvasFromServer),
                 };
-                setPageSaveStates((current) => ({ ...current, [pageId]: latestIsSaved ? 'saved' : 'dirty' }));
 
-                if (latestIsSaved) {
+                if (latestMatchesSnapshot) {
+                    setPageCanvases((current) => ({ ...current, [pageId]: cloneCanvas(savedCanvasFromServer) }));
+                    pageCanvasesRef.current = {
+                        ...pageCanvasesRef.current,
+                        [pageId]: cloneCanvas(savedCanvasFromServer),
+                    };
                     clearLocalDraft(pageDraftKey(gift.id, pageId));
                 }
+
+                setPageSaveStates((current) => ({ ...current, [pageId]: latestMatchesSnapshot ? 'saved' : 'dirty' }));
+                debugAutosave('page-save-succeeded', { hasNewerChanges: !latestMatchesSnapshot, pageId });
             } catch (error) {
                 if (pageSaveTokensRef.current[pageId] !== saveToken) {
                     return;
@@ -328,6 +367,10 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                     [pageId]: errorMessageFrom(error, 'Não foi possível salvar esta página.'),
                 }));
                 setPageSaveStates((current) => ({ ...current, [pageId]: navigator.onLine ? 'error' : 'offline' }));
+                debugAutosave('page-save-failed', {
+                    message: errorMessageFrom(error, 'Não foi possível salvar esta página.'),
+                    pageId,
+                });
             }
         },
         [canEditGift, editorPageById, gift.id, online],
@@ -347,16 +390,18 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
 
     useAutosave({
         enabled: canEditGift && online && metadataDirty,
+        label: 'metadata',
         onSave: autosaveMetadata,
     });
     useAutosave({
         enabled: canEditGift && online && dirtyPageIds.length > 0,
+        label: 'pages',
         onSave: autosavePages,
     });
 
     function selectPage(pageId: string) {
         setSelectedPageId(pageId);
-        setSelectedImageElementId(null);
+        selection.clearSelection();
     }
 
     function goToPage(offset: number) {
@@ -375,20 +420,6 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
         updatePageCanvas(selectedPage.id, (canvas) => updateCanvasText(canvas, element.id, element.field, value));
     }
 
-    function applySelectedMediaToImage() {
-        if (!selectedPage || !activeImageElementId || editorDisabled) {
-            return;
-        }
-
-        const mediaItem = mediaItems.find((item) => item.id === selectedMediaId);
-
-        if (!mediaItem) {
-            return;
-        }
-
-        applyMediaToPage(selectedPage.id, activeImageElementId, mediaItem);
-    }
-
     function addUploadedMedia(mediaItem: EditorMediaItem, target: ImageUploadTarget | null) {
         setMediaItems((current) => [mediaItem, ...current.filter((item) => item.id !== mediaItem.id)]);
         setSelectedMediaId(mediaItem.id);
@@ -400,33 +431,91 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
         applyMediaToPage(target.pageId, target.elementId, mediaItem);
 
         if (target.pageId === selectedPageId) {
-            setSelectedImageElementId(target.elementId);
+            selection.selectElement(target.elementId);
         }
     }
 
-    function selectImageElementFromPreview(elementId: string) {
+    function changeElementFromStage(elementId: string, nextElement: CanvasElement) {
         if (!selectedPage || editorDisabled) {
             return;
         }
 
-        setSelectedImageElementId(elementId);
-        mediaLibraryRef.current?.openFilePicker({ pageId: selectedPage.id, elementId });
+        updatePageCanvas(selectedPage.id, (canvas) => ({
+            ...canvas,
+            elements: canvas.elements.map((element) => (element.id === elementId ? nextElement : element)),
+        }));
     }
 
-    function applyMediaToImageElementFromDrop(elementId: string, mediaItemId: string) {
+    function patchSelectedElement(patch: ElementPatch) {
+        if (!selectedPage || !selection.selectedElement || editorDisabled) {
+            return;
+        }
+
+        const elementId = selection.selectedElement.id;
+
+        updatePageCanvas(selectedPage.id, (canvas) => {
+            const nextCanvas = patchCanvasElement(canvas, elementId, patch);
+
+            return patch.z === undefined ? nextCanvas : normalizeCanvasLayerOrder(nextCanvas);
+        });
+    }
+
+    function patchSelectedElementStyle(stylePatch: Record<string, unknown>) {
+        if (!selectedPage || !selection.selectedElement || editorDisabled) {
+            return;
+        }
+
+        const elementId = selection.selectedElement.id;
+
+        updatePageCanvas(selectedPage.id, (canvas) => patchElementStyle(canvas, elementId, stylePatch));
+    }
+
+    function changeSelectedElementText(element: CanvasElement, value: string) {
         if (!selectedPage || editorDisabled) {
             return;
         }
 
-        const mediaItem = mediaItems.find((item) => item.id === mediaItemId);
+        const field = textFieldForElement(element);
 
-        if (!mediaItem) {
+        updatePageCanvas(selectedPage.id, (canvas) => updateCanvasText(canvas, element.id, field, value));
+    }
+
+    function changeSelectedElementLayer(action: LayerAction) {
+        if (!selectedPage || !selection.selectedElement || editorDisabled) {
             return;
         }
 
-        setSelectedImageElementId(elementId);
-        setSelectedMediaId(mediaItem.id);
-        applyMediaToPage(selectedPage.id, elementId, mediaItem);
+        const elementId = selection.selectedElement.id;
+
+        updatePageCanvas(selectedPage.id, (canvas) => applyLayerAction(canvas, elementId, action));
+    }
+
+    function selectElementFromCanvas(elementId: string) {
+        selection.selectElement(elementId);
+    }
+
+    function replaceSelectedImage() {
+        if (!selectedPage || !selection.selectedElement || selection.selectedElement.type !== 'image' || editorDisabled) {
+            return;
+        }
+
+        mediaLibraryRef.current?.openFilePicker({ pageId: selectedPage.id, elementId: selection.selectedElement.id });
+    }
+
+    function handleElementDoubleClick(element: CanvasElement) {
+        if (!selectedPage || editorDisabled || element.type !== 'image') {
+            return;
+        }
+
+        mediaLibraryRef.current?.openFilePicker({ pageId: selectedPage.id, elementId: element.id });
+    }
+
+    function useSelectedMediaOnSelectedImage() {
+        if (!selectedPage || !selection.selectedElement || selection.selectedElement.type !== 'image' || !selectedMediaItem) {
+            return;
+        }
+
+        applyMediaToPage(selectedPage.id, selection.selectedElement.id, selectedMediaItem);
     }
 
     function changeMetadata(field: keyof GiftMetadataDraft, value: string) {
@@ -512,18 +601,35 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                                 canGoNext={selectedPageIndex < editorPages.length - 1}
                                 canGoPrevious={selectedPageIndex > 0}
                                 canvas={selectedCanvas}
-                                onDropMediaOnImage={applyMediaToImageElementFromDrop}
+                                disabled={editorDisabled}
+                                maxTextLength={selectedPage?.text_max_length ?? 1000}
+                                onChangeElement={changeElementFromStage}
+                                onChangeText={changeSelectedElementText}
+                                onClearSelection={selection.clearSelection}
+                                onElementDoubleClick={handleElementDoubleClick}
                                 onNext={() => goToPage(1)}
                                 onPrevious={() => goToPage(-1)}
-                                onSelectImageElement={selectImageElementFromPreview}
+                                onSelectElement={selectElementFromCanvas}
                                 page={selectedPage}
-                                selectedImageElementId={activeImageElementId}
+                                selectedElementId={selection.selectedElementId}
                                 theme={gift.theme?.config}
                             />
                         </div>
                     }
                     right={
-                        <div className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-3 shadow-sm">
+                        <div className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-2 shadow-sm sm:p-3">
+                            <ElementPropertiesPanel
+                                disabled={editorDisabled}
+                                element={selection.selectedElement}
+                                maxTextLength={selectedPage?.text_max_length ?? 1000}
+                                onChangeText={changeSelectedElementText}
+                                onLayerAction={changeSelectedElementLayer}
+                                onPatchElement={patchSelectedElement}
+                                onPatchStyle={patchSelectedElementStyle}
+                                onReplaceImage={replaceSelectedImage}
+                                onUseSelectedMedia={useSelectedMediaOnSelectedImage}
+                                selectedMediaItem={selectedMediaItem}
+                            />
                             <EditorTabs activeTab={activeTab} onChange={setActiveTab} showDebug={debugEnabled} />
                             <div className="mt-5">
                                 {activeTab === 'content' ? (
@@ -538,14 +644,10 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                                 {activeTab === 'images' ? (
                                     <GiftImagesPanel
                                         disabled={editorDisabled}
-                                        elements={imageElements}
                                         mediaItems={mediaItems}
                                         mediaLibraryRef={mediaLibraryRef}
-                                        onApplyMedia={applySelectedMediaToImage}
-                                        onSelectElement={setSelectedImageElementId}
                                         onSelectMedia={setSelectedMediaId}
                                         onUploaded={addUploadedMedia}
-                                        selectedElementId={activeImageElementId}
                                         selectedMediaId={selectedMediaId}
                                         uploadUrl={gift.media_store_url}
                                     />
@@ -556,6 +658,15 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                                         errors={metadataErrors}
                                         metadata={metadata}
                                         onChange={changeMetadata}
+                                    />
+                                ) : null}
+                                {activeTab === 'layers' ? (
+                                    <GiftLayersPanel
+                                        canvas={selectedCanvas}
+                                        disabled={editorDisabled}
+                                        onLayerAction={changeSelectedElementLayer}
+                                        onSelectElement={selectElementFromCanvas}
+                                        selectedElementId={selection.selectedElementId}
                                     />
                                 ) : null}
                                 {activeTab === 'debug' && debugEnabled ? (
@@ -668,6 +779,26 @@ function metadataDraftKey(giftId: string): string {
 
 function pageDraftKey(giftId: string, pageId: string): string {
     return `scrapbook:gifts:${giftId}:pages:${pageId}:canvas`;
+}
+
+function localDraftIsNewer(localSavedAt: string, serverSavedAt: string | null): boolean {
+    const localTime = Date.parse(localSavedAt);
+
+    if (!Number.isFinite(localTime)) {
+        return false;
+    }
+
+    if (!serverSavedAt) {
+        return true;
+    }
+
+    const serverTime = Date.parse(serverSavedAt);
+
+    if (!Number.isFinite(serverTime)) {
+        return true;
+    }
+
+    return localTime > serverTime;
 }
 
 function globalStatus({

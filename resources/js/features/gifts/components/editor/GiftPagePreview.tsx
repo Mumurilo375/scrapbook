@@ -1,20 +1,26 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { normalizeThemeConfig, PageRenderer, ScrapbookStage } from '../../../../components/renderer';
+import { normalizeThemeConfig, ScrapbookStage } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import type { ThemeConfigInput } from '../../../../components/renderer';
+import { EditableCanvasStage } from './EditableCanvasStage';
 import type { EditorPage } from './editorTypes';
 
 type GiftPagePreviewProps = {
     canGoNext: boolean;
     canGoPrevious: boolean;
     canvas: Canvas | null;
+    disabled: boolean;
+    onChangeElement: (elementId: string, nextElement: CanvasElement) => void;
+    onChangeText: (element: CanvasElement, value: string) => void;
+    onClearSelection: () => void;
+    onElementDoubleClick?: (element: CanvasElement) => void;
     onNext: () => void;
     onPrevious: () => void;
-    onDropMediaOnImage?: (elementId: string, mediaItemId: string) => void;
-    onSelectImageElement?: (elementId: string) => void;
+    onSelectElement: (elementId: string) => void;
+    maxTextLength: number;
     page: EditorPage | null;
-    selectedImageElementId?: string | null;
+    selectedElementId?: string | null;
     theme?: ThemeConfigInput;
 };
 
@@ -22,37 +28,30 @@ export function GiftPagePreview({
     canGoNext,
     canGoPrevious,
     canvas,
+    disabled,
+    onChangeElement,
+    onChangeText,
+    onClearSelection,
+    onElementDoubleClick,
+    maxTextLength,
     onNext,
     onPrevious,
-    onDropMediaOnImage,
-    onSelectImageElement,
+    onSelectElement,
     page,
-    selectedImageElementId = null,
+    selectedElementId = null,
     theme,
 }: GiftPagePreviewProps) {
     const rendererTheme = normalizeThemeConfig(theme);
 
-    function selectElement(element: CanvasElement) {
-        if (element.type === 'image') {
-            onSelectImageElement?.(element.id);
-        }
-    }
-
-    function dropMediaOnElement(element: CanvasElement, mediaItemId: string) {
-        if (element.type === 'image') {
-            onDropMediaOnImage?.(element.id, mediaItemId);
-        }
-    }
-
     return (
         <div
-            className="min-h-full rounded-[8px] border p-3 shadow-sm sm:p-4"
+            className="min-h-full rounded-[8px] border p-2 shadow-sm sm:p-4"
             style={{
                 backgroundColor: `color-mix(in srgb, ${rendererTheme.tokens.colors.bookBackground} 86%, white)`,
                 borderColor: rendererTheme.tokens.colors.muted,
             }}
         >
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-2 flex items-center justify-between gap-3 sm:mb-3">
                 <div className="min-w-0">
                     <h2 className="truncate text-lg font-semibold" style={{ color: rendererTheme.tokens.colors.ink }}>
                         {page?.name ?? 'Sem página'}
@@ -88,12 +87,16 @@ export function GiftPagePreview({
 
             <ScrapbookStage context="editor" theme={theme}>
                 {canvas ? (
-                    <PageRenderer
+                    <EditableCanvasStage
                         canvas={canvas}
-                        context="editor"
-                        onElementClick={selectElement}
-                        onMediaDrop={dropMediaOnElement}
-                        selectedElementId={selectedImageElementId}
+                        disabled={disabled}
+                        onChangeElement={onChangeElement}
+                        onChangeText={onChangeText}
+                        onClearSelection={onClearSelection}
+                        onElementDoubleClick={onElementDoubleClick}
+                        onSelectElement={onSelectElement}
+                        maxTextLength={maxTextLength}
+                        selectedElementId={selectedElementId}
                         theme={theme}
                     />
                 ) : (

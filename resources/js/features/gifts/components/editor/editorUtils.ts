@@ -1,5 +1,6 @@
 import { canvasSchema, type Canvas } from '../../../../domain/canvas/schema';
 import type { CanvasElementRecord, EditableImageElement, EditableTextElement, EditorMediaItem } from './editorTypes';
+import { normalizeCanvasLayerOrder } from './layerUtils';
 
 const DEFAULT_ARTBOARD = {
     width: 1080,
@@ -12,13 +13,13 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
     const parsed = canvasSchema.safeParse(canvasRecord);
 
     if (parsed.success) {
-        return parsed.data;
+        return normalizeCanvasLayerOrder(parsed.data);
     }
 
     const artboard = isRecord(canvasRecord.artboard) ? canvasRecord.artboard : {};
     const elements = Array.isArray(canvasRecord.elements) ? canvasRecord.elements : [];
 
-    return {
+    return normalizeCanvasLayerOrder({
         schemaVersion: 1,
         version: 1,
         artboard: {
@@ -43,15 +44,15 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
                 type: typeof element.type === 'string' && element.type !== '' ? element.type : 'unknown',
                 x: numberValue(element.x, 0),
                 y: numberValue(element.y, 0),
-                w: positiveNumber(element.w, 120),
-                h: positiveNumber(element.h, 40),
+                w: positiveNumber(element.w ?? element.width, 120),
+                h: positiveNumber(element.h ?? element.height, 40),
                 rotation: numberValue(element.rotation, 0),
-                z: numberValue(element.z, index),
+                z: numberValue(element.z ?? element.zIndex, (index + 1) * 10),
             };
 
             return normalized;
         }),
-    };
+    });
 }
 
 export function cloneCanvas(canvas: Canvas): Canvas {

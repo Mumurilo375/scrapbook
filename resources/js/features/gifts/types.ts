@@ -122,5 +122,6 @@ export type GiftPageSummary = {
     is_visible: boolean;
     locked: boolean;
     text_max_length: number;
+    updated_at: string | null;
     update_url: string;
 };
