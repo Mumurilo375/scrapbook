@@ -80,6 +80,7 @@ class GiftController extends Controller
                 'is_visible' => $page->is_visible,
                 'locked' => $page->locked,
                 'text_max_length' => $canvasSecurity->textMaxLengthForPage($page),
+                'updated_at' => $page->updated_at?->toIso8601String(),
                 'update_url' => route('app.gifts.pages.update', [$gift, $page]),
             ])->values(),
         ]);
@@ -98,6 +99,7 @@ class GiftController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
+                'success' => true,
                 'data' => [
                     'gift' => [
                         'id' => $gift->id,

@@ -508,6 +508,8 @@ class InitialDomainSeeder extends Seeder
             'type' => 'sticker',
             'slotKey' => $id,
             'label' => $label,
+            'text' => $label,
+            'editableText' => true,
             'x' => $x,
             'y' => $y,
             'w' => $w,

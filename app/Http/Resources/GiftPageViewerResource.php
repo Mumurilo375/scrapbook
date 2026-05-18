@@ -44,10 +44,14 @@ class GiftPageViewerResource extends JsonResource
      */
     private function canvasForViewer(): array
     {
-        $canvas = is_array($this->canvas) ? $this->canvas : [];
-        $artboard = is_array($canvas['artboard'] ?? null) ? $canvas['artboard'] : [];
-        $elements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
-        $safeArea = is_array($artboard['safeArea'] ?? null) ? $artboard['safeArea'] : CanvasNormalizer::DEFAULT_SAFE_AREA;
+        $rawCanvas = $this->resource->getAttribute('canvas');
+        $canvas = is_array($rawCanvas) ? $rawCanvas : [];
+        $rawArtboard = $canvas['artboard'] ?? null;
+        $artboard = is_array($rawArtboard) ? $rawArtboard : [];
+        $rawElements = $canvas['elements'] ?? null;
+        $elements = is_array($rawElements) ? $rawElements : [];
+        $rawSafeArea = $artboard['safeArea'] ?? null;
+        $safeArea = is_array($rawSafeArea) ? $rawSafeArea : CanvasNormalizer::DEFAULT_SAFE_AREA;
 
         return [
             'schemaVersion' => 1,
@@ -86,10 +90,11 @@ class GiftPageViewerResource extends JsonResource
         $element['type'] = is_string($element['type'] ?? null) && $element['type'] !== '' ? $element['type'] : 'unknown';
         $element['x'] = $this->number($element['x'] ?? null, 0);
         $element['y'] = $this->number($element['y'] ?? null, 0);
-        $element['w'] = $this->positiveNumber($element['w'] ?? null, 120);
-        $element['h'] = $this->positiveNumber($element['h'] ?? null, 80);
+        $element['w'] = $this->positiveNumber($element['w'] ?? $element['width'] ?? null, 120);
+        $element['h'] = $this->positiveNumber($element['h'] ?? $element['height'] ?? null, 80);
         $element['rotation'] = $this->number($element['rotation'] ?? null, 0);
-        $element['z'] = $this->number($element['z'] ?? null, $index);
+        $element['z'] = $this->number($element['z'] ?? $element['zIndex'] ?? null, $index);
+        unset($element['width'], $element['height'], $element['zIndex']);
 
         if ($element['type'] === 'image') {
             return $this->imageElementForViewer($element);

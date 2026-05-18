@@ -22,6 +22,7 @@ class GiftPageController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
+                'success' => true,
                 'data' => [
                     'page' => [
                         'id' => $updatedPage->id,
