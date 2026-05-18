@@ -44,6 +44,8 @@ class GiftViewerTest extends TestCase
                 ->where('gift.theme.config.book.spineColor', '#7B4F32')
                 ->where('gift.theme.config.page.texture', 'paper-grain')
                 ->where('gift.urls.edit', route('app.gifts.edit', $gift, false))
+                ->where('gift.urls.review', route('app.gifts.review', $gift, false))
+                ->where('gift.urls.share', null)
                 ->has('gift.pages', 1)
                 ->where('gift.pages.0.id', $page->id));
     }
@@ -78,7 +80,26 @@ class GiftViewerTest extends TestCase
 
         $this
             ->get($this->publicUrl($gift))
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('public-gifts/PublicGiftUnavailable', false)
+                ->missing('gift'));
+    }
+
+    public function test_pending_payment_gift_is_not_publicly_accessible(): void
+    {
+        $gift = Gift::factory()->create([
+            'public_code' => Str::random(24),
+            'status' => GiftStatus::PendingPayment,
+            'visibility' => GiftVisibility::PublicLink,
+        ]);
+
+        $this
+            ->get($this->publicUrl($gift))
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('public-gifts/PublicGiftUnavailable', false)
+                ->missing('gift'));
     }
 
     public function test_published_gift_is_accessible_by_slug_and_public_code(): void
@@ -97,11 +118,54 @@ class GiftViewerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('public-gifts/PublicGiftShow', false)
                 ->where('gift.title', $gift->title)
-                ->where('gift.status', GiftStatus::Published->value)
                 ->where('gift.theme.config.tokens.colors.paper', '#FFF8EC')
                 ->where('gift.theme.config.tokens.colors.bookBackground', '#D8BE96')
                 ->where('gift.theme.config.page.decorations.paperGrain', true)
+                ->where('gift.urls.create', route('create.index', [], false))
+                ->missing('gift.id')
+                ->missing('gift.status')
+                ->missing('gift.published_at')
+                ->missing('gift.expires_at')
                 ->has('gift.pages', 1));
+    }
+
+    public function test_hidden_canvas_elements_are_not_sent_to_preview_or_public_viewer(): void
+    {
+        $user = User::factory()->create();
+        $draftGift = Gift::factory()->create(['user_id' => $user->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $draftGift->id,
+            'source_template_page_id' => null,
+            'canvas' => $this->canvas([
+                ['id' => 'visible_text', 'type' => 'text', 'text' => 'Visível', 'x' => 0, 'y' => 0, 'w' => 120, 'h' => 80, 'z' => 10],
+                ['id' => 'hidden_text', 'type' => 'text', 'text' => 'Oculto', 'x' => 0, 'y' => 100, 'w' => 120, 'h' => 80, 'z' => 20, 'hidden' => true],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('app.gifts.preview', $draftGift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('gift.pages.0.canvas.elements', 1)
+                ->where('gift.pages.0.canvas.elements.0.id', 'visible_text'));
+
+        $publicGift = Gift::factory()->published()->create(['user_id' => $user->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $publicGift->id,
+            'source_template_page_id' => null,
+            'canvas' => $this->canvas([
+                ['id' => 'visible_text', 'type' => 'text', 'text' => 'Visível', 'x' => 0, 'y' => 0, 'w' => 120, 'h' => 80, 'z' => 10],
+                ['id' => 'hidden_text', 'type' => 'text', 'text' => 'Oculto', 'x' => 0, 'y' => 100, 'w' => 120, 'h' => 80, 'z' => 20, 'hidden' => true],
+            ]),
+        ]);
+
+        $this
+            ->get($this->publicUrl($publicGift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('gift.pages.0.canvas.elements', 1)
+                ->where('gift.pages.0.canvas.elements.0.id', 'visible_text'));
     }
 
     public function test_disabled_gift_is_not_publicly_accessible(): void
@@ -110,7 +174,10 @@ class GiftViewerTest extends TestCase
 
         $this
             ->get($this->publicUrl($gift))
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('public-gifts/PublicGiftUnavailable', false)
+                ->missing('gift'));
     }
 
     public function test_expired_gift_is_not_publicly_accessible(): void
@@ -119,7 +186,10 @@ class GiftViewerTest extends TestCase
 
         $this
             ->get($this->publicUrl($gift))
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('public-gifts/PublicGiftUnavailable', false)
+                ->missing('gift'));
     }
 
     public function test_slug_without_public_code_does_not_access_public_gift(): void
@@ -128,7 +198,10 @@ class GiftViewerTest extends TestCase
 
         $this
             ->get('/p/'.$gift->slug)
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('public-gifts/PublicGiftUnavailable', false)
+                ->missing('gift'));
     }
 
     public function test_wrong_public_code_does_not_access_public_gift(): void
@@ -137,7 +210,10 @@ class GiftViewerTest extends TestCase
 
         $this
             ->get('/p/'.$gift->slug.'-'.Str::random(24))
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('public-gifts/PublicGiftUnavailable', false)
+                ->missing('gift'));
     }
 
     public function test_public_viewer_payload_does_not_expose_owner_or_internal_fields(): void
@@ -154,12 +230,61 @@ class GiftViewerTest extends TestCase
             ->assertOk()
             ->assertDontSee($owner->email)
             ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user', null)
+                ->missing('gift.id')
+                ->missing('gift.status')
+                ->missing('gift.published_at')
+                ->missing('gift.expires_at')
                 ->missing('gift.user_id')
                 ->missing('gift.user')
                 ->missing('gift.public_code')
                 ->missing('gift.plan')
                 ->missing('gift.orders')
                 ->missing('gift.payments'));
+    }
+
+    public function test_public_viewer_does_not_share_authenticated_user_data(): void
+    {
+        $owner = User::factory()->create(['email' => 'owner@example.test']);
+        $viewer = User::factory()->create(['email' => 'viewer@example.test']);
+        $gift = Gift::factory()->published()->create(['user_id' => $owner->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($viewer)
+            ->get($this->publicUrl($gift))
+            ->assertOk()
+            ->assertDontSee($viewer->email)
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user', null)
+                ->missing('gift.user')
+                ->missing('gift.user_id'));
+    }
+
+    public function test_private_preview_receives_share_urls_for_published_gift(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->published()->create(['user_id' => $user->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('app.gifts.preview', $gift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('gifts/Preview/GiftPreview', false)
+                ->where('gift.id', $gift->id)
+                ->where('gift.status', GiftStatus::Published->value)
+                ->where('gift.urls.edit', route('app.gifts.edit', $gift, false))
+                ->where('gift.urls.review', route('app.gifts.review', $gift, false))
+                ->where('gift.urls.share', route('app.gifts.share', $gift, false))
+                ->where('gift.urls.public', route('public.gifts.show', $this->slugToken($gift), false)));
     }
 
     public function test_public_viewer_receives_sanitized_theme_config_without_internal_paths(): void
