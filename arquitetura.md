@@ -839,21 +839,20 @@ template_version_id fk template_versions nullable
 theme_id fk themes nullable
 theme_version_id fk theme_versions nullable
 plan_id fk plans nullable
-status varchar -- draft, checkout_pending, paid_unpublished, published, disabled, expired, deleted
-visibility varchar default 'unlisted'
+status varchar -- draft, pending_payment, published, disabled, expired
+visibility varchar default 'private'
 title varchar nullable
 recipient_name varchar nullable
 sender_name varchar nullable
 cover_message text nullable
-public_slug varchar nullable
-public_token_hash varchar unique nullable
+slug varchar nullable
+public_code varchar unique nullable
 edit_token_hash varchar unique nullable
 settings jsonb
 limits_snapshot jsonb
 price_snapshot jsonb
 branding_enabled boolean default true
 noindex boolean default true
-paid_at timestamp nullable
 published_at timestamp nullable
 first_viewed_at timestamp nullable
 last_viewed_at timestamp nullable
@@ -865,9 +864,8 @@ timestamps
 
 Notas:
 
-- `limits_snapshot` copia limites do plano no momento da compra.
-- `price_snapshot` copia preço e moeda no momento da compra.
-- `public_token_hash` deve ser hash de token aleatório forte.
+- `limits_snapshot` copia limites do plano no momento da criação/checkout.
+- `public_code` deve ser token público forte e nunca funcionar sem slug.
 - Nunca exponha `edit_token_hash`.
 
 #### `gift_pages`
@@ -1065,18 +1063,15 @@ id ulid pk
 user_id fk users
 gift_id fk gifts
 plan_id fk plans
-status varchar -- pending, paid, cancelled, expired, refunded
-subtotal_cents int
-discount_cents int default 0
-total_cents int
+status varchar -- draft, pending, paid, canceled, expired, refunded
+amount_cents int
 currency char(3) default 'BRL'
-price_snapshot jsonb
 provider varchar nullable
-provider_checkout_id varchar nullable
-provider_payment_url text nullable
+provider_reference varchar nullable
+checkout_url text nullable
+metadata jsonb
 expires_at timestamp nullable
 paid_at timestamp nullable
-cancelled_at timestamp nullable
 timestamps
 ```
 
@@ -1088,14 +1083,12 @@ order_id fk orders
 provider varchar
 provider_payment_id varchar nullable
 method varchar nullable -- pix, credit_card
-status varchar -- pending, approved, rejected, refunded, cancelled
+status varchar -- pending, approved, rejected, refunded, canceled
 amount_cents int
 currency char(3)
 raw_payload jsonb
-approved_at timestamp nullable
-failed_at timestamp nullable
+processed_at timestamp nullable
 timestamps
-unique(provider, provider_payment_id)
 ```
 
 #### `payment_webhook_events`
@@ -1604,6 +1597,9 @@ Rotas autenticadas:
 - `POST /gifts`: cria o `Gift` draft a partir de uma `TemplateVersion` publicada.
 - `GET /app/gifts`: lista gifts do usuário autenticado.
 - `GET /app/gifts/{gift}/edit`: abre o Editor MVP do rascunho.
+- `GET /app/gifts/{gift}/preview`: abre preview privado autenticado.
+- `GET /app/gifts/{gift}/review`: mostra checklist de revisão/publicação.
+- `POST /app/gifts/{gift}/publish`: publica tecnicamente o Gift em modo MVP/dev.
 - `PATCH /app/gifts/{gift}`: atualiza metadados básicos do draft.
 - `PATCH /app/gifts/{gift}/pages/{giftPage}`: atualiza o canvas JSON de uma página com `UpdateGiftPageCanvas`.
 - `GET /app/gifts/{gift}/media`: lista imagens processadas do Gift.
@@ -1684,7 +1680,7 @@ O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de 
 
 ### Limites desta etapa
 
-Não entram neste MVP: drag-and-drop, redimensionamento, rotação livre, crop/filtros, publicação, checkout, viewer público, demo pública, integração musical externa e builder visual de templates no admin.
+Não entram no Editor MVP: drag-and-drop, redimensionamento, rotação livre, crop/filtros, checkout, cobrança, demo pública, integração musical externa e builder visual de templates no admin. Preview, viewer público e publicação técnica são fluxos separados do editor.
 
 ## 20. Autenticação real mínima do cliente
 
@@ -1715,6 +1711,12 @@ Se um visitante tentar criar gift sem sessão, o backend preserva a intenção u
 - `POST /gifts`: cria o draft com `CreateGiftFromTemplate`.
 - `GET /app/gifts`: lista somente gifts do usuário autenticado.
 - `GET /app/gifts/{gift}/edit`: abre o Editor MVP do rascunho.
+- `GET /app/gifts/{gift}/preview`: abre preview privado autenticado.
+- `GET /app/gifts/{gift}/review`: abre revisão de publicação.
+- `GET|POST /app/gifts/{gift}/checkout`: mostra checkout e cria/reusa `Order pending`.
+- `GET /app/orders/{order}`: mostra status do pedido e pagamento.
+- `POST /app/orders/{order}/dev-approve`: aprova pagamento apenas em ambiente local/test/dev controlado.
+- `POST /app/gifts/{gift}/publish`: só publica se já existir `Order paid` para o Gift.
 - `PATCH /app/gifts/{gift}`: salva metadados básicos.
 - `PATCH /app/gifts/{gift}/pages/{giftPage}`: salva canvas JSON da página.
 - `GET|POST /app/gifts/{gift}/media`: lista e envia imagens do Gift draft.
@@ -1732,3 +1734,139 @@ Se um visitante tentar criar gift sem sessão, o backend preserva a intenção u
 - flag `isAdmin`.
 
 Esses dados são usados pela landing/header para alternar entre Login, Meus presentes, Sair e Criar presente, sem transformar a landing em dashboard.
+
+## 22. Viewer/preview do scrapbook
+
+A visualização real do presente foi separada em dois contextos:
+
+1. **Preview privado autenticado**
+   - Rota: `GET /app/gifts/{gift}/preview`.
+   - Exige sessão autenticada.
+   - Usa `GiftPolicy::view`, então apenas o dono acessa.
+   - Renderiza páginas visíveis do Gift sem controles de edição.
+   - Pode exibir Gift em `draft` para o criador.
+   - Resolve imagens pelo contexto privado usando as rotas autenticadas de mídia: `/app/gifts/{gift}/media/{mediaItem}` e `/thumbnail`.
+   - Mostra caminho de volta para `/app/gifts/{gift}/edit`.
+
+2. **Viewer público publicado**
+   - Rota: `GET /p/{slug}-{public_code}`.
+   - Não exige login.
+   - Não resolve por slug isolado.
+   - Só encontra Gift com `status = published`, `visibility = public_link`, `public_code` preenchido e `expires_at` nulo ou futuro.
+   - Gifts `draft`, `disabled`, `expired` ou com código incorreto retornam 404 genérico.
+   - A página pública deve usar `noindex,nofollow`.
+
+### Resolução segura do link público
+
+`PublicGiftResolver` extrai o último segmento após hífen como `public_code` e usa o restante como slug. O código precisa ser alfanumérico forte e a busca exige slug e código juntos. O modelo atual armazena `public_code` em coluna única, conforme domínio implementado; a geração do código continua centralizada em `PublishGift`, que agora é chamado pelo fluxo de pagamento aprovado.
+
+### Resources do viewer
+
+O viewer não envia models crus ao frontend. `GiftViewerResource` e `GiftPageViewerResource` expõem somente:
+
+- título, destinatário, remetente, status público/preview, tema resumido e datas mínimas;
+- páginas visíveis ordenadas;
+- canvas sanitizado e resolvido para o contexto correto;
+- URLs de navegação necessárias ao contexto.
+
+O payload público não envia `user_id`, usuário, e-mail, plano, pedidos, pagamentos, `public_code` separado, `storage_path` ou metadata interna.
+
+### Mídia no viewer
+
+O canvas salvo é tratado como dado não confiável. No viewer:
+
+- `src` salvo no canvas não é reaproveitado;
+- elementos `image` precisam de `mediaItemId`;
+- a mídia precisa pertencer ao mesmo Gift;
+- a mídia precisa ser `image`, estar `processed` e não estar deletada;
+- preview privado recebe URL autenticada em `/app/gifts/{gift}/media/{mediaItem}`;
+- viewer público recebe URL controlada em `/p/{slug}-{public_code}/media/{mediaItem}`;
+- se o `mediaItemId` for inválido, de outro Gift ou indisponível, o backend remove `src` e marca placeholder seguro.
+
+As rotas públicas de mídia também resolvem o Gift por slug + `public_code` e repetem as regras de `published`, `public_link`, não expirado e não desativado antes de servir o arquivo. A rota não expõe `storage_path` e só serve mídia pertencente ao Gift publicado.
+
+### Registro de visitas
+
+O viewer público registra abertura básica em `gift_visits` quando possível. O registro não bloqueia a renderização se falhar. IP e user agent são armazenados como hash SHA-256 com chave da aplicação; o referrer é reduzido ao host para evitar gravar URL completa com dados sensíveis.
+
+### Limites desta etapa
+
+Esta etapa não implementa gateway externo real, Pix real, cartão, QR Code, demo pública, integração musical, crop/filtros, editor drag-and-drop ou refinamento visual da landing. O checkout atual prepara o domínio de `Order`/`Payment` e usa aprovação manual/dev somente em ambiente controlado.
+
+## 23. Revisão, checkout e publicação condicionada a pagamento
+
+A publicação técnica `draft -> published` foi substituída por um fluxo de checkout interno. O objetivo é preparar a arquitetura para gateway real sem criar cobrança fake visível ao usuário final.
+
+### Fluxo atual
+
+1. O usuário edita o Gift em `/app/gifts/{gift}/edit`.
+2. O usuário abre o preview privado em `/app/gifts/{gift}/preview`.
+3. O usuário acessa `/app/gifts/{gift}/review`.
+4. O backend calcula o checklist de publicação.
+5. Se não houver erro obrigatório, a revisão aponta para `/app/gifts/{gift}/checkout`.
+6. `CreateCheckoutOrder` cria ou reutiliza uma `Order pending`, sempre com `amount_cents` vindo do `Plan` no banco.
+7. O Gift passa de `draft` para `pending_payment`.
+8. Enquanto o pagamento não estiver aprovado, o viewer público continua retornando 404.
+9. Em ambiente local/test/dev, `/app/orders/{order}/dev-approve` simula aprovação interna controlada.
+10. `ProcessApprovedPayment` marca `Payment approved`, marca `Order paid` e chama `PublishGift`.
+11. `PublishGift` define `status = published`, `visibility = public_link`, `slug`, `public_code`, `published_at` e `expires_at`.
+12. O link público passa a aparecer na tela do pedido, revisão, editor e dashboard.
+
+### Checklist
+
+`GiftPublicationChecklist` centraliza os requisitos mínimos antes de checkout e antes de publicar após pagamento:
+
+- Gift pertence ao usuário autenticado;
+- status permite avançar (`draft` para checkout, `pending_payment` para publicação após pagamento);
+- Gift não está `disabled`;
+- Gift não está `expired`;
+- título preenchido;
+- `template_version_id` definido;
+- `theme_version_id` definido;
+- ao menos uma página visível;
+- canvas das páginas visíveis com `schemaVersion = 1`, `elements` e artboard válido;
+- canvas sem HTML, scripts, protocolos inseguros ou URLs externas;
+- elementos `image` com `mediaItemId` apontam para mídia `image`, `processed`, não deletada e pertencente ao mesmo Gift;
+- limites simples de páginas e fotos são respeitados quando há plano ou snapshot;
+- espaços de imagem vazios geram aviso e continuam renderizando placeholder seguro.
+
+Warnings não bloqueiam publicação. Erros bloqueiam publicação e são retornados como validação.
+
+### Domínio de checkout e pagamento
+
+- `CreateCheckoutOrder` recebe usuário, Gift e Plan, valida dono, checklist e plano ativo, cria/reusa `Order pending`, grava snapshot mínimo de preço/limites e não publica Gift.
+- `Order` pertence a `User`, `Gift` e `Plan`.
+- `Payment` pertence a `Order`.
+- `PaymentProvider` define a abstração mínima de provider.
+- `ManualDevPaymentProvider` retorna uma sessão interna `manual_dev` sem cobrança real.
+- `ProcessApprovedPayment` é idempotente: não duplica `Payment approved` e não republica Gift já publicado.
+- `ProcessPaymentWebhook` permanece reservado para integração futura com provider real.
+
+### Segurança de pagamento
+
+- O frontend não envia nem controla `amount_cents`.
+- O preço vem de `plans.price_cents`.
+- O usuário só cria Order para Gift próprio.
+- Gift inválido, sem página visível, com canvas inseguro ou mídia de outro Gift não cria Order.
+- `POST /app/gifts/{gift}/publish` não permite bypass: sem `Order paid`, redireciona para checkout.
+- A aprovação manual/dev é bloqueada em produção.
+- Dados sensíveis de pagamento não são enviados ao viewer público.
+
+### Action de publicação
+
+`PublishGift` é a fonte central da regra de publicação. Controllers não alteram status nem tokens diretamente.
+
+Nesta fase, a transição normal é:
+
+```txt
+draft -> pending_payment -> published
+```
+
+`PublishGift` exige contexto de pagamento aprovado. A action continua validando checklist, slug, `public_code`, `published_at`, `expires_at` e `visibility`, mas não deve ser chamada livremente por controller público para publicar rascunho sem pagamento.
+
+### Link e expiração
+
+- O slug é derivado do título com `Str::slug`, validado como slug seguro e limitado.
+- `public_code` é alfanumérico forte, com 32 caracteres, e único.
+- `expires_at` usa `limits_snapshot.gift_lifetime_days`, depois `plans.gift_lifetime_days`, com fallback em `config('scrapbook.gifts.default_lifetime_days')`.
+- O viewer público continua exigindo `status = published`, `visibility = public_link`, `slug + public_code`, não expirado e não desativado.

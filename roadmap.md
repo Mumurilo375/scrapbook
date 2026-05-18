@@ -10,16 +10,20 @@
 - Fluxo de criação inicial implementado: `/criar`, escolha de ocasião, escolha de template publicado, criação de `Gift` draft, cópia de páginas e dashboard simples.
 - Autenticação real mínima implementada: login, cadastro, logout, role `customer`, proteção de `/app/*` e integração com criação/retomada de draft.
 - Editor MVP implementado em `/app/gifts/{gift}/edit`, com seleção de páginas, preview, edição de textos existentes, metadados básicos e salvamento seguro de canvas.
-- Fase atual: upload/mídia básica no editor, com upload seguro de imagens, `media_items`, biblioteca simples e aplicação em elementos `image` existentes.
-- Próxima fase depois disso: viewer público simples ou fluxo draft/published, a decidir.
-- Depois: checkout/publicação.
-- Só depois: demo pública refinada e landing final baseada no produto real.
+- Upload/mídia básica no editor implementado, com upload seguro de imagens, `media_items`, biblioteca simples e aplicação em elementos `image` existentes.
+- Viewer/preview do scrapbook implementado, com preview privado autenticado, viewer público por slug + `public_code`, navegação de páginas e mídia pública controlada.
+- Revisão/publicação técnica MVP implementada, com checklist de requisitos mínimos.
+- Fase atual: checkout/publicação condicionada a pagamento, com `Order`, `Payment`, provider manual/dev e publicação após aprovação.
+- Próxima fase depois disso: escolha e integração de gateway externo real.
+- Depois: QR Code e entrega.
+- Só depois: melhorias visuais/editor avançado, demo pública refinada e landing final baseada no produto real.
 
 ## Nota técnica de ambiente
 
 - O erro local de `npm run build` em `public/build/assets` ocorre quando o serviço `vite` do Docker escreve artefatos como `root`.
 - O `compose.yaml` deve rodar o serviço `vite` com `${UID:-1000}:${GID:-1000}` para novos builds não recriarem artefatos root-owned.
 - Se o diretório já estiver root-owned, a correção recomendada é uma limpeza pontual de `public/build` ou `chown` apenas nesse diretório ignorado pelo Git, nunca uma mudança ampla de permissão no projeto.
+- A suíte PHPUnit usa PostgreSQL local em `127.0.0.1:5432`, alinhado ao `compose.yaml`. Se os testes recusarem conexão, suba o serviço com `docker compose up -d postgres` e confirme `docker compose ps`.
 
 ## Fase 0 — Branding, posicionamento e landing page
 
@@ -439,33 +443,37 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 
 ## Fase 16 - Checkout e pagamento
 
-330. Criar seleção de plano.
-331. Criar `CreateOrder` action.
-332. Criar snapshot de preço no order.
-333. Criar checkout no provider.
-334. Redirecionar ou mostrar QR Pix conforme provider.
+Subfase atual: checkout interno sem gateway externo real. A transição de produto é `draft -> pending_payment -> published`, com `Order pending`, `Payment approved` e provider `manual_dev` limitado a ambiente controlado.
+
+330. Criar seleção/uso de plano ativo. Implementado inicialmente via plano do Gift/fallback ativo.
+331. Criar `CreateCheckoutOrder` action. Implementado.
+332. Criar snapshot de preço no order. Implementado.
+333. Criar checkout no provider. Implementado com abstração `PaymentProvider` e provider `manual_dev`.
+334. Redirecionar ou mostrar QR Pix conforme provider. Pendente para gateway real; não implementar Pix fake.
 335. Antes de sair para pagamento, forçar autosave final.
 336. Garantir que usuário não perde draft ao voltar.
-337. Criar webhook receiver.
-338. Verificar assinatura do webhook.
-339. Salvar webhook bruto em `payment_webhook_events`.
-340. Processar webhook em job.
-341. Garantir idempotência.
-342. Atualizar payment.
-343. Atualizar order.
-344. Atualizar gift para pago/liberado.
+337. Criar webhook receiver. Pendente para provider real.
+338. Verificar assinatura do webhook. Pendente para provider real.
+339. Salvar webhook bruto em `payment_webhook_events`. Pendente para provider real.
+340. Processar webhook em job. Pendente para provider real.
+341. Garantir idempotência. Implementado no processamento interno aprovado.
+342. Atualizar payment. Implementado no fluxo interno aprovado.
+343. Atualizar order. Implementado no fluxo interno aprovado.
+344. Atualizar gift para pago/liberado. Implementado publicando após pagamento aprovado.
 345. Enviar notificação interna, se necessário.
-346. Testar pagamento aprovado.
-347. Testar pagamento duplicado.
-348. Testar webhook inválido.
+346. Testar pagamento aprovado. Implementado para fluxo manual/dev.
+347. Testar pagamento duplicado. Implementado via idempotência.
+348. Testar webhook inválido. Pendente para provider real.
 349. Testar order expirada.
-350. Testar usuário tentando publicar sem pagar.
+350. Testar usuário tentando publicar sem pagar. Implementado.
 
 ## Fase 17 - Publicação
 
+Subfase atual: publicação condicionada a pagamento aprovado. A publicação técnica direta não deve burlar checkout; `POST /app/gifts/{gift}/publish` exige `Order paid` ou redireciona para checkout.
+
 351. Criar ação `PublishGift`.
 352. Validar owner.
-353. Validar status pago ou plano gratuito, se existir.
+353. Validar status pago ou plano gratuito, se existir. Implementado para `Order paid`.
 354. Validar limites de fotos.
 355. Validar limites de páginas.
 356. Validar que não existem uploads pendentes obrigatórios.
@@ -476,8 +484,8 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 361. Definir expires_at conforme plano.
 362. Gerar QR code.
 363. Gerar card imprimível básico.
-364. Mostrar link final ao usuário.
-365. Adicionar botão copiar link.
+364. Mostrar link final ao usuário. Implementado após publicação.
+365. Adicionar botão copiar link. Implementado na revisão quando publicado.
 366. Adicionar botão baixar QR.
 367. Adicionar botão baixar cartão.
 368. Criar testes de publicação.

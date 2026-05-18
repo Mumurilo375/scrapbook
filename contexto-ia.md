@@ -15,13 +15,13 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: upload/mídia básica
+## Prioridade atual: checkout/publicação condicionada a pagamento
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
 O domínio, banco real e admin inicial em Filament já foram implementados. O projeto já consegue operar ocasiões, planos, temas, templates, versões, páginas, gifts, mídia, pedidos, pagamentos e analytics sem hardcode administrativo. O fluxo inicial de criação do cliente também já existe: o visitante escolhe ocasião, escolhe template publicado e o usuário autenticado consegue criar um `Gift` draft com páginas copiadas do template.
 
-Autenticação real mínima e Editor MVP já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, edita textos existentes, salva canvas e edita metadados básicos do Gift. Neste momento, a prioridade principal é permitir fotos reais no editor, sem transformar a etapa em editor visual avançado:
+Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro e revisão/publicação técnica MVP já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, edita textos existentes, salva canvas, edita metadados básicos do Gift, envia fotos reais, aplica essas fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review` e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`. Neste momento, a prioridade principal é amarrar a publicação a `Order`/`Payment` aprovado, sem integrar gateway externo real, cobrança fake, QR Code, demo pública ou editor visual avançado:
 
 1. visitante pode explorar `/criar` sem login até o template;
 2. ao criar o `Gift` draft, precisa entrar ou criar conta;
@@ -33,28 +33,43 @@ Autenticação real mínima e Editor MVP já existem. O usuário autenticado ace
 8. usuário edita metadados básicos do gift: `title`, `recipient_name` e `sender_name`;
 9. usuário envia imagens próprias para o Gift draft;
 10. usuário aplica uma imagem enviada em elementos `image` existentes no canvas;
-11. usuário volta depois e vê seus próprios rascunhos em `/app/gifts`.
+11. usuário abre `/app/gifts/{gift}/preview` para ver o presente sem controles de edição;
+12. gift publicado pode ser aberto por `/p/{slug}-{public_code}`;
+13. viewer público só resolve gifts `published`, `public_link`, não expirados e não desativados;
+14. mídia do viewer público é servida por rota controlada e precisa pertencer ao Gift publicado;
+15. usuário acessa `/app/gifts/{gift}/review` para ver checklist de publicação;
+16. revisão aprovada aponta para `/app/gifts/{gift}/checkout`;
+17. checkout cria/reusa `Order pending` vinculada a Gift, User e Plan;
+18. Gift em checkout fica `pending_payment` e não abre publicamente;
+19. aprovação manual/dev controlada marca `Payment approved`, `Order paid` e chama `PublishGift`;
+20. `PublishGift` publica apenas com pagamento aprovado, gera slug/`public_code`, `published_at` e `expires_at`;
+21. após publicar, o link público aparece na revisão, editor, pedido e dashboard;
+22. usuário volta depois e vê seus próprios gifts em `/app/gifts`.
 
-A IA deve seguir o roadmap e não continuar refinando landing, demo pública, checkout, publicação ou viewer sem solicitação explícita. A sequência esperada é:
+A IA deve seguir o roadmap e não continuar refinando landing, demo pública, checkout ou publicação real sem solicitação explícita. A sequência esperada é:
 
-1. upload/mídia básica;
-2. viewer público simples ou fluxo draft/published, a decidir;
-3. checkout/publicação;
-4. demo pública refinada e landing final baseada no produto real.
+1. checkout/publicação condicionada a pagamento;
+2. escolha e integração de gateway real;
+3. QR Code e entrega;
+4. melhorias visuais/editor avançado;
+5. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 
 - Não refinar visualmente a landing page sem pedido explícito.
 - Não criar demo pública agora.
 - Não criar editor drag-and-drop agora.
-- Não criar checkout real ou integração com provider de pagamento agora.
+- Não integrar provider externo real de pagamento agora.
+- Não criar cobrança fake, Pix fake ou gateway visível como real.
 - Não integrar Spotify, streaming ou hospedagem real de música.
 - Não hardcodear templates ou temas finais no frontend.
 - Não assumir que a landing atual é definitiva.
-- Não avançar para editor visual completo, viewer público, demo pública ou checkout real sem solicitação explícita.
+- Não avançar para editor visual completo, demo pública ou checkout real sem solicitação explícita.
 - Não criar demo pública a partir do fluxo de criação atual.
 - Não tratar o Editor MVP como editor visual completo.
 - Não recolocar placeholders de auth no lugar das páginas reais de login/cadastro.
+- Não permitir publicação de Gift inválido, sem página visível, com canvas inseguro ou com mídia de outro Gift.
+- Não permitir viewer público antes de pagamento aprovado e `status = published`.
 
 ## 2. Regras de negócio não negociáveis
 
@@ -136,6 +151,7 @@ Exemplos:
 - `PublishGift`
 - `ChangeGiftTheme`
 - `CreateCheckoutOrder`
+- `ProcessApprovedPayment`
 - `ProcessPaymentWebhook`
 - `ProcessUploadedImage`
 - `GenerateGiftQrCard`
@@ -158,18 +174,16 @@ Usar enums PHP para status.
 Status principais de gift:
 
 - `draft`
-- `checkout_pending`
-- `paid_unpublished`
+- `pending_payment`
 - `published`
 - `disabled`
 - `expired`
-- `deleted`
 
 Status de order:
 
 - `pending`
 - `paid`
-- `cancelled`
+- `canceled`
 - `expired`
 - `refunded`
 
@@ -179,7 +193,7 @@ Status de payment:
 - `approved`
 - `rejected`
 - `refunded`
-- `cancelled`
+- `canceled`
 
 Status de template/theme version:
 

@@ -49,6 +49,36 @@ if ! grep -q '^APP_KEY=base64:' .env; then
     php artisan key:generate --force
 fi
 
+php <<'PHP'
+<?php
+
+$database = getenv('DB_TEST_DATABASE') ?: 'scrapbook_testing';
+
+if ($database === '') {
+    exit(0);
+}
+
+$host = getenv('DB_HOST') ?: 'postgres';
+$port = getenv('DB_PORT') ?: '5432';
+$username = getenv('DB_USERNAME') ?: 'scrapbook';
+$password = getenv('DB_PASSWORD') ?: '';
+
+try {
+    $pdo = new PDO("pgsql:host={$host};port={$port};dbname=postgres", $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    ]);
+
+    $statement = $pdo->prepare('SELECT 1 FROM pg_database WHERE datname = ?');
+    $statement->execute([$database]);
+
+    if (! $statement->fetchColumn()) {
+        $pdo->exec(sprintf('CREATE DATABASE "%s"', str_replace('"', '""', $database)));
+    }
+} catch (Throwable $exception) {
+    fwrite(STDERR, "Could not ensure testing database [{$database}]: {$exception->getMessage()}\n");
+}
+PHP
+
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     php artisan migrate --force
 fi
