@@ -5,6 +5,7 @@ namespace App\Filament\Support;
 use App\Domain\Analytics\Models\GiftEvent;
 use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Enums\GiftVisibility;
 use App\Domain\Gifts\Models\Gift;
@@ -21,6 +22,7 @@ use App\Domain\Templates\Models\TemplatePage;
 use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
 use App\Domain\Themes\Models\ThemeVersion;
+use App\Domain\Themes\ThemeConfig;
 use App\Filament\Resources\Gifts\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Gifts\RelationManagers\MediaItemsRelationManager;
 use App\Filament\Resources\Gifts\RelationManagers\OrdersRelationManager;
@@ -189,7 +191,7 @@ class AdminResourceRegistry
                 self::enumSelect('status', ThemeVersionStatus::class)->required()->default(ThemeVersionStatus::Draft->value),
                 self::nameField(),
                 DateTimePicker::make('published_at'),
-                self::jsonField('config', required: true, default: ['schemaVersion' => 1]),
+                self::jsonField('config', required: true, default: ThemeConfig::defaults()),
             ],
             'Asset' => [
                 self::nameField(),
@@ -229,7 +231,7 @@ class AdminResourceRegistry
                 self::enumSelect('page_type', PageType::class)->required()->default(PageType::Generic->value),
                 self::nameField(),
                 self::integerField('sort_order')->required()->default(0)->minValue(0),
-                self::jsonField('canvas', required: true, default: ['schemaVersion' => 1, 'elements' => []]),
+                self::jsonField('canvas', required: true, default: self::defaultCanvas()),
                 self::jsonField('editable_schema'),
                 self::jsonField('constraints'),
                 self::jsonField('metadata'),
@@ -259,7 +261,7 @@ class AdminResourceRegistry
                 self::integerField('sort_order')->required()->default(0)->minValue(0),
                 Toggle::make('is_visible')->default(true),
                 Toggle::make('locked')->default(false),
-                self::jsonField('canvas', required: true, default: ['schemaVersion' => 1, 'elements' => []]),
+                self::jsonField('canvas', required: true, default: self::defaultCanvas()),
                 self::jsonField('settings'),
             ],
             'MediaItem' => [
@@ -674,6 +676,25 @@ class AdminResourceRegistry
         }
 
         return $field;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected static function defaultCanvas(): array
+    {
+        return [
+            'schemaVersion' => 1,
+            'version' => 1,
+            'artboard' => [
+                'width' => CanvasNormalizer::DEFAULT_WIDTH,
+                'height' => CanvasNormalizer::DEFAULT_HEIGHT,
+                'unit' => 'px',
+                'background' => ['type' => 'theme'],
+                'safeArea' => CanvasNormalizer::DEFAULT_SAFE_AREA,
+            ],
+            'elements' => [],
+        ];
     }
 
     protected static function readonlyNotice(string $message): Textarea
