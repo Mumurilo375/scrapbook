@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Assets\Enums\AssetType;
+use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Models\AssetCategory;
 use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Enums\PageType;
@@ -15,6 +18,7 @@ use App\Domain\Themes\Models\Theme;
 use App\Domain\Themes\Models\ThemeVersion;
 use App\Domain\Themes\ThemeConfig;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class InitialDomainSeeder extends Seeder
 {
@@ -70,6 +74,8 @@ class InitialDomainSeeder extends Seeder
         foreach ($this->themeDefinitions() as $themeDefinition) {
             $themeVersions[$themeDefinition['slug']] = $this->seedTheme($themeDefinition);
         }
+
+        $this->seedAssetCatalog($themeVersions);
 
         foreach ($this->templateDefinitions($plan->id) as $templateDefinition) {
             $this->seedTemplate($templateDefinition, $themeVersions);
@@ -294,6 +300,239 @@ class InitialDomainSeeder extends Seeder
                     ['page_type' => PageType::Generic, 'name' => 'Piadas e memórias', 'sort_order' => 40, 'layout' => 'list', 'text' => 'Piadas, códigos e memórias', 'items' => ['A frase que só a gente entende', 'Aquele rolê que virou lenda', 'O conselho que salvou o dia'], 'sticker' => 'só a gente'],
                     ['page_type' => PageType::Final, 'name' => 'Página final', 'sort_order' => 50, 'layout' => 'final', 'text' => 'Obrigada por ser parte da minha história.', 'sticker' => 'sempre'],
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, ThemeVersion>  $themeVersions
+     */
+    private function seedAssetCatalog(array $themeVersions): void
+    {
+        $categories = [];
+
+        foreach ($this->assetCategoryDefinitions() as $definition) {
+            $categories[$definition['slug']] = AssetCategory::query()->updateOrCreate(
+                ['slug' => $definition['slug']],
+                [
+                    'name' => $definition['name'],
+                    'description' => $definition['description'] ?? null,
+                    'icon' => $definition['icon'] ?? null,
+                    'is_active' => true,
+                    'sort_order' => $definition['sort_order'],
+                    'metadata' => ['schemaVersion' => 1, 'seed' => true],
+                ],
+            );
+        }
+
+        foreach ($this->decorativeAssetDefinitions() as $definition) {
+            $asset = Asset::query()->updateOrCreate(
+                ['slug' => $definition['slug']],
+                [
+                    'asset_category_id' => $categories[$definition['category_slug']]->id ?? null,
+                    'name' => $definition['name'],
+                    'type' => $definition['type'],
+                    'storage_disk' => 'public',
+                    'storage_path' => 'system-assets/'.$definition['slug'].'.svg',
+                    'public_url' => null,
+                    'mime_type' => 'image/svg+xml',
+                    'size_bytes' => null,
+                    'width' => $definition['default_size']['w'],
+                    'height' => $definition['default_size']['h'],
+                    'metadata' => [
+                        'schemaVersion' => 1,
+                        'seed' => true,
+                        'editor' => [
+                            'renderMode' => 'shape',
+                            'shape' => $definition['shape'],
+                            'colors' => $definition['colors'],
+                            'defaultSize' => $definition['default_size'],
+                            'keywords' => $definition['keywords'] ?? [],
+                        ],
+                    ],
+                    'is_active' => true,
+                    'sort_order' => $definition['sort_order'],
+                ],
+            );
+
+            foreach (($definition['theme_slugs'] ?? []) as $themeIndex => $themeSlug) {
+                $themeVersion = $themeVersions[$themeSlug] ?? null;
+
+                if (! $themeVersion instanceof ThemeVersion) {
+                    continue;
+                }
+
+                $themeVersion->assets()->syncWithoutDetaching([
+                    $asset->id => [
+                        'id' => (string) Str::ulid(),
+                        'role' => 'sticker',
+                        'sort_order' => ($themeIndex + 1) * 10 + $definition['sort_order'],
+                        'config' => json_encode([
+                            'schemaVersion' => 1,
+                            'featured' => true,
+                        ], JSON_THROW_ON_ERROR),
+                    ],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function assetCategoryDefinitions(): array
+    {
+        return [
+            ['name' => 'Corações', 'slug' => 'coracoes', 'icon' => 'heart', 'sort_order' => 10],
+            ['name' => 'Fitas', 'slug' => 'fitas', 'icon' => 'tape', 'sort_order' => 20],
+            ['name' => 'Flores', 'slug' => 'flores', 'icon' => 'flower', 'sort_order' => 30],
+            ['name' => 'Papéis', 'slug' => 'papeis', 'icon' => 'file-text', 'sort_order' => 40],
+            ['name' => 'Molduras', 'slug' => 'molduras', 'icon' => 'frame', 'sort_order' => 50],
+            ['name' => 'Rabiscos', 'slug' => 'rabiscos', 'icon' => 'pencil-line', 'sort_order' => 60],
+            ['name' => 'Aniversário', 'slug' => 'aniversario', 'icon' => 'cake', 'sort_order' => 70],
+            ['name' => 'Romance', 'slug' => 'romance', 'icon' => 'sparkles', 'sort_order' => 80],
+            ['name' => 'Amizade', 'slug' => 'amizade', 'icon' => 'smile', 'sort_order' => 90],
+            ['name' => 'Vintage', 'slug' => 'vintage', 'icon' => 'stamp', 'sort_order' => 100],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function decorativeAssetDefinitions(): array
+    {
+        return [
+            [
+                'name' => 'Coração Recortado',
+                'slug' => 'coracao-recortado',
+                'type' => AssetType::Sticker->value,
+                'category_slug' => 'coracoes',
+                'shape' => 'heart',
+                'colors' => ['primary' => '#D9365C', 'secondary' => '#F8B7C4', 'ink' => '#7A2634'],
+                'default_size' => ['w' => 180, 'h' => 160],
+                'sort_order' => 10,
+                'theme_slugs' => ['romance-delicado', 'kraft-vintage'],
+                'keywords' => ['amor', 'romance', 'namoro'],
+            ],
+            [
+                'name' => 'Fita Adesiva Kraft',
+                'slug' => 'fita-adesiva-kraft',
+                'type' => AssetType::Tape->value,
+                'category_slug' => 'fitas',
+                'shape' => 'tape',
+                'colors' => ['primary' => '#E8C27A', 'secondary' => '#B98247', 'ink' => '#7A4A25'],
+                'default_size' => ['w' => 240, 'h' => 86],
+                'sort_order' => 20,
+                'theme_slugs' => ['kraft-vintage'],
+                'keywords' => ['fita', 'kraft', 'colagem'],
+            ],
+            [
+                'name' => 'Flor Simples',
+                'slug' => 'flor-simples',
+                'type' => AssetType::Sticker->value,
+                'category_slug' => 'flores',
+                'shape' => 'flower',
+                'colors' => ['primary' => '#E8899E', 'secondary' => '#F7D879', 'ink' => '#7A5D2E'],
+                'default_size' => ['w' => 190, 'h' => 190],
+                'sort_order' => 30,
+                'theme_slugs' => ['romance-delicado'],
+                'keywords' => ['flor', 'romance', 'delicado'],
+            ],
+            [
+                'name' => 'Estrela Brilho',
+                'slug' => 'estrela-brilho',
+                'type' => AssetType::Icon->value,
+                'category_slug' => 'aniversario',
+                'shape' => 'star',
+                'colors' => ['primary' => '#F0B948', 'secondary' => '#FFE6A6', 'ink' => '#8A5F1D'],
+                'default_size' => ['w' => 150, 'h' => 150],
+                'sort_order' => 40,
+                'theme_slugs' => ['aniversario-fofo'],
+                'keywords' => ['estrela', 'brilho', 'aniversario'],
+            ],
+            [
+                'name' => 'Etiqueta Manuscrita',
+                'slug' => 'etiqueta-manuscrita',
+                'type' => AssetType::Sticker->value,
+                'category_slug' => 'papeis',
+                'shape' => 'label',
+                'colors' => ['primary' => '#FFF2C7', 'secondary' => '#C79E67', 'ink' => '#5B3926'],
+                'default_size' => ['w' => 280, 'h' => 130],
+                'sort_order' => 50,
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado'],
+                'keywords' => ['etiqueta', 'papel', 'texto'],
+            ],
+            [
+                'name' => 'Papel Rasgado',
+                'slug' => 'papel-rasgado',
+                'type' => AssetType::Paper->value,
+                'category_slug' => 'papeis',
+                'shape' => 'torn-paper',
+                'colors' => ['primary' => '#F7E2B6', 'secondary' => '#C99B63', 'ink' => '#7B5A43'],
+                'default_size' => ['w' => 320, 'h' => 170],
+                'sort_order' => 60,
+                'theme_slugs' => ['kraft-vintage'],
+                'keywords' => ['papel', 'rasgado', 'vintage'],
+            ],
+            [
+                'name' => 'Selo Vintage',
+                'slug' => 'selo-vintage',
+                'type' => AssetType::Sticker->value,
+                'category_slug' => 'vintage',
+                'shape' => 'stamp',
+                'colors' => ['primary' => '#A84D35', 'secondary' => '#F2D6A5', 'ink' => '#6E321F'],
+                'default_size' => ['w' => 170, 'h' => 170],
+                'sort_order' => 70,
+                'theme_slugs' => ['kraft-vintage'],
+                'keywords' => ['selo', 'vintage', 'jornal'],
+            ],
+            [
+                'name' => 'Confete de Aniversário',
+                'slug' => 'confete-aniversario',
+                'type' => AssetType::Sticker->value,
+                'category_slug' => 'aniversario',
+                'shape' => 'confetti',
+                'colors' => ['primary' => '#E8696A', 'secondary' => '#F2C84B', 'ink' => '#4B8D89'],
+                'default_size' => ['w' => 220, 'h' => 170],
+                'sort_order' => 80,
+                'theme_slugs' => ['aniversario-fofo'],
+                'keywords' => ['confete', 'festa', 'parabens'],
+            ],
+            [
+                'name' => 'Rabisco Alegre',
+                'slug' => 'rabisco-alegre',
+                'type' => AssetType::Doodle->value,
+                'category_slug' => 'rabiscos',
+                'shape' => 'scribble',
+                'colors' => ['primary' => '#6C7C59', 'secondary' => '#D76D6A', 'ink' => '#6C7C59'],
+                'default_size' => ['w' => 250, 'h' => 120],
+                'sort_order' => 90,
+                'theme_slugs' => [],
+                'keywords' => ['rabisco', 'linha', 'desenho'],
+            ],
+            [
+                'name' => 'Balão Fofo',
+                'slug' => 'balao-fofo',
+                'type' => AssetType::Sticker->value,
+                'category_slug' => 'aniversario',
+                'shape' => 'balloon',
+                'colors' => ['primary' => '#E8899E', 'secondary' => '#F6B6A7', 'ink' => '#7A2634'],
+                'default_size' => ['w' => 170, 'h' => 240],
+                'sort_order' => 100,
+                'theme_slugs' => ['aniversario-fofo', 'romance-delicado'],
+                'keywords' => ['balao', 'fofo', 'festa'],
+            ],
+            [
+                'name' => 'Moldura Instantânea',
+                'slug' => 'moldura-instantanea',
+                'type' => AssetType::Frame->value,
+                'category_slug' => 'molduras',
+                'shape' => 'frame',
+                'colors' => ['primary' => '#FFF8EF', 'secondary' => '#D8B991', 'ink' => '#6F5A4A'],
+                'default_size' => ['w' => 300, 'h' => 360],
+                'sort_order' => 110,
+                'theme_slugs' => [],
+                'keywords' => ['moldura', 'foto', 'polaroid'],
             ],
         ];
     }
