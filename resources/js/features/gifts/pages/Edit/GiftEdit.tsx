@@ -1,18 +1,23 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { CanvasElementInspector } from '../../components/editor/CanvasElementInspector';
 import { GiftImageElementEditor } from '../../components/editor/GiftImageElementEditor';
 import { GiftEditorLayout } from '../../components/editor/GiftEditorLayout';
 import { GiftEditorSaveBar } from '../../components/editor/GiftEditorSaveBar';
 import { GiftEditorTopBar } from '../../components/editor/GiftEditorTopBar';
-import { GiftMediaLibrary } from '../../components/editor/GiftMediaLibrary';
+import { GiftMediaLibrary, type GiftMediaLibraryHandle } from '../../components/editor/GiftMediaLibrary';
 import { GiftMetadataPanel, type GiftMetadataDraft } from '../../components/editor/GiftMetadataPanel';
 import { GiftPagePreview } from '../../components/editor/GiftPagePreview';
 import { GiftPageSidebar } from '../../components/editor/GiftPageSidebar';
 import { GiftTextElementEditor } from '../../components/editor/GiftTextElementEditor';
-import type { EditorMediaItem, EditorPage, EditorSaveState, EditableTextElement } from '../../components/editor/editorTypes';
+import type {
+    EditorMediaItem,
+    EditorPage,
+    EditorSaveState,
+    EditableTextElement,
+} from '../../components/editor/editorTypes';
 import {
     applyMediaToImageElement,
     canvasesAreEqual,
@@ -52,6 +57,8 @@ export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
     const [mediaItems, setMediaItems] = useState<EditorMediaItem[]>(media);
     const [selectedMediaId, setSelectedMediaId] = useState<string | null>(media[0]?.id ?? null);
     const [selectedImageElementId, setSelectedImageElementId] = useState<string | null>(null);
+    const mediaLibraryRef = useRef<GiftMediaLibraryHandle | null>(null);
+    const uploadTargetImageElementIdRef = useRef<string | null>(null);
 
     const initialMetadata = metadataFromGift(gift);
     const [metadata, setMetadata] = useState<GiftMetadataDraft>(initialMetadata);
@@ -62,17 +69,17 @@ export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
 
     const selectedPageIndex = editorPages.findIndex((page) => page.id === selectedPageId);
     const selectedPage = selectedPageIndex >= 0 ? editorPages[selectedPageIndex] : null;
-    const selectedCanvas = selectedPage ? pageCanvases[selectedPage.id] ?? selectedPage.canvas : null;
-    const savedCanvas = selectedPage ? savedCanvases[selectedPage.id] ?? selectedPage.canvas : null;
+    const selectedCanvas = selectedPage ? (pageCanvases[selectedPage.id] ?? selectedPage.canvas) : null;
+    const savedCanvas = selectedPage ? (savedCanvases[selectedPage.id] ?? selectedPage.canvas) : null;
     const pageIsDirty = Boolean(selectedCanvas && savedCanvas && !canvasesAreEqual(selectedCanvas, savedCanvas));
     const effectivePageSaveState = pageSaveState === 'idle' && pageIsDirty ? 'dirty' : pageSaveState;
-    const textElements = selectedCanvas && selectedPage
-        ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length)
-        : [];
+    const textElements =
+        selectedCanvas && selectedPage ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length) : [];
     const imageElements = selectedCanvas ? imageElementsFromCanvas(selectedCanvas) : [];
-    const activeImageElementId = selectedImageElementId && imageElements.some((element) => element.id === selectedImageElementId)
-        ? selectedImageElementId
-        : imageElements[0]?.id ?? null;
+    const activeImageElementId =
+        selectedImageElementId && imageElements.some((element) => element.id === selectedImageElementId)
+            ? selectedImageElementId
+            : (imageElements[0]?.id ?? null);
     const metadataDirty = !metadataEquals(metadata, savedMetadata);
     const canSavePage = Boolean(selectedPage && selectedCanvas && !selectedPage.locked && pageIsDirty);
     const editorDisabled = Boolean(selectedPage?.locked || gift.status !== 'draft');
@@ -118,7 +125,11 @@ export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
 
         setPageCanvases((current) => ({
             ...current,
-            [selectedPage.id]: applyMediaToImageElement(current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas, activeImageElementId, mediaItem),
+            [selectedPage.id]: applyMediaToImageElement(
+                current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas,
+                activeImageElementId,
+                mediaItem,
+            ),
         }));
         setPageError(null);
         setPageSaveState('dirty');
@@ -128,13 +139,51 @@ export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
         setMediaItems((current) => [mediaItem, ...current.filter((item) => item.id !== mediaItem.id)]);
         setSelectedMediaId(mediaItem.id);
 
-        if (!selectedPage || !activeImageElementId) {
+        const targetImageElementId = uploadTargetImageElementIdRef.current ?? activeImageElementId;
+        uploadTargetImageElementIdRef.current = null;
+
+        if (!selectedPage || !targetImageElementId) {
             return;
         }
 
         setPageCanvases((current) => ({
             ...current,
-            [selectedPage.id]: applyMediaToImageElement(current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas, activeImageElementId, mediaItem),
+            [selectedPage.id]: applyMediaToImageElement(
+                current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas,
+                targetImageElementId,
+                mediaItem,
+            ),
+        }));
+        setPageError(null);
+        setPageSaveState('dirty');
+    }
+
+    function selectImageElementFromPreview(elementId: string) {
+        setSelectedImageElementId(elementId);
+        uploadTargetImageElementIdRef.current = elementId;
+        mediaLibraryRef.current?.openFilePicker();
+    }
+
+    function applyMediaToImageElementFromDrop(elementId: string, mediaItemId: string) {
+        if (!selectedPage) {
+            return;
+        }
+
+        const mediaItem = mediaItems.find((item) => item.id === mediaItemId);
+
+        if (!mediaItem) {
+            return;
+        }
+
+        setSelectedImageElementId(elementId);
+        setSelectedMediaId(mediaItem.id);
+        setPageCanvases((current) => ({
+            ...current,
+            [selectedPage.id]: applyMediaToImageElement(
+                current[selectedPage.id] ?? selectedCanvas ?? selectedPage.canvas,
+                elementId,
+                mediaItem,
+            ),
         }));
         setPageError(null);
         setPageSaveState('dirty');
@@ -202,21 +251,32 @@ export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
             <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
                 <GiftEditorTopBar
                     dashboardUrl={gift.dashboard_url}
+                    orderUrl={gift.order_url}
                     pageSaveState={effectivePageSaveState}
+                    previewUrl={gift.preview_url}
+                    publicUrl={gift.public_url}
+                    reviewUrl={gift.review_url}
                     status={gift.status}
                     title={metadata.title}
                 />
 
                 <GiftEditorLayout
-                    left={<GiftPageSidebar onSelectPage={selectPage} pages={editorPages} selectedPageId={selectedPageId} />}
+                    left={
+                        <GiftPageSidebar
+                            onSelectPage={selectPage}
+                            pages={editorPages}
+                            selectedPageId={selectedPageId}
+                        />
+                    }
                     center={
                         <GiftPagePreview
                             canGoNext={selectedPageIndex < editorPages.length - 1}
                             canGoPrevious={selectedPageIndex > 0}
                             canvas={selectedCanvas}
+                            onDropMediaOnImage={applyMediaToImageElementFromDrop}
                             onNext={() => goToPage(1)}
                             onPrevious={() => goToPage(-1)}
-                            onSelectImageElement={setSelectedImageElementId}
+                            onSelectImageElement={selectImageElementFromPreview}
                             page={selectedPage}
                             selectedImageElementId={activeImageElementId}
                         />
@@ -243,6 +303,7 @@ export default function GiftEdit({ gift, media, pages }: GiftEditProps) {
                                 mediaItems={mediaItems}
                                 onSelectMedia={setSelectedMediaId}
                                 onUploaded={addUploadedMedia}
+                                ref={mediaLibraryRef}
                                 selectedMediaId={selectedMediaId}
                                 uploadUrl={gift.media_store_url}
                             />
@@ -312,9 +373,11 @@ function metadataFromGift(gift: EditableGift): GiftMetadataDraft {
 }
 
 function metadataEquals(left: GiftMetadataDraft, right: GiftMetadataDraft): boolean {
-    return left.title === right.title
-        && left.recipient_name === right.recipient_name
-        && left.sender_name === right.sender_name;
+    return (
+        left.title === right.title &&
+        left.recipient_name === right.recipient_name &&
+        left.sender_name === right.sender_name
+    );
 }
 
 function firstError(errors: Record<string, string>): string | null {

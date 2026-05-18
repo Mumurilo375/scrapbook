@@ -12,10 +12,11 @@ type ElementRendererProps = {
     };
     element: CanvasElement;
     onElementClick?: (element: CanvasElement) => void;
+    onMediaDrop?: (element: CanvasElement, mediaItemId: string) => void;
     selectedElementId?: string | null;
 };
 
-export function ElementRenderer({ artboard, element, onElementClick, selectedElementId = null }: ElementRendererProps) {
+export function ElementRenderer({ artboard, element, onElementClick, onMediaDrop, selectedElementId = null }: ElementRendererProps) {
     const style = {
         left: `${toPercent(element.x, artboard.width)}%`,
         top: `${toPercent(element.y, artboard.height)}%`,
@@ -34,6 +35,7 @@ export function ElementRenderer({ artboard, element, onElementClick, selectedEle
             <ImageElement
                 element={element}
                 onClick={onElementClick ? () => onElementClick(element) : undefined}
+                onDropMedia={onMediaDrop ? (mediaItemId) => onMediaDrop(element, mediaItemId) : undefined}
                 selected={selectedElementId === element.id}
                 style={style}
             />

@@ -4,10 +4,11 @@ import { ElementRenderer } from './ElementRenderer';
 type PageRendererProps = {
     canvas: Canvas;
     onElementClick?: (element: Canvas['elements'][number]) => void;
+    onMediaDrop?: (element: Canvas['elements'][number], mediaItemId: string) => void;
     selectedElementId?: string | null;
 };
 
-export function PageRenderer({ canvas, onElementClick, selectedElementId = null }: PageRendererProps) {
+export function PageRenderer({ canvas, onElementClick, onMediaDrop, selectedElementId = null }: PageRendererProps) {
     const width = canvas.artboard.width;
     const height = canvas.artboard.height;
 
@@ -27,6 +28,7 @@ export function PageRenderer({ canvas, onElementClick, selectedElementId = null 
                         element={element}
                         key={element.id}
                         onElementClick={onElementClick}
+                        onMediaDrop={onMediaDrop}
                         selectedElementId={selectedElementId}
                     />
                 ))}

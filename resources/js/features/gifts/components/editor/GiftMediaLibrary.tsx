@@ -1,7 +1,14 @@
 import { ImageIcon, LoaderCircle, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import type { DragEvent } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
 import type { EditorMediaItem } from './editorTypes';
+
+const MEDIA_ITEM_DRAG_MIME = 'application/x-scrapbook-media-item-id';
+
+export type GiftMediaLibraryHandle = {
+    openFilePicker: () => void;
+};
 
 type GiftMediaLibraryProps = {
     disabled: boolean;
@@ -18,17 +25,25 @@ type UploadResponse = {
     errors?: Record<string, string[] | string>;
 };
 
-export function GiftMediaLibrary({
+export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibraryProps>(function GiftMediaLibrary({
     disabled,
     mediaItems,
     onSelectMedia,
     onUploaded,
     selectedMediaId,
     uploadUrl,
-}: GiftMediaLibraryProps) {
+}, ref) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        openFilePicker: () => {
+            if (!disabled && !uploading) {
+                fileInputRef.current?.click();
+            }
+        },
+    }), [disabled, uploading]);
 
     async function uploadSelectedFile(file: File | null) {
         if (!file || disabled) {
@@ -70,6 +85,19 @@ export function GiftMediaLibrary({
         }
     }
 
+    function startMediaDrag(event: DragEvent<HTMLButtonElement>, mediaItem: EditorMediaItem) {
+        if (disabled) {
+            event.preventDefault();
+
+            return;
+        }
+
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData(MEDIA_ITEM_DRAG_MIME, mediaItem.id);
+        event.dataTransfer.setData('text/plain', mediaItem.id);
+        onSelectMedia(mediaItem.id);
+    }
+
     return (
         <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-4 text-[#1F150A] shadow-sm">
             <div className="flex items-start justify-between gap-3">
@@ -99,13 +127,15 @@ export function GiftMediaLibrary({
                 <div className="mt-4 grid grid-cols-3 gap-2">
                     {mediaItems.map((mediaItem) => (
                         <button
-                            className={`aspect-square overflow-hidden rounded-[6px] border bg-[#EAD2B8] text-left shadow-sm transition ${
+                            className={`aspect-square cursor-grab overflow-hidden rounded-[6px] border bg-[#EAD2B8] text-left shadow-sm transition active:cursor-grabbing disabled:cursor-not-allowed ${
                                 selectedMediaId === mediaItem.id
                                     ? 'border-[#7A2634] ring-2 ring-[#7A26344D]'
                                     : 'border-[#D8B991] hover:border-[#A86F55]'
                             }`}
                             disabled={disabled}
+                            draggable={!disabled}
                             key={mediaItem.id}
+                            onDragStart={(event) => startMediaDrag(event, mediaItem)}
                             onClick={() => onSelectMedia(mediaItem.id)}
                             type="button"
                         >
@@ -113,6 +143,7 @@ export function GiftMediaLibrary({
                                 <img
                                     alt={mediaItem.originalFilename ?? 'Imagem enviada'}
                                     className="h-full w-full object-cover"
+                                    draggable={false}
                                     src={mediaItem.thumbnailUrl ?? mediaItem.url}
                                 />
                             ) : (
@@ -130,7 +161,7 @@ export function GiftMediaLibrary({
             )}
         </section>
     );
-}
+});
 
 function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';

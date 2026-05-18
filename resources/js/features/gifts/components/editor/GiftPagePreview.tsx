@@ -10,6 +10,7 @@ type GiftPagePreviewProps = {
     canvas: Canvas | null;
     onNext: () => void;
     onPrevious: () => void;
+    onDropMediaOnImage?: (elementId: string, mediaItemId: string) => void;
     onSelectImageElement?: (elementId: string) => void;
     page: EditorPage | null;
     selectedImageElementId?: string | null;
@@ -21,6 +22,7 @@ export function GiftPagePreview({
     canvas,
     onNext,
     onPrevious,
+    onDropMediaOnImage,
     onSelectImageElement,
     page,
     selectedImageElementId = null,
@@ -28,6 +30,12 @@ export function GiftPagePreview({
     function selectElement(element: CanvasElement) {
         if (element.type === 'image') {
             onSelectImageElement?.(element.id);
+        }
+    }
+
+    function dropMediaOnElement(element: CanvasElement, mediaItemId: string) {
+        if (element.type === 'image') {
+            onDropMediaOnImage?.(element.id, mediaItemId);
         }
     }
 
@@ -62,7 +70,12 @@ export function GiftPagePreview({
 
             <div className="mx-auto w-full max-w-[430px]">
                 {canvas ? (
-                    <PageRenderer canvas={canvas} onElementClick={selectElement} selectedElementId={selectedImageElementId} />
+                    <PageRenderer
+                        canvas={canvas}
+                        onElementClick={selectElement}
+                        onMediaDrop={dropMediaOnElement}
+                        selectedElementId={selectedImageElementId}
+                    />
                 ) : (
                     <div className="flex aspect-[390/844] items-center justify-center rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFF7EE] text-sm font-semibold text-[#6F5A4A]">
                         Nenhuma página disponível.
