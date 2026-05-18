@@ -21,6 +21,7 @@ class AssetFactory extends Factory
         return [
             'name' => Str::title($name),
             'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1000, 9999),
+            'asset_category_id' => null,
             'type' => AssetType::Sticker->value,
             'storage_disk' => 'public',
             'storage_path' => 'assets/'.Str::slug($name).'.png',
@@ -31,6 +32,7 @@ class AssetFactory extends Factory
             'height' => fake()->numberBetween(64, 1024),
             'metadata' => null,
             'is_active' => true,
+            'sort_order' => 0,
         ];
     }
 }

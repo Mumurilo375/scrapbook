@@ -8,6 +8,7 @@ use Database\Factories\AssetFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Asset extends Model
@@ -16,6 +17,7 @@ class Asset extends Model
     use HasFactory, HasUlids;
 
     protected $fillable = [
+        'asset_category_id',
         'name',
         'slug',
         'type',
@@ -28,7 +30,13 @@ class Asset extends Model
         'height',
         'metadata',
         'is_active',
+        'sort_order',
     ];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(AssetCategory::class, 'asset_category_id');
+    }
 
     public function themeVersions(): BelongsToMany
     {
@@ -51,6 +59,7 @@ class Asset extends Model
             'height' => 'integer',
             'metadata' => 'array',
             'is_active' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 }
