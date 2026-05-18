@@ -62,6 +62,7 @@ export type GiftSummary = {
     status: string;
     updated_at: string | null;
     last_edited_at: string | null;
+    published_at?: string | null;
     expires_at?: string | null;
     occasion: {
         name: string;
@@ -72,6 +73,11 @@ export type GiftSummary = {
         slug: string;
     } | null;
     edit_url: string;
+    preview_url: string;
+    review_url: string;
+    checkout_url: string;
+    order_url: string | null;
+    public_url: string | null;
 };
 
 export type EditableGift = {
@@ -96,6 +102,11 @@ export type EditableGift = {
         name: string;
     } | null;
     update_url: string;
+    preview_url: string;
+    review_url: string;
+    checkout_url: string;
+    order_url: string | null;
+    public_url: string | null;
     media_index_url: string;
     media_store_url: string;
     dashboard_url: string;

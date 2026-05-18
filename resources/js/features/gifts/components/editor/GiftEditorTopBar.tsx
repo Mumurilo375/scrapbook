@@ -1,17 +1,30 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, Gift, Lock, LogOut } from 'lucide-react';
+import { ArrowLeft, ClipboardCheck, CreditCard, ExternalLink, Eye, Gift, LogOut } from 'lucide-react';
 
 import { GiftStatusBadge } from '../GiftStatusBadge';
 import type { EditorSaveState } from './editorTypes';
 
 type GiftEditorTopBarProps = {
     dashboardUrl: string;
+    orderUrl: string | null;
     pageSaveState: EditorSaveState;
+    previewUrl: string;
+    publicUrl: string | null;
+    reviewUrl: string;
     status: string;
     title: string;
 };
 
-export function GiftEditorTopBar({ dashboardUrl, pageSaveState, status, title }: GiftEditorTopBarProps) {
+export function GiftEditorTopBar({
+    dashboardUrl,
+    orderUrl,
+    pageSaveState,
+    previewUrl,
+    publicUrl,
+    reviewUrl,
+    status,
+    title,
+}: GiftEditorTopBarProps) {
     return (
         <header className="sticky top-0 z-30 border-b border-[#D8B991] bg-[#F4E8D9]/95 backdrop-blur">
             <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
@@ -26,24 +39,53 @@ export function GiftEditorTopBar({ dashboardUrl, pageSaveState, status, title }:
                         <p className="truncate text-sm font-semibold text-[#1F150A]">{title}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                             <GiftStatusBadge status={status} />
-                            <span className="text-xs font-semibold text-[#6F5A4A]">{saveStateLabel(pageSaveState)}</span>
+                            <span className="text-xs font-semibold text-[#6F5A4A]">
+                                {saveStateLabel(pageSaveState)}
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
-                    <Link className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#42291D]" href={dashboardUrl}>
+                    <Link
+                        className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#42291D]"
+                        href={dashboardUrl}
+                    >
                         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                         Meus presentes
                     </Link>
-                    <button
-                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#EAD2B8] px-3 text-sm font-semibold text-[#42291D] opacity-70"
-                        disabled
-                        type="button"
+                    <Link
+                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                        href={previewUrl}
                     >
-                        <Lock aria-hidden="true" className="h-4 w-4" />
-                        Publicar
-                    </button>
+                        <Eye aria-hidden="true" className="h-4 w-4" />
+                        Pré-visualizar
+                    </Link>
+                    {publicUrl ? (
+                        <Link
+                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                            href={publicUrl}
+                        >
+                            <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                            Ver publicado
+                        </Link>
+                    ) : status === 'pending_payment' && orderUrl ? (
+                        <Link
+                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                            href={orderUrl}
+                        >
+                            <CreditCard aria-hidden="true" className="h-4 w-4" />
+                            Ver pedido
+                        </Link>
+                    ) : (
+                        <Link
+                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                            href={reviewUrl}
+                        >
+                            <ClipboardCheck aria-hidden="true" className="h-4 w-4" />
+                            Revisar
+                        </Link>
+                    )}
                     <button
                         className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
                         onClick={() => router.post('/logout')}

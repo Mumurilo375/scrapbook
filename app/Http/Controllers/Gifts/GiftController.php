@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Gifts;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
 use App\Domain\Gifts\Models\Gift;
+use App\Domain\Gifts\Services\PublicGiftResolver;
 use App\Domain\Media\Enums\MediaStatus;
 use App\Domain\Media\Enums\MediaType;
+use App\Domain\Payments\Enums\OrderStatus;
+use App\Domain\Payments\Models\Order;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
@@ -53,6 +56,9 @@ class GiftController extends Controller
             'templateVersion.template',
             'themeVersion.theme',
             'pages',
+            'orders' => fn ($query) => $query
+                ->whereIn('status', [OrderStatus::Pending->value, OrderStatus::Paid->value])
+                ->latest('updated_at'),
             'mediaItems' => fn ($query) => $query
                 ->where('type', MediaType::Image->value)
                 ->where('status', MediaStatus::Processed->value)
@@ -156,6 +162,13 @@ class GiftController extends Controller
 
     private function giftPayload(Gift $gift): array
     {
+        $publicUrl = null;
+        $slugToken = app(PublicGiftResolver::class)->slugToken($gift);
+
+        if ($slugToken !== null && $gift->isPubliclyAccessible()) {
+            $publicUrl = route('public.gifts.show', $slugToken);
+        }
+
         return [
             'id' => $gift->id,
             'title' => $gift->title,
@@ -178,6 +191,11 @@ class GiftController extends Controller
                 'name' => $gift->themeVersion->theme->name,
             ] : null,
             'update_url' => route('app.gifts.update', $gift),
+            'preview_url' => route('app.gifts.preview', $gift),
+            'review_url' => route('app.gifts.review', $gift),
+            'checkout_url' => route('app.gifts.checkout', $gift),
+            'order_url' => $this->latestOrderUrl($gift),
+            'public_url' => $publicUrl,
             'media_index_url' => route('app.gifts.media.index', $gift),
             'media_store_url' => route('app.gifts.media.store', $gift),
             'dashboard_url' => route('app.gifts.index'),
@@ -187,5 +205,12 @@ class GiftController extends Controller
     private function enumValue(mixed $value): string
     {
         return $value instanceof BackedEnum ? $value->value : (string) $value;
+    }
+
+    private function latestOrderUrl(Gift $gift): ?string
+    {
+        $order = $gift->orders->first();
+
+        return $order instanceof Order ? route('app.orders.show', $order) : null;
     }
 }

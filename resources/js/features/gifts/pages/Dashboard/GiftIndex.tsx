@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Gift, LogOut, Plus } from 'lucide-react';
+import { ClipboardCheck, CreditCard, ExternalLink, Gift, LogOut, PenLine, Plus } from 'lucide-react';
 
 import { formatDate } from '../../components/formatters';
 import { GiftStatusBadge } from '../../components/GiftStatusBadge';
@@ -58,7 +58,7 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                             <div className="divide-y divide-[#E5D0B8]">
                                 {gifts.map((gift) => (
                                     <article
-                                        className="grid gap-4 p-5 lg:grid-cols-[1.2fr_0.8fr_0.8fr_auto]"
+                                        className="grid gap-4 p-5 lg:grid-cols-[1.2fr_0.7fr_0.7fr_auto]"
                                         key={gift.id}
                                     >
                                         <div>
@@ -74,16 +74,48 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                                             <p className="mt-1">{formatDate(gift.last_edited_at ?? gift.updated_at)}</p>
                                         </div>
                                         <div className="text-sm text-[#42291D]">
-                                            <p className="font-semibold text-[#1F150A]">Expiração</p>
-                                            <p className="mt-1">{formatDate(gift.expires_at ?? null)}</p>
+                                            <p className="font-semibold text-[#1F150A]">
+                                                {gift.status === 'published' ? 'Publicado' : 'Expiração'}
+                                            </p>
+                                            <p className="mt-1">
+                                                {gift.status === 'published'
+                                                    ? formatDate(gift.published_at ?? null)
+                                                    : formatDate(gift.expires_at ?? null)}
+                                            </p>
                                         </div>
-                                        <div className="flex items-center lg:justify-end">
+                                        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                                             <Link
-                                                className="inline-flex min-h-10 items-center rounded-[6px] border border-[#CBA980] bg-white px-4 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
                                                 href={gift.edit_url}
                                             >
-                                                Continuar editando
+                                                <PenLine aria-hidden="true" className="h-4 w-4" />
+                                                Editar
                                             </Link>
+                                            {gift.public_url ? (
+                                                <Link
+                                                    className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                                                    href={gift.public_url}
+                                                >
+                                                    <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                                                    Ver link
+                                                </Link>
+                                            ) : gift.status === 'pending_payment' && gift.order_url ? (
+                                                <Link
+                                                    className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                                    href={gift.order_url}
+                                                >
+                                                    <CreditCard aria-hidden="true" className="h-4 w-4" />
+                                                    Ver pedido
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                                    href={gift.review_url}
+                                                >
+                                                    <ClipboardCheck aria-hidden="true" className="h-4 w-4" />
+                                                    Revisar
+                                                </Link>
+                                            )}
                                         </div>
                                     </article>
                                 ))}

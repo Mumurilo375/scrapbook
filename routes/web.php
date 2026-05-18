@@ -6,7 +6,15 @@ use App\Http\Controllers\Gifts\CreateGiftFlowController;
 use App\Http\Controllers\Gifts\GiftController;
 use App\Http\Controllers\Gifts\GiftMediaController;
 use App\Http\Controllers\Gifts\GiftPageController;
+use App\Http\Controllers\Gifts\GiftPreviewController;
+use App\Http\Controllers\Gifts\GiftPublicationController;
+use App\Http\Controllers\Gifts\GiftReviewController;
+use App\Http\Controllers\Gifts\PublicGiftController;
+use App\Http\Controllers\Gifts\PublicGiftMediaController;
 use App\Http\Controllers\Gifts\UserGiftDashboardController;
+use App\Http\Controllers\Payments\DevPaymentApprovalController;
+use App\Http\Controllers\Payments\GiftCheckoutController;
+use App\Http\Controllers\Payments\OrderStatusController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -34,6 +42,10 @@ Route::get('/criar', [CreateGiftFlowController::class, 'index'])->name('create.i
 Route::get('/criar/{occasion:slug}', [CreateGiftFlowController::class, 'templates'])->name('create.occasion');
 Route::get('/criar/{occasion:slug}/{template:slug}', [CreateGiftFlowController::class, 'show'])->name('create.template.show');
 
+Route::get('/p/{slugToken}/media/{mediaItem}/thumbnail', [PublicGiftMediaController::class, 'thumbnail'])->name('public.gifts.media.thumbnail');
+Route::get('/p/{slugToken}/media/{mediaItem}', [PublicGiftMediaController::class, 'show'])->name('public.gifts.media.show');
+Route::get('/p/{slugToken}', PublicGiftController::class)->name('public.gifts.show');
+
 Route::post('/gifts', [GiftController::class, 'store'])
     ->middleware('auth')
     ->name('gifts.store');
@@ -43,6 +55,11 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/app/gifts', UserGiftDashboardController::class)->name('app.gifts.index');
     Route::get('/app/gifts/{gift}/edit', [GiftController::class, 'edit'])->name('app.gifts.edit');
+    Route::get('/app/gifts/{gift}/preview', GiftPreviewController::class)->name('app.gifts.preview');
+    Route::get('/app/gifts/{gift}/review', GiftReviewController::class)->name('app.gifts.review');
+    Route::get('/app/gifts/{gift}/checkout', [GiftCheckoutController::class, 'show'])->name('app.gifts.checkout');
+    Route::post('/app/gifts/{gift}/checkout', [GiftCheckoutController::class, 'store'])->name('app.gifts.checkout.store');
+    Route::post('/app/gifts/{gift}/publish', GiftPublicationController::class)->name('app.gifts.publish');
     Route::patch('/app/gifts/{gift}', [GiftController::class, 'update'])->name('app.gifts.update');
     Route::get('/app/gifts/{gift}/media', [GiftMediaController::class, 'index'])->name('app.gifts.media.index');
     Route::post('/app/gifts/{gift}/media', [GiftMediaController::class, 'store'])
@@ -52,4 +69,12 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/app/gifts/{gift}/media/{mediaItem}', [GiftMediaController::class, 'show'])->name('app.gifts.media.show');
     Route::delete('/app/gifts/{gift}/media/{mediaItem}', [GiftMediaController::class, 'destroy'])->name('app.gifts.media.destroy');
     Route::patch('/app/gifts/{gift}/pages/{giftPage}', [GiftPageController::class, 'update'])->name('app.gifts.pages.update');
+    Route::get('/app/orders/{order}', OrderStatusController::class)->name('app.orders.show');
+    Route::post('/app/orders/{order}/dev-approve', DevPaymentApprovalController::class)->name('app.orders.dev-approve');
+});
+
+Route::fallback(function () {
+    return Inertia::render('Errors/NotFound')
+        ->toResponse(request())
+        ->setStatusCode(404);
 });
