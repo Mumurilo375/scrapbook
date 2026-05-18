@@ -177,7 +177,8 @@ class CustomerGiftFlowTest extends TestCase
                 ->where('gift.theme.config.page.texture', 'paper-grain')
                 ->has('pages', 1)
                 ->where('pages.0.id', $page->id)
-                ->where('pages.0.text_max_length', 240));
+                ->where('pages.0.text_max_length', 240)
+                ->whereNotNull('pages.0.updated_at'));
     }
 
     public function test_guest_cannot_open_gift_editor(): void
@@ -232,10 +233,49 @@ class CustomerGiftFlowTest extends TestCase
                 'sender_name' => 'João',
             ])
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('data.gift.id', $gift->id)
             ->assertJsonPath('data.gift.title', 'Presente autosalvo')
             ->assertJsonPath('data.gift.recipient_name', 'Ana')
             ->assertJsonPath('data.gift.sender_name', 'João');
+    }
+
+    public function test_user_cannot_autosave_another_users_gift_metadata(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $gift = Gift::factory()->create([
+            'title' => 'Título original',
+            'user_id' => $owner->id,
+        ]);
+
+        $this
+            ->actingAs($otherUser)
+            ->patchJson(route('app.gifts.update', $gift), [
+                'title' => 'Título indevido',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame('Título original', $gift->refresh()->title);
+    }
+
+    public function test_published_gift_metadata_autosave_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->published()->create([
+            'title' => 'Publicado',
+            'user_id' => $user->id,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.update', $gift), [
+                'title' => 'Não deveria salvar',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('gift');
+
+        $this->assertSame('Publicado', $gift->refresh()->title);
     }
 
     public function test_user_cannot_update_forbidden_gift_fields_from_editor(): void
@@ -353,9 +393,269 @@ class CustomerGiftFlowTest extends TestCase
                 ],
             ])
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('data.page.id', $page->id)
             ->assertJsonPath('data.page.canvas.elements.0.text', 'Texto autosalvo')
             ->assertJsonPath('data.gift.id', $gift->id);
+    }
+
+    public function test_page_canvas_accepts_visual_transform_properties(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'main_text',
+                            'type' => 'text',
+                            'text' => 'Texto com transform',
+                            'x' => 120,
+                            'y' => 160,
+                            'w' => 420,
+                            'h' => 140,
+                            'rotation' => -12,
+                            'z' => 30,
+                            'style' => [
+                                'fontSize' => 64,
+                                'color' => '#7A2634',
+                                'align' => 'center',
+                            ],
+                        ],
+                        [
+                            'id' => 'sticker_heart',
+                            'type' => 'sticker',
+                            'label' => 'amor',
+                            'x' => 740,
+                            'y' => 220,
+                            'w' => 128,
+                            'h' => 128,
+                            'rotation' => 18,
+                            'zIndex' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.elements.0.w', 420)
+            ->assertJsonPath('data.page.canvas.elements.0.h', 140)
+            ->assertJsonPath('data.page.canvas.elements.0.rotation', -12)
+            ->assertJsonPath('data.page.canvas.elements.0.style.fontSize', 64)
+            ->assertJsonMissingPath('data.page.canvas.elements.1.zIndex');
+
+        $elements = $page->refresh()->canvas['elements'];
+
+        $this->assertSame([20, 10], array_column($elements, 'z'));
+        $this->assertSame('center', $elements[0]['style']['align']);
+    }
+
+    public function test_page_canvas_accepts_editable_sticker_text(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'sticker_congrats',
+                            'type' => 'sticker',
+                            'label' => 'parabéns',
+                            'text' => 'parabéns editado',
+                            'editableText' => true,
+                            'x' => 100,
+                            'y' => 120,
+                            'w' => 360,
+                            'h' => 112,
+                            'rotation' => -4,
+                            'z' => 20,
+                        ],
+                        [
+                            'id' => 'sticker_shape',
+                            'type' => 'sticker',
+                            'x' => 520,
+                            'y' => 180,
+                            'w' => 120,
+                            'h' => 120,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.elements.0.text', 'parabéns editado')
+            ->assertJsonPath('data.page.canvas.elements.0.editableText', true)
+            ->assertJsonMissingPath('data.page.canvas.elements.1.text');
+
+        $elements = $page->refresh()->canvas['elements'];
+
+        $this->assertSame('parabéns editado', $elements[0]['text']);
+        $this->assertArrayNotHasKey('text', $elements[1]);
+    }
+
+    public function test_page_canvas_rejects_invalid_transform_numbers(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350],
+                    'elements' => [
+                        [
+                            'id' => 'bad_text',
+                            'type' => 'text',
+                            'text' => 'Texto',
+                            'x' => 'abc',
+                            'y' => 100,
+                            'w' => 320,
+                            'h' => 120,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.elements.0.x');
+    }
+
+    public function test_page_canvas_rejects_element_without_type(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350],
+                    'elements' => [
+                        [
+                            'id' => 'missing_type',
+                            'x' => 100,
+                            'y' => 100,
+                            'w' => 320,
+                            'h' => 120,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.elements.0.type');
+    }
+
+    public function test_page_canvas_rejects_non_finite_and_extreme_transform_values(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350],
+                    'elements' => [
+                        [
+                            'id' => 'bad_text',
+                            'type' => 'text',
+                            'text' => 'Texto',
+                            'x' => '1e999',
+                            'y' => 100,
+                            'w' => 320,
+                            'h' => 120,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.elements.0.x');
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350],
+                    'elements' => [
+                        [
+                            'id' => 'huge_text',
+                            'type' => 'text',
+                            'text' => 'Texto',
+                            'x' => 1000000,
+                            'y' => 100,
+                            'w' => 320,
+                            'h' => 120,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.elements.0.x');
+    }
+
+    public function test_published_gift_page_autosave_is_forbidden(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->published()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 390, 'height' => 844],
+                    'elements' => [],
+                ],
+            ])
+            ->assertForbidden();
     }
 
     public function test_user_cannot_update_page_from_another_gift(): void
@@ -450,6 +750,41 @@ class CustomerGiftFlowTest extends TestCase
             ])
             ->assertRedirect(route('app.gifts.edit', $gift))
             ->assertSessionHasErrors('canvas');
+    }
+
+    public function test_page_canvas_rejects_html_in_editable_sticker_text(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350],
+                    'elements' => [
+                        [
+                            'id' => 'sticker_congrats',
+                            'type' => 'sticker',
+                            'text' => '<script>alert(1)</script>',
+                            'editableText' => true,
+                            'x' => 100,
+                            'y' => 120,
+                            'w' => 360,
+                            'h' => 112,
+                            'rotation' => 0,
+                            'z' => 10,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas');
     }
 
     public function test_page_canvas_rejects_insecure_protocols(): void
