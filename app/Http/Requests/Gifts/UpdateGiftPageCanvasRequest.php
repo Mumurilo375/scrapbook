@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Gifts;
 
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
@@ -13,6 +14,17 @@ use Illuminate\Validation\Validator;
 
 class UpdateGiftPageCanvasRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $canvas = $this->input('canvas');
+
+        if (is_array($canvas)) {
+            $this->merge([
+                'canvas' => app(CanvasNormalizer::class)->normalize($canvas),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         $gift = $this->route('gift');
