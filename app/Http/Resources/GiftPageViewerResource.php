@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
 use App\Domain\Gifts\Services\ViewerMediaUrlResolver;
@@ -46,17 +47,23 @@ class GiftPageViewerResource extends JsonResource
         $canvas = is_array($this->canvas) ? $this->canvas : [];
         $artboard = is_array($canvas['artboard'] ?? null) ? $canvas['artboard'] : [];
         $elements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
+        $safeArea = is_array($artboard['safeArea'] ?? null) ? $artboard['safeArea'] : CanvasNormalizer::DEFAULT_SAFE_AREA;
 
         return [
             'schemaVersion' => 1,
+            'version' => 1,
             'artboard' => [
-                'width' => $this->positiveNumber($artboard['width'] ?? null, 390),
-                'height' => $this->positiveNumber($artboard['height'] ?? null, 844),
-                'safeArea' => is_array($artboard['safeArea'] ?? null) ? $artboard['safeArea'] : [
-                    'top' => 24,
-                    'right' => 16,
-                    'bottom' => 24,
-                    'left' => 16,
+                'width' => $this->positiveNumber($artboard['width'] ?? null, CanvasNormalizer::DEFAULT_WIDTH),
+                'height' => $this->positiveNumber($artboard['height'] ?? null, CanvasNormalizer::DEFAULT_HEIGHT),
+                'unit' => 'px',
+                'background' => is_array($artboard['background'] ?? null)
+                    ? $this->sanitizeValue($artboard['background'])
+                    : ['type' => 'theme'],
+                'safeArea' => [
+                    'top' => $this->nonNegativeNumber($safeArea['top'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['top']),
+                    'right' => $this->nonNegativeNumber($safeArea['right'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['right']),
+                    'bottom' => $this->nonNegativeNumber($safeArea['bottom'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['bottom']),
+                    'left' => $this->nonNegativeNumber($safeArea['left'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['left']),
                 ],
             ],
             'background' => is_array($canvas['background'] ?? null) ? $this->sanitizeValue($canvas['background']) : null,
@@ -214,6 +221,13 @@ class GiftPageViewerResource extends JsonResource
         $number = $this->number($value, $fallback);
 
         return $number > 0 ? $number : $fallback;
+    }
+
+    private function nonNegativeNumber(mixed $value, int|float $fallback): int|float
+    {
+        $number = $this->number($value, $fallback);
+
+        return $number >= 0 ? $number : $fallback;
     }
 
     private function enumValue(mixed $value): string

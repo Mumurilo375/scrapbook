@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Services\PublicGiftResolver;
 use App\Domain\Gifts\Services\ViewerMediaUrlResolver;
+use App\Domain\Themes\ThemeConfig;
 use BackedEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -58,6 +59,7 @@ class GiftViewerResource extends JsonResource
 
         return [
             'name' => $this->themeVersion->theme->name,
+            'config' => ThemeConfig::publicConfig($this->themeVersion->config),
         ];
     }
 
