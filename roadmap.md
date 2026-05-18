@@ -17,10 +17,15 @@
 - Artboard/canvas padronizado com `schemaVersion/version = 1`, `artboard` válido, `elements` como array e proporção padrão `1080x1350`.
 - Fase visual de temas e folhas concluída como fundação atual, com `PageSurface`, textura CSS sem asset externo obrigatório, moldura de caderno/livro e seeds comparáveis de temas/templates.
 - Editor visual básico implementado para elementos existentes, com seleção, mover, redimensionar, rotação, z/camadas e autosave do canvas.
-- Fase atual: correções de UX do editor visual básico, com edição direta de texto no canvas, sticker com texto editável, painel sem overflow, folha visualmente mais larga e mobile menos cansativo.
-- Próxima fase: biblioteca de stickers/assets, categorias e aplicação controlada de assets novos.
-- Depois: camadas avançadas, duplicar/deletar, histórico/desfazer e melhorias finas de manipulação.
-- Gateway externo real, QR Code, entrega, demo pública refinada e landing final ficam para etapas futuras.
+- Correções de UX do editor visual básico implementadas: edição direta de texto no canvas, sticker com texto editável, painel sem overflow, folha visualmente mais larga e mobile menos cansativo.
+- Biblioteca de stickers/assets implementada como base inicial, com categorias, assets globais/do tema e aplicação controlada de assets novos no canvas.
+- Controles de elementos e camadas implementados no editor.
+- Histórico local/desfazer/refazer implementado no editor.
+- Editor estabilizado como base atual para avançar para entrega do presente.
+- QR Code e cartão compartilhável para Gifts publicados implementados.
+- Fase atual: refinamento do viewer público e preview privado como experiência final do presente.
+- Próxima fase possível: beta QA completo ou landing final com exemplos reais.
+- Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
 
@@ -255,18 +260,20 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 
 ## Fase 7 - Sistema de assets visuais
 
+Status: implementada como base inicial. A base usa `Asset`, `AssetCategory`, assets globais e vínculo `theme_asset` por `ThemeVersion`. O editor lista assets ativos por `GET /app/gifts/{gift}/assets` e cria stickers com `assetId`, sem URL arbitrária no canvas.
+
 165. Definir tipos de asset: sticker, texture, frame, tape, paper, envelope, doodle.
 166. Definir formato aceito para assets do sistema.
-167. Criar upload admin de assets.
-168. Criar thumbnails de assets.
-169. Permitir tags nos assets.
-170. Permitir associar assets a packs.
-171. Permitir associar packs a temas.
-172. Criar endpoint para listar assets disponíveis no editor.
-173. Criar filtro por tema.
-174. Criar opção de listar assets globais.
+167. Criar upload admin de assets. Pendente; MVP aceita assets controlados por seed/config e campos básicos no admin.
+168. Criar thumbnails de assets. Parcial; `previewUrl` seguro é suportado, e placeholders shape são renderizados por config.
+169. Permitir tags nos assets. Parcial via `metadata.editor.keywords`.
+170. Permitir associar assets a packs. Pendente; packs/marketplace ficam fora desta fase.
+171. Permitir associar packs a temas. Pendente; usar `theme_asset` direto no MVP.
+172. Criar endpoint para listar assets disponíveis no editor. Implementado em `/app/gifts/{gift}/assets`.
+173. Criar filtro por tema. Implementado por assets do `ThemeVersion` atual primeiro.
+174. Criar opção de listar assets globais. Implementado para assets ativos sem `theme_asset`.
 175. Criar cache de assets por tema.
-176. Criar testes para assets desativados não aparecerem.
+176. Criar testes para assets desativados não aparecerem. Coberto na suíte de assets do editor.
 
 ## Fase 8 - Sistema de temas
 
@@ -335,7 +342,7 @@ Status: renderer compartilhado já alimenta editor, preview privado e viewer pú
 
 ## Fase 11 - Editor visual MVP
 
-Status: editor estrutural já redesenhado com topbar, sidebar, palco central, painel direito em abas, autosave com debounce, indicador global e rascunho local como proteção. O autosave foi corrigido, a aba Imagens foi limpa e a primeira versão de editor visual básico foi implementada: seleção de elementos, outline/handles, mover, redimensionar, rotacionar, controle simples de camadas e edição de texto. A fase atual é corretiva de UX antes de stickers/assets: edição direta no canvas, clique-vs-arraste, sticker com texto editável, painel de propriedades responsivo, folha mais larga e mobile com menos rolagem. Ainda não é Canva/Figma completo; biblioteca de stickers/assets novos, duplicar/deletar avançado e histórico/desfazer ficam para próximas fases.
+Status: editor estrutural já redesenhado com topbar, sidebar, palco central, painel direito em abas, autosave com debounce, indicador global e rascunho local como proteção. O autosave foi corrigido, a aba Imagens foi limpa, a primeira versão de editor visual básico foi implementada e as correções de UX principais foram concluídas: seleção de elementos, outline/handles, mover, redimensionar, rotacionar, controle simples de camadas, edição direta de texto no canvas, sticker textual editável, painel responsivo, folha mais larga e mobile menos cansativo. A biblioteca de stickers/assets, os controles de elementos/camadas e o histórico local/desfazer/refazer foram implementados como base inicial. A fase atual é polimento e QA do editor antes de novas features grandes. Ainda não é Canva/Figma completo; agrupamento, multi-seleção complexa e histórico persistido no servidor ficam para próximas fases.
 
 229. Criar página de editor.
 230. Carregar gift e gift_pages.
@@ -347,11 +354,11 @@ Status: editor estrutural já redesenhado com topbar, sidebar, palco central, pa
 236. Permitir redimensionar elemento. Implementado com handles básicos; imagem mantém proporção por padrão.
 237. Permitir rotacionar elemento. Implementado por handle visual e campo numérico.
 238. Permitir alterar z-index. Implementado como camadas por `z` com ações frente/trás/acima/abaixo.
-239. Permitir deletar elemento.
-240. Permitir duplicar elemento.
+239. Permitir deletar elemento. Implementado com proteção para elementos bloqueados.
+240. Permitir duplicar elemento. Implementado mantendo mídia/asset/conteúdo e criando cópia visível/desbloqueada acima do original.
 241. Permitir editar texto. Implementado no painel do elemento selecionado, preservado no painel de conteúdo e corrigido com edição direta no canvas para texto/sticker textual.
-242. Permitir adicionar sticker. Pendente; apenas sticker já existente é manipulável/editável quando possui texto.
-243. Permitir trocar imagem de slot. Implementado por intenção explícita no elemento selecionado; upload geral segue apenas biblioteca.
+242. Permitir adicionar sticker. Implementado via aba Adesivos, criando `sticker` com `assetId` seguro.
+243. Permitir trocar imagem de slot. Implementado por botão contextual `Trocar foto` abaixo do elemento de imagem selecionado, abrindo upload direcionado para aquela foto; upload geral segue apenas biblioteca.
 244. Permitir mudar fundo/textura.
 245. Permitir trocar moldura da imagem.
 246. Permitir reordenar páginas.
@@ -364,14 +371,18 @@ Status: editor estrutural já redesenhado com topbar, sidebar, palco central, pa
 253. Criar indicador de erro de sincronização. Implementado.
 254. Criar botão de preview.
 255. Criar preview em tempo real ao lado ou em modal.
-256. Garantir mobile-first. Em correção: canvas e propriedades aparecem antes da lista de páginas no celular.
-257. Criar modo de edição simplificado para celular. Parcial: abas compactas e painel mais curto, sem redesign completo.
-258. Evitar menus gigantes no celular. Parcial: painel de propriedades foi agrupado e corrigido para evitar overflow.
+256. Garantir mobile-first. Em polimento: canvas e propriedades aparecem antes da lista de páginas no celular, topbar é rolável quando necessário e lista de páginas tem altura controlada.
+257. Criar modo de edição simplificado para celular. Parcial: abas compactas, handles maiores em toque e painel mais curto, sem redesign completo.
+258. Evitar menus gigantes no celular. Parcial: painel de propriedades foi agrupado e corrigido para evitar overflow; lista de páginas não empurra as ações principais.
 259. Testar edição com toque.
 260. Testar edição com mouse.
 261. Testar rotação/redimensionamento em telas pequenas.
 
-Próxima fase recomendada para o editor: biblioteca de stickers/assets com categorias e aplicação controlada no canvas. Depois disso, avançar para camadas avançadas, duplicar/deletar, histórico/desfazer e refinamentos de UX de manipulação.
+Controles de camadas atuais: lista de camadas da página, seleção por camada, nomes amigáveis, renomeação opcional via `name`, ocultar/exibir por `hidden`, bloquear/desbloquear por `locked`, duplicar, deletar, ações de zIndex e indicadores claros de bloqueio/ocultação. Preview privado e viewer público seguem read-only e não renderizam elementos ocultos.
+
+Histórico local atual: undo/redo por página no editor, limite de 40 entradas por página, botões na topbar, atalhos `Ctrl/Cmd + Z`, `Ctrl/Cmd + Shift + Z` e `Ctrl/Cmd + Y`, coalescing para texto/propriedades e uma única entrada ao finalizar mover/redimensionar/rotacionar. Undo/redo não é salvo como versionamento no banco; ele altera o canvas local, preserva o rascunho local e deixa o autosave persistir pelo endpoint existente.
+
+Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável já foram implementados. Fase atual: refinamento do viewer público e preview privado; depois, beta QA completo ou landing final com exemplos reais. Gateway externo real continua etapa futura antes de produção.
 
 ## Fase 12 - Upload e processamento de fotos
 
@@ -494,27 +505,41 @@ Status: publicação condicionada a pagamento aprovado implementada. A publicaç
 359. Salvar hash do token.
 360. Definir published_at.
 361. Definir expires_at conforme plano.
-362. Gerar QR code.
-363. Gerar card imprimível básico.
+362. Gerar QR code. Implementado on-demand como SVG seguro.
+363. Gerar card imprimível básico. Implementado como página print-friendly.
 364. Mostrar link final ao usuário. Implementado após publicação.
 365. Adicionar botão copiar link. Implementado na revisão quando publicado.
-366. Adicionar botão baixar QR.
-367. Adicionar botão baixar cartão.
+366. Adicionar botão baixar QR. Implementado via `/app/gifts/{gift}/qr-code?download=1`.
+367. Adicionar botão baixar cartão. Implementado como página imprimível em `/app/gifts/{gift}/share-card/download`.
 368. Criar testes de publicação.
 
 ## Fase 18 - QR Code e cartão imprimível
 
-369. Escolher biblioteca de QR code.
-370. Criar serviço `QrCodeGenerator`.
-371. Criar layout de cartão simples.
-372. Criar cartão com tema do gift.
-373. Gerar PNG do QR.
-374. Gerar PDF ou PNG do cartão.
-375. Salvar em `gift_delivery_assets`.
-376. Permitir download pelo dono.
-377. Permitir regenerar se tema/link mudar.
-378. Testar download autorizado.
-379. Testar acesso não autorizado.
+Status: primeira versão implementada. O QR Code é gerado on-demand com `chillerlan/php-qrcode`, dependência já presente via Filament, e aponta para a URL pública `/p/{slug}-{public_code}`. O cartão compartilhável usa página imprimível com CSS de impressão em vez de gerar PNG/PDF no servidor.
+
+369. Escolher biblioteca de QR code. Implementado usando biblioteca já existente.
+370. Criar serviço `QrCodeGenerator`. Implementado como `GenerateGiftQrCode`.
+371. Criar layout de cartão simples. Implementado.
+372. Criar cartão com tema do gift. Implementado usando tokens básicos do tema.
+373. Gerar PNG do QR. Adiado; SVG on-demand atende o MVP.
+374. Gerar PDF ou PNG do cartão. Adiado; página imprimível atende o MVP.
+375. Salvar em `gift_delivery_assets`. Adiado; geração on-demand evita arquivos órfãos nesta fase.
+376. Permitir download pelo dono. Implementado para QR SVG e cartão imprimível.
+377. Permitir regenerar se tema/link mudar. Não necessário nesta fase porque a geração é on-demand.
+378. Testar download autorizado. Coberto por testes adicionados.
+379. Testar acesso não autorizado. Coberto por testes adicionados.
+
+## Fase 18.1 - Refinamento do viewer público
+
+Status: fase atual. O objetivo é fazer `/p/{slug}-{public_code}` parecer um presente digital mobile-first, preservando segurança, renderer compartilhado, QR Code/cartão e regras de pagamento/publicação existentes.
+
+379.1. Criar tela de abertura com título, destinatário/remetente e botão “Abrir presente”.
+379.2. Melhorar navegação por páginas com anterior/próxima, teclado, swipe simples no mobile, indicador e progresso discreto.
+379.3. Criar estado final emocional com voltar ao início, voltar à última página, copiar/compartilhar link e CTA discreto para `/criar`.
+379.4. Reutilizar a experiência no preview privado com controles privados para editar, revisar/publicar, compartilhar ou abrir link público conforme o status.
+379.5. Renderizar gift indisponível em tela amigável com HTTP 404, sem revelar motivo ou estado interno.
+379.6. Garantir que o payload público não envie dados sensíveis, ids internos, status, datas internas, usuário autenticado, pagamento, pedido, plano, `public_code` separado ou `storage_path`.
+379.7. Não implementar gateway real, Pix, landing final, demo pública, marketplace, envio automático ou editor novo nesta fase.
 
 ## Fase 19 - Dashboard do usuário
 
