@@ -1,8 +1,15 @@
+export { CanvasElementLayer } from './CanvasElementLayer';
 export { ElementRenderer } from './ElementRenderer';
 export { ImageElement } from './ImageElement';
 export { InteractiveElement } from './InteractiveElement';
 export { MusicElement } from './MusicElement';
+export { PageSurface } from './PageSurface';
 export { PageRenderer } from './PageRenderer';
+export { ScrapbookPageFrame } from './ScrapbookPageFrame';
 export { ScrapbookRenderer } from './ScrapbookRenderer';
+export { ScrapbookStage } from './ScrapbookStage';
 export { StickerElement } from './StickerElement';
 export { TextElement } from './TextElement';
+export { ThemedArtboard } from './ThemedArtboard';
+export { DEFAULT_THEME_CONFIG, normalizeThemeConfig } from './theme';
+export type { NormalizedThemeConfig, RendererContext, ThemeConfigInput } from './theme';
