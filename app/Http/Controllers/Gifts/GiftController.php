@@ -14,11 +14,13 @@ use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
 use App\Domain\Themes\Models\ThemeVersion;
+use App\Domain\Themes\ThemeConfig;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Gifts\StoreGiftFromTemplateRequest;
 use App\Http\Requests\Gifts\UpdateGiftRequest;
 use App\Http\Resources\EditorMediaItemResource;
 use BackedEnum;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -67,6 +69,7 @@ class GiftController extends Controller
 
         return Inertia::render('gifts/Edit/GiftEdit', [
             'gift' => $this->giftPayload($gift),
+            'debugEnabled' => app()->environment(['local', 'development', 'testing']),
             'media' => EditorMediaItemResource::collection($gift->mediaItems)->resolve(),
             'pages' => $gift->pages->map(fn ($page): array => [
                 'id' => $page->id,
@@ -82,7 +85,7 @@ class GiftController extends Controller
         ]);
     }
 
-    public function update(UpdateGiftRequest $request, Gift $gift): RedirectResponse
+    public function update(UpdateGiftRequest $request, Gift $gift): RedirectResponse|JsonResponse
     {
         $data = $request->validated();
 
@@ -92,6 +95,21 @@ class GiftController extends Controller
             'sender_name' => array_key_exists('sender_name', $data) ? $data['sender_name'] : $gift->sender_name,
             'last_edited_at' => now(),
         ])->save();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => [
+                    'gift' => [
+                        'id' => $gift->id,
+                        'title' => $gift->title,
+                        'recipient_name' => $gift->recipient_name,
+                        'sender_name' => $gift->sender_name,
+                        'last_edited_at' => $gift->last_edited_at?->toIso8601String(),
+                    ],
+                ],
+                'message' => 'Rascunho salvo.',
+            ]);
+        }
 
         return back()->with('status', 'Rascunho salvo.');
     }
@@ -189,6 +207,7 @@ class GiftController extends Controller
             'theme' => $gift->themeVersion?->theme ? [
                 'id' => $gift->themeVersion->theme->id,
                 'name' => $gift->themeVersion->theme->name,
+                'config' => ThemeConfig::publicConfig($gift->themeVersion->config),
             ] : null,
             'update_url' => route('app.gifts.update', $gift),
             'preview_url' => route('app.gifts.preview', $gift),
