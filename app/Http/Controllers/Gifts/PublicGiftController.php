@@ -14,15 +14,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Throwable;
 
 class PublicGiftController extends Controller
 {
-    public function __invoke(Request $request, string $slugToken, PublicGiftResolver $publicGiftResolver): Response
+    public function __invoke(Request $request, string $slugToken, PublicGiftResolver $publicGiftResolver): Response|SymfonyResponse
     {
         $gift = $publicGiftResolver->resolve($slugToken);
 
-        abort_unless($gift instanceof Gift, 404);
+        if (! $gift instanceof Gift) {
+            return $this->unavailableResponse($request);
+        }
 
         $gift->load([
             'themeVersion.theme',
@@ -39,6 +42,13 @@ class PublicGiftController extends Controller
         return Inertia::render('public-gifts/PublicGiftShow', [
             'gift' => (new GiftViewerResource($gift, ViewerMediaUrlResolver::CONTEXT_PUBLIC))->resolve($request),
         ]);
+    }
+
+    private function unavailableResponse(Request $request): SymfonyResponse
+    {
+        return Inertia::render('public-gifts/PublicGiftUnavailable', [
+            'createUrl' => route('create.index', [], false),
+        ])->toResponse($request)->setStatusCode(404);
     }
 
     private function recordVisit(Request $request, Gift $gift): void
