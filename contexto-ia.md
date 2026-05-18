@@ -2,6 +2,8 @@
 
 > Este arquivo deve ser lido antes de qualquer alteração no código. Ele descreve o produto, regras de negócio, arquitetura, segurança e convenções. Não implemente features que contrariem este documento sem decisão explícita do dono do projeto.
 
+regra numero 1: nunca rode um teste que vai resetar meu banco de dados, estou passando por varios problemas por que sempre que voce (IA) vai fazer os testes acaba resetando meu banco de dados principal (postgres na porta 5432), se atente sempre a isso para que nao ocorra novamente!
+
 ## 1. Resumo do produto
 
 Estamos criando um **scrapbook digital mobile-first**. O usuário cria um presente digital baseado em templates visuais, com páginas de caderno, fotos, textos, música, stickers, temas e interações. A pessoa presenteada recebe um link ou QR Code e abre uma experiência que parece um caderno real sendo folheado.
@@ -15,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: correções de UX do editor visual
+## Prioridade atual: refinamento do viewer público
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -23,7 +25,11 @@ O domínio, banco real e admin inicial em Filament já foram implementados. O pr
 
 Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro, revisão/publicação técnica MVP e checkout interno/manual-dev já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, seleciona elementos existentes, move/redimensiona/rotaciona elementos suportados, edita textos, salva canvas e metadados por autosave, envia fotos reais, aplica fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review`, passa por checkout interno e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`.
 
-A fundação visual do scrapbook já foi aprofundada: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa e seleção/manipulação básica de elementos existentes. Neste momento, a prioridade principal é corrigir a UX do editor visual antes de avançar para biblioteca de stickers/assets. O foco é edição direta de texto no canvas, diferença clara entre clique e arraste, sticker com texto editável, painel de propriedades sem overflow, folha visualmente mais larga e mobile menos cansativo. A fundação visual atual deve garantir:
+A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer e link público de Gift publicado por slug + `public_code`.
+
+Neste momento, a prioridade principal é **refinar o viewer público e o preview privado** para que a pessoa presenteada sinta que está abrindo um scrapbook/caderno digital. A experiência deve ser emocional, bonita, mobile-first e não técnica: tela de abertura, navegação página por página, progresso discreto, encerramento afetivo e CTA público discreto para criar outro scrapbook. Esta fase não implementa gateway real, Pix, envio automático por WhatsApp/e-mail, sistema físico de impressão/entrega, marketplace, landing final, demo pública ou editor novo.
+
+A fundação visual atual deve garantir:
 
 1. todo `TemplatePage.canvas` e `GiftPage.canvas` tem `schemaVersion/version = 1`, `artboard` válido e `elements` como array;
 2. canvas antigo sem `artboard` é normalizado de forma segura, sem apagar elementos do usuário;
@@ -38,6 +44,13 @@ A fundação visual do scrapbook já foi aprofundada: editor, preview e viewer u
 11. os seeds iniciais devem manter múltiplos temas/templates publicados para comparar se trocar tema realmente muda o produto;
 12. os temas seedados atuais são `Kraft Vintage`, `Romance Delicado` e `Aniversário Fofo`;
 13. os templates seedados atuais são `Amor / Namoro`, `Feliz Aniversário` e `Melhor Amiga`, cada um com páginas estruturais e artboard válido.
+14. `MediaItem` continua sendo upload do usuário vinculado a `User`/`Gift`, enquanto `Asset` é decoração do sistema cadastrada/admin.
+15. stickers decorativos no canvas salvam `assetId`, nunca URL arbitrária.
+16. assets globais ativos e assets associados ao tema atual podem aparecer no editor; assets inativos não aparecem e não são aceitos no autosave.
+17. elementos do canvas podem ter `name`, `locked` e `hidden` opcionais, normalizados com defaults seguros.
+18. elementos `hidden` não aparecem em preview privado nem viewer público.
+19. elementos `locked` continuam visíveis, mas não podem ser movidos, redimensionados, rotacionados, editados ou deletados.
+20. o editor mantém histórico local por página para undo/redo durante a sessão, sem persistir versionamento no servidor.
 
 Fluxo atual do produto:
 
@@ -47,10 +60,10 @@ Fluxo atual do produto:
 4. cadastro público atribui role `customer`;
 5. depois do login/cadastro, o usuário volta ao contexto do template escolhido;
 6. `CreateGiftFromTemplate` cria o gift para o usuário autenticado e copia `TemplatePage` para `GiftPage`;
-7. usuário acessa `/app/gifts/{gift}/edit` para selecionar páginas, selecionar elementos, mover/redimensionar/rotacionar elementos existentes, editar textos direto no canvas ou pelo painel e salvar canvas por autosave;
+7. usuário acessa `/app/gifts/{gift}/edit` para selecionar páginas, selecionar elementos no canvas ou na lista de camadas, mover/redimensionar/rotacionar elementos editáveis, adicionar adesivos do sistema, duplicar/deletar elementos, bloquear/desbloquear, ocultar/exibir, editar textos direto no canvas ou pelo painel, desfazer/refazer alterações locais e salvar canvas por autosave;
 8. usuário edita metadados básicos do gift: `title`, `recipient_name` e `sender_name`, também por autosave;
 9. usuário envia imagens próprias para o Gift draft;
-10. usuário aplica imagem em elementos `image` existentes por intenção explícita no painel do elemento ou duplo clique; upload geral da biblioteca apenas adiciona mídia;
+10. usuário aplica imagem em elementos `image` existentes selecionando a foto na página e clicando no botão contextual `Trocar foto`, que abre o upload direcionado para substituir aquela foto; upload geral da biblioteca apenas adiciona mídia;
 11. usuário abre `/app/gifts/{gift}/preview` para ver o presente sem controles de edição;
 12. gift publicado pode ser aberto por `/p/{slug}-{public_code}`;
 13. viewer público só resolve gifts `published`, `public_link`, não expirados e não desativados;
@@ -63,7 +76,9 @@ Fluxo atual do produto:
 20. `PublishGift` publica apenas com pagamento aprovado, gera slug/`public_code`, `published_at` e `expires_at`;
 21. editor, preview e viewer renderizam a folha com tema aplicado;
 22. após publicar, o link público aparece na revisão, editor, pedido e dashboard;
-23. usuário volta depois e vê seus próprios gifts em `/app/gifts`.
+23. usuário acessa `/app/gifts/{gift}/share` para copiar link, visualizar/baixar QR Code e abrir o cartão compartilhável;
+24. o cartão compartilhável usa visual simples de scrapbook/papel/kraft e pode ser impresso ou salvo como PDF pelo navegador;
+25. usuário volta depois e vê seus próprios gifts em `/app/gifts`.
 
 A IA deve seguir o roadmap e não continuar refinando landing, demo pública, checkout ou publicação real sem solicitação explícita. A sequência esperada é:
 
@@ -73,9 +88,13 @@ A IA deve seguir o roadmap e não continuar refinando landing, demo pública, ch
 4. seleção e manipulação visual básica de elementos existentes;
 5. correções de UX do editor visual básico;
 6. biblioteca de stickers/assets e categorias;
-7. QR Code e entrega;
-8. escolha e integração de gateway real;
-9. demo pública refinada e landing final baseada no produto real.
+7. controles de elementos e camadas;
+8. histórico local de edição e desfazer/refazer;
+9. polimento e QA do editor antes de novas features grandes;
+10. QR Code e cartão compartilhável;
+11. refinamento do viewer público ou preparação para beta;
+12. escolha e integração de gateway real antes de produção;
+13. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 
@@ -88,24 +107,30 @@ A IA deve seguir o roadmap e não continuar refinando landing, demo pública, ch
 - Não hardcodear templates ou temas finais no frontend.
 - Não assumir que a landing atual é definitiva.
 - Não avançar para demo pública ou checkout real sem solicitação explícita.
-- Não implementar biblioteca completa de stickers, adicionar assets novos à página ou autosave paralelo nesta fase.
+- Não implementar marketplace de assets, upload avançado de assets pelo usuário final ou edição visual de tema nesta fase.
 - Não recriar o card técnico "Usar na página" no editor.
 - Biblioteca de imagens não deve aplicar imagem automaticamente no canvas; upload geral apenas adiciona à biblioteca.
-- Seleção de imagem no canvas é sempre o primeiro passo; troca de imagem exige botão/ação explícita ou duplo clique.
+- Clique curto em imagem no canvas seleciona a foto e mantém os handles de mover/redimensionar/rotacionar; o botão contextual `Trocar foto` aparece abaixo da imagem selecionada e abre o upload direcionado.
 - Não criar demo pública a partir do fluxo de criação atual.
 - Não tratar o Editor MVP como editor visual completo.
 - Não recolocar placeholders de auth no lugar das páginas reais de login/cadastro.
 - Não permitir publicação de Gift inválido, sem página visível, com canvas inseguro ou com mídia de outro Gift.
 - Não permitir viewer público antes de pagamento aprovado e `status = published`.
 
-### Prioridade atual: correções de UX do editor visual
+### Prioridade atual: refinamento do viewer público
 
-- O editor visual básico já permite manipular elementos existentes (`text`, `image` e `sticker` quando existir), com seleção, mover, redimensionar, rotacionar, editar texto e controlar camada.
-- O foco agora é corrigir UX antes de stickers/assets: clique rápido em texto deve editar direto no canvas; arraste deve continuar movendo; sticker com texto visível/editável deve permitir alterar texto; o painel "Elemento selecionado" não pode ter overflow; a folha precisa ficar visualmente mais larga; o mobile deve priorizar canvas e propriedades essenciais.
-- Esta etapa ainda não inclui biblioteca completa de stickers, criação livre de assets, upload/drag de assets novos para a página, QR Code, gateway real ou animação de virar página.
+- O editor estabilizado continua sendo a base: autosave, renderer compartilhado, assets, camadas, locked/hidden e histórico local devem ser preservados.
+- O viewer público deve abrir como presente: tela de abertura, título, destinatário/remetente quando existirem, botão “Abrir presente”, navegação página por página e encerramento emocional.
+- O preview privado deve reutilizar a mesma experiência visual, mas com controles privados discretos para editar, revisar/publicar, compartilhar ou abrir link público conforme o status.
+- O CTA público “Criar o meu também” deve ser discreto e apontar para `/criar`, sem roubar atenção do scrapbook.
+- Gifts indisponíveis devem retornar HTTP 404 com mensagem amigável genérica, sem revelar se expiraram, foram desativados, estão em rascunho ou receberam `public_code` incorreto.
+- O payload público não deve enviar `id`, `status`, datas internas, usuário autenticado, usuário dono, pagamento, pedido, plano, admin, `public_code` separado ou `storage_path`.
+- O viewer público continua exigindo `published`, `public_link`, slug + `public_code`, não expirado e não desativado.
+- O QR Code e cartão compartilhável já existem e devem continuar apontando somente para a URL pública segura.
+- Não implementar gateway real, Pix, pagamento externo, envio automático por WhatsApp/e-mail, sistema físico de impressão/entrega, landing final, demo pública, marketplace ou editor novo nesta etapa.
 - O renderer compartilhado continua sendo a base visual; controles de seleção e handles aparecem somente no editor.
 - O autosave existente deve ser preservado como único mecanismo de persistência do canvas, com `localStorage` apenas como proteção temporária.
-- A UI técnica removida da aba Imagens não deve voltar. Upload geral adiciona à biblioteca; trocar imagem exige intenção explícita no elemento selecionado.
+- A UI técnica removida da aba Imagens não deve voltar. Upload geral adiciona à biblioteca; trocar imagem acontece pelo botão contextual `Trocar foto` abaixo da imagem selecionada.
 
 ## 2. Regras de negócio não negociáveis
 
@@ -468,7 +493,20 @@ Upload de imagem do editor:
 
 Nunca permitir que usuário associe mídia de outro usuário ou de outro Gift. O canvas não deve aceitar `src` externo ou relativo arbitrário; o backend deve gerar o `src` seguro a partir do `MediaItem`.
 
-A aba Imagens do editor deve ser apenas a biblioteca do Gift com upload geral e lista de imagens enviadas. Não recriar a UI técnica "Usar na página", não listar slots como `photo 1`/`photo 2` fora de debug local e não fazer upload geral trocar a foto da página automaticamente. Para substituir foto, o fluxo correto é clicar no espaço de imagem dentro do scrapbook.
+A aba Imagens do editor deve ser apenas a biblioteca do Gift com upload geral e lista de imagens enviadas. Não recriar a UI técnica "Usar na página", não listar slots como `photo 1`/`photo 2` fora de debug local e não fazer upload geral trocar a foto da página automaticamente. Para substituir foto, o fluxo correto é selecionar a imagem dentro do scrapbook e usar o botão contextual `Trocar foto` para enviar a nova imagem para aquele elemento.
+
+## 12.1 Assets decorativos do sistema
+
+`Asset` é decoração do sistema/admin, não upload do usuário. O admin pode cadastrar categorias e assets; o usuário final apenas escolhe assets permitidos no editor.
+
+- Categorias vivem em `asset_categories`.
+- Um asset pode ter uma categoria por `asset_category_id`.
+- Assets globais são ativos sem vínculo em `theme_asset`.
+- Assets de tema são ativos vinculados ao `ThemeVersion` atual em `theme_asset`, com `role`, `sort_order` e `config`.
+- `GET /app/gifts/{gift}/assets` lista assets para o editor apenas para Gift próprio em `draft`.
+- Sticker novo no canvas deve salvar `assetId` e transformações (`x`, `y`, `w`, `h`, `rotation`, `z`).
+- Não aceitar `src`, `url`, `storage_path`, `previewUrl` ou URL externa/relativa manual em sticker.
+- Preview privado e viewer público resolvem assets por payload seguro e não expõem `storage_path`.
 
 ## 13. Música
 
