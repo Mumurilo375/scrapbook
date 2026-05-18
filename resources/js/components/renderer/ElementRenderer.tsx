@@ -4,6 +4,7 @@ import { InteractiveElement } from './InteractiveElement';
 import { MusicElement } from './MusicElement';
 import { StickerElement } from './StickerElement';
 import { TextElement } from './TextElement';
+import type { NormalizedThemeConfig } from './theme';
 
 type ElementRendererProps = {
     artboard: {
@@ -14,9 +15,10 @@ type ElementRendererProps = {
     onElementClick?: (element: CanvasElement) => void;
     onMediaDrop?: (element: CanvasElement, mediaItemId: string) => void;
     selectedElementId?: string | null;
+    theme: NormalizedThemeConfig;
 };
 
-export function ElementRenderer({ artboard, element, onElementClick, onMediaDrop, selectedElementId = null }: ElementRendererProps) {
+export function ElementRenderer({ artboard, element, onElementClick, onMediaDrop, selectedElementId = null, theme }: ElementRendererProps) {
     const style = {
         left: `${toPercent(element.x, artboard.width)}%`,
         top: `${toPercent(element.y, artboard.height)}%`,
@@ -27,7 +29,7 @@ export function ElementRenderer({ artboard, element, onElementClick, onMediaDrop
     };
 
     if (element.type === 'text') {
-        return <TextElement element={element} style={style} />;
+        return <TextElement artboard={artboard} element={element} style={style} theme={theme} />;
     }
 
     if (element.type === 'image') {
@@ -38,26 +40,34 @@ export function ElementRenderer({ artboard, element, onElementClick, onMediaDrop
                 onDropMedia={onMediaDrop ? (mediaItemId) => onMediaDrop(element, mediaItemId) : undefined}
                 selected={selectedElementId === element.id}
                 style={style}
+                theme={theme}
             />
         );
     }
 
     if (element.type === 'sticker') {
-        return <StickerElement element={element} style={style} />;
+        return <StickerElement element={element} style={style} theme={theme} />;
     }
 
     if (element.type === 'music') {
-        return <MusicElement element={element} style={style} />;
+        return <MusicElement element={element} style={style} theme={theme} />;
     }
 
     if (element.type === 'interactive') {
-        return <InteractiveElement element={element} style={style} />;
+        return <InteractiveElement element={element} style={style} theme={theme} />;
     }
 
     return (
         <div
-            className="absolute flex items-center justify-center rounded-[4px] border border-dashed border-[#CBA980] bg-[#FFF7EEB3] px-2 text-center text-[10px] font-semibold uppercase text-[#7A5A43]"
-            style={style}
+            className="absolute flex items-center justify-center border border-dashed px-2 text-center font-semibold uppercase"
+            style={{
+                ...style,
+                backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.paper} 82%, white)`,
+                borderColor: theme.tokens.colors.muted,
+                borderRadius: 8,
+                color: theme.tokens.colors.mutedInk,
+                fontSize: '2.4cqw',
+            }}
         >
             Elemento
         </div>
