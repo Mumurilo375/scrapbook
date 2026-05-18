@@ -46,7 +46,7 @@ export function ElementRenderer({ artboard, element, onElementClick, onMediaDrop
     }
 
     if (element.type === 'sticker') {
-        return <StickerElement element={element} style={style} theme={theme} />;
+        return <StickerElement artboard={artboard} element={element} style={style} theme={theme} />;
     }
 
     if (element.type === 'music') {

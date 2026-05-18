@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { Canvas } from '../../domain/canvas/schema';
 import { CanvasElementLayer } from './CanvasElementLayer';
 import { PageSurface } from './PageSurface';
@@ -7,6 +9,7 @@ import { normalizeThemeConfig, type RendererContext, type ThemeConfigInput } fro
 
 type PageRendererProps = {
     canvas: Canvas;
+    children?: ReactNode;
     context?: RendererContext;
     onElementClick?: (element: Canvas['elements'][number]) => void;
     onMediaDrop?: (element: Canvas['elements'][number], mediaItemId: string) => void;
@@ -16,6 +19,7 @@ type PageRendererProps = {
 
 export function PageRenderer({
     canvas,
+    children,
     context = 'preview',
     onElementClick,
     onMediaDrop,
@@ -35,6 +39,7 @@ export function PageRenderer({
                         selectedElementId={selectedElementId}
                         theme={normalizedTheme}
                     />
+                    {children}
                 </ThemedArtboard>
             </PageSurface>
         </ScrapbookPageFrame>
