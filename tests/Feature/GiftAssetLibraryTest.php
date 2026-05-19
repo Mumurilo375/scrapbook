@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Models\AssetCategory;
+use App\Domain\Assets\Support\ThemeAssetRoles;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
 use App\Models\User;
@@ -98,6 +99,66 @@ class GiftAssetLibraryTest extends TestCase
             ->assertJsonPath('data.assets.0.isThemeAsset', true)
             ->assertJsonPath('data.assets.1.id', $globalAsset->id)
             ->assertJsonPath('data.assets.1.source', 'global');
+    }
+
+    public function test_theme_version_can_associate_texture_assets_by_role_for_editor_payload(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $paperTexture = $this->asset([
+            'name' => 'Papel real',
+            'type' => AssetType::Paper->value,
+            'metadata' => [
+                'schemaVersion' => 1,
+                'renderStyle' => 'texture',
+                'editor' => ['renderMode' => 'image'],
+            ],
+        ]);
+        $backgroundTexture = $this->asset([
+            'name' => 'Fundo de mesa',
+            'type' => AssetType::Background->value,
+            'metadata' => [
+                'schemaVersion' => 1,
+                'renderStyle' => 'background',
+                'editor' => ['renderMode' => 'image'],
+            ],
+        ]);
+
+        $gift->themeVersion->assets()->attach($paperTexture->id, [
+            'id' => (string) Str::ulid(),
+            'role' => ThemeAssetRoles::PAPER_TEXTURE,
+            'sort_order' => 1,
+            'config' => null,
+        ]);
+        $gift->themeVersion->assets()->attach($backgroundTexture->id, [
+            'id' => (string) Str::ulid(),
+            'role' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+            'sort_order' => 2,
+            'config' => null,
+        ]);
+
+        $this->assertDatabaseHas('theme_asset', [
+            'theme_version_id' => $gift->theme_version_id,
+            'asset_id' => $paperTexture->id,
+            'role' => ThemeAssetRoles::PAPER_TEXTURE,
+        ]);
+        $this->assertDatabaseHas('theme_asset', [
+            'theme_version_id' => $gift->theme_version_id,
+            'asset_id' => $backgroundTexture->id,
+            'role' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.assets.index', $gift))
+            ->assertOk()
+            ->assertJsonPath('data.assets.0.id', $paperTexture->id)
+            ->assertJsonPath('data.assets.0.role', ThemeAssetRoles::PAPER_TEXTURE)
+            ->assertJsonPath('data.assets.0.previewUrl', route('assets.preview', $paperTexture, false))
+            ->assertJsonPath('data.assets.1.id', $backgroundTexture->id)
+            ->assertJsonPath('data.assets.1.role', ThemeAssetRoles::BACKGROUND_TEXTURE)
+            ->assertJsonMissing(['storage_path' => $paperTexture->storage_path])
+            ->assertJsonMissing(['storage_path' => $backgroundTexture->storage_path]);
     }
 
     public function test_global_assets_are_available_for_gifts_using_any_theme(): void

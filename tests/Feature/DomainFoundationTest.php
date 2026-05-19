@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Assets\Models\Asset;
 use App\Domain\Editor\CanvasNormalizer;
+use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
 use App\Domain\Gifts\Actions\UpdateGiftPageCanvas;
 use App\Domain\Gifts\Models\Gift;
@@ -248,9 +250,13 @@ class DomainFoundationTest extends TestCase
         $this->assertDatabaseHas('templates', ['slug' => 'amor-namoro-basico', 'name' => 'Amor / Namoro']);
         $this->assertDatabaseHas('templates', ['slug' => 'feliz-aniversario-basico', 'name' => 'Feliz Aniversário']);
         $this->assertDatabaseHas('templates', ['slug' => 'melhor-amiga-basico', 'name' => 'Melhor Amiga']);
+        $this->assertDatabaseHas('templates', ['slug' => 'love-letter-scrapbook-premium', 'name' => 'Love Letter Scrapbook']);
+        $this->assertDatabaseHas('templates', ['slug' => 'birthday-handmade-premium', 'name' => 'Birthday Handmade']);
+        $this->assertDatabaseHas('templates', ['slug' => 'best-friends-collage-premium', 'name' => 'Best Friends Collage']);
+        $this->assertDatabaseHas('templates', ['slug' => 'vintage-memory-book-premium', 'name' => 'Vintage Memory Book']);
         $this->assertDatabaseCount('themes', 3);
-        $this->assertDatabaseCount('templates', 3);
-        $this->assertDatabaseCount('template_pages', 15);
+        $this->assertDatabaseCount('templates', 7);
+        $this->assertDatabaseCount('template_pages', 35);
     }
 
     public function test_seeded_theme_configs_are_expressive_for_scrapbook_renderer(): void
@@ -308,15 +314,21 @@ class DomainFoundationTest extends TestCase
     {
         $this->seed();
 
+        $templateSlugs = [
+            'amor-namoro-basico',
+            'feliz-aniversario-basico',
+            'melhor-amiga-basico',
+            'love-letter-scrapbook-premium',
+            'birthday-handmade-premium',
+            'best-friends-collage-premium',
+            'vintage-memory-book-premium',
+        ];
+
         $pages = TemplatePage::query()
-            ->whereHas('templateVersion.template', fn ($query) => $query->whereIn('slug', [
-                'amor-namoro-basico',
-                'feliz-aniversario-basico',
-                'melhor-amiga-basico',
-            ]))
+            ->whereHas('templateVersion.template', fn ($query) => $query->whereIn('slug', $templateSlugs))
             ->get();
 
-        $this->assertCount(15, $pages);
+        $this->assertCount(35, $pages);
 
         foreach ($pages as $page) {
             $this->assertSame(1, $page->canvas['schemaVersion']);
@@ -326,6 +338,101 @@ class DomainFoundationTest extends TestCase
             $this->assertSame('px', $page->canvas['artboard']['unit']);
             $this->assertEquals(CanvasNormalizer::DEFAULT_SAFE_AREA, $page->canvas['artboard']['safeArea']);
             $this->assertIsArray($page->canvas['elements']);
+        }
+    }
+
+    public function test_premium_templates_are_published_with_safe_organic_canvases(): void
+    {
+        $this->seed();
+
+        $premiumSlugs = [
+            'love-letter-scrapbook-premium',
+            'birthday-handmade-premium',
+            'best-friends-collage-premium',
+            'vintage-memory-book-premium',
+        ];
+
+        $versions = TemplateVersion::query()
+            ->where('status', 'published')
+            ->whereHas('template', fn ($query) => $query->whereIn('slug', $premiumSlugs))
+            ->with(['pages', 'template'])
+            ->get();
+
+        $this->assertCount(4, $versions);
+
+        $assets = Asset::query()
+            ->with('themeVersions')
+            ->get()
+            ->keyBy('id');
+        $canvasSecurity = app(CanvasSecurity::class);
+
+        foreach ($versions as $version) {
+            $this->assertTrue((bool) data_get($version->default_config, 'premium'));
+            $this->assertCount(5, $version->pages);
+
+            foreach ($version->pages as $page) {
+                $canvas = $page->canvas;
+
+                $canvasSecurity->validate($canvas, 1000);
+
+                $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $canvas['artboard']['width']);
+                $this->assertSame(CanvasNormalizer::DEFAULT_HEIGHT, $canvas['artboard']['height']);
+                $this->assertGreaterThanOrEqual(6, count($canvas['elements']));
+
+                $imageElements = collect($canvas['elements'])
+                    ->filter(fn (array $element): bool => ($element['type'] ?? null) === 'image');
+
+                foreach ($imageElements as $element) {
+                    $this->assertArrayNotHasKey('mediaItemId', $element);
+                    $this->assertArrayNotHasKey('media_item_id', $element);
+                    $this->assertNotSame('', trim((string) ($element['name'] ?? '')));
+                    $this->assertNotSame('', trim((string) ($element['placeholderLabel'] ?? '')));
+                }
+
+                foreach ($canvas['elements'] as $element) {
+                    if (isset($element['assetId'])) {
+                        $asset = $assets->get($element['assetId']);
+
+                        $this->assertNotNull($asset);
+                        $this->assertTrue(
+                            $asset->themeVersions->isEmpty()
+                            || $asset->themeVersions->contains('id', $version->theme_version_id),
+                            'Template premium referencia asset indisponível para o tema publicado.',
+                        );
+                    }
+
+                    foreach (['text', 'label', 'content'] as $textKey) {
+                        if (! isset($element[$textKey])) {
+                            continue;
+                        }
+
+                        $this->assertStringNotContainsString('<script', strtolower((string) $element[$textKey]));
+                        $this->assertStringNotContainsString('<', (string) $element[$textKey]);
+                        $this->assertStringNotContainsString('http://', (string) $element[$textKey]);
+                        $this->assertStringNotContainsString('https://', (string) $element[$textKey]);
+                    }
+                }
+            }
+        }
+    }
+
+    public function test_premium_template_can_create_gift_with_copied_elements(): void
+    {
+        $this->seed();
+
+        $user = User::factory()->create();
+        $templateVersion = TemplateVersion::query()
+            ->where('name', 'Love Letter Scrapbook v1')
+            ->firstOrFail();
+
+        $gift = app(CreateGiftFromTemplate::class)->handle($user, $templateVersion);
+
+        $this->assertCount(5, $gift->pages);
+
+        foreach ($gift->pages as $page) {
+            $this->assertNotNull($page->source_template_page_id);
+            $this->assertGreaterThanOrEqual(6, count($page->canvas['elements']));
+            $this->assertSame(CanvasNormalizer::DEFAULT_WIDTH, $page->canvas['artboard']['width']);
         }
     }
 
