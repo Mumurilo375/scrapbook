@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Domain\Analytics\Models\GiftVisit;
+use App\Domain\Assets\Enums\AssetType;
+use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Support\ThemeAssetRoles;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Enums\GiftVisibility;
 use App\Domain\Gifts\Models\Gift;
@@ -301,8 +304,14 @@ class GiftViewerTest extends TestCase
                     ],
                 ],
                 'book' => [
+                    'mode' => 'spread',
+                    'spineWidth' => 34,
+                    'spreadGap' => 6,
+                    'pageCurl' => 'subtle',
+                    'foldShadow' => true,
                     'spineColor' => '#7B4F32',
                     'storage_path' => 'system/private/spine.png',
+                    'unsafeUrl' => 'https://example.test/book.png',
                 ],
                 'page' => [
                     'storage_path' => 'system/private/paper.png',
@@ -312,6 +321,15 @@ class GiftViewerTest extends TestCase
                         'cornerTape' => true,
                         'paperGrain' => true,
                         'secretAsset' => 'private',
+                    ],
+                ],
+                'textures' => [
+                    'pagePaper' => [
+                        'assetRole' => ThemeAssetRoles::PAPER_TEXTURE,
+                        'url' => 'https://example.test/private-paper.png',
+                        'storage_path' => 'system/private/texture.png',
+                        'opacity' => 0.72,
+                        'blendMode' => 'multiply',
                     ],
                 ],
                 'elements' => [
@@ -334,16 +352,115 @@ class GiftViewerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('gift.theme.config.tokens.colors.paper', '#FFF1DD')
                 ->where('gift.theme.config.tokens.colors.appBackground', '#FBEAD8')
+                ->where('gift.theme.config.book.mode', 'spread')
+                ->where('gift.theme.config.book.spineWidth', 34)
+                ->where('gift.theme.config.book.spreadGap', 6)
+                ->where('gift.theme.config.book.pageCurl', 'subtle')
+                ->where('gift.theme.config.book.foldShadow', true)
                 ->where('gift.theme.config.book.spineColor', '#7B4F32')
                 ->where('gift.theme.config.page.backgroundColor', '#FFF1DD')
                 ->where('gift.theme.config.page.texture', 'vintage-stains')
                 ->where('gift.theme.config.page.decorations.paperGrain', true)
+                ->where('gift.theme.config.textures.pagePaper.assetRole', ThemeAssetRoles::PAPER_TEXTURE)
+                ->where('gift.theme.config.textures.pagePaper.opacity', 0.72)
                 ->where('gift.theme.config.elements.image.shadow', false)
                 ->missing('gift.theme.config.storage_path')
                 ->missing('gift.theme.config.book.storage_path')
+                ->missing('gift.theme.config.book.unsafeUrl')
                 ->missing('gift.theme.config.page.storage_path')
+                ->missing('gift.theme.config.textures.pagePaper.url')
+                ->missing('gift.theme.config.textures.pagePaper.storage_path')
                 ->missing('gift.theme.config.page.decorations.secretAsset')
                 ->missing('gift.theme.config.elements.image.storage_path'));
+    }
+
+    public function test_public_viewer_includes_safe_theme_texture_assets_by_role(): void
+    {
+        $gift = Gift::factory()->published()->create();
+        $paperTexture = Asset::factory()->create([
+            'type' => AssetType::Paper->value,
+            'storage_path' => 'system/assets/paper-texture/asset.png',
+            'metadata' => [
+                'schemaVersion' => 1,
+                'renderStyle' => 'texture',
+                'editor' => ['renderMode' => 'image'],
+            ],
+        ]);
+
+        $gift->themeVersion->forceFill([
+            'config' => ThemeConfig::normalize([
+                'textures' => [
+                    'pagePaper' => [
+                        'assetRole' => ThemeAssetRoles::PAPER_TEXTURE,
+                        'opacity' => 0.86,
+                        'blendMode' => 'multiply',
+                    ],
+                ],
+            ]),
+        ])->save();
+        $gift->themeVersion->assets()->attach($paperTexture->id, [
+            'id' => (string) Str::ulid(),
+            'role' => ThemeAssetRoles::PAPER_TEXTURE,
+            'sort_order' => 1,
+            'config' => null,
+        ]);
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->get($this->publicUrl($gift))
+            ->assertOk()
+            ->assertDontSee('system/assets/paper-texture/asset.png')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('gift.theme.config.textures.pagePaper.assetRole', ThemeAssetRoles::PAPER_TEXTURE)
+                ->where('gift.assets.0.id', $paperTexture->id)
+                ->where('gift.assets.0.role', ThemeAssetRoles::PAPER_TEXTURE)
+                ->where('gift.assets.0.previewUrl', route('assets.preview', $paperTexture, false))
+                ->missing('gift.assets.0.storage_path'));
+    }
+
+    public function test_inactive_theme_texture_asset_is_not_sent_to_public_viewer(): void
+    {
+        $gift = Gift::factory()->published()->create();
+        $inactiveTexture = Asset::factory()->create([
+            'type' => AssetType::Paper->value,
+            'is_active' => false,
+            'metadata' => [
+                'schemaVersion' => 1,
+                'renderStyle' => 'texture',
+                'editor' => ['renderMode' => 'image'],
+            ],
+        ]);
+
+        $gift->themeVersion->forceFill([
+            'config' => ThemeConfig::normalize([
+                'textures' => [
+                    'pagePaper' => [
+                        'assetRole' => ThemeAssetRoles::PAPER_TEXTURE,
+                        'opacity' => 0.86,
+                    ],
+                ],
+            ]),
+        ])->save();
+        $gift->themeVersion->assets()->attach($inactiveTexture->id, [
+            'id' => (string) Str::ulid(),
+            'role' => ThemeAssetRoles::PAPER_TEXTURE,
+            'sort_order' => 1,
+            'config' => null,
+        ]);
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->get($this->publicUrl($gift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('gift.theme.config.textures.pagePaper.assetRole', ThemeAssetRoles::PAPER_TEXTURE)
+                ->has('gift.assets', 0));
     }
 
     public function test_public_media_is_served_when_it_belongs_to_accessible_published_gift(): void
