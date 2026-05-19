@@ -1,4 +1,4 @@
-import { EyeOff, Lock, Palette, Type } from 'lucide-react';
+import { EyeOff, Image as ImageIcon, Lock, Mail, Palette, Rotate3D, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { CanvasElement } from '../../../../domain/canvas/schema';
@@ -24,6 +24,7 @@ type ElementPropertiesPanelProps = {
     onLayerAction: (action: LayerAction) => void;
     onPatchElement: (patch: ElementPatch) => void;
     onPatchStyle: (stylePatch: Record<string, unknown>) => void;
+    onReplacePhoto?: (element: CanvasElement) => void;
 };
 
 type NumberField = 'x' | 'y' | 'w' | 'h' | 'rotation' | 'z';
@@ -36,6 +37,7 @@ export function ElementPropertiesPanel({
     onLayerAction,
     onPatchElement,
     onPatchStyle,
+    onReplacePhoto,
 }: ElementPropertiesPanelProps) {
     if (!element) {
         return (
@@ -137,6 +139,19 @@ export function ElementPropertiesPanel({
                             onPatchStyle={onPatchStyle}
                         />
                     ) : null}
+
+                    {element.type === 'interactive_envelope' ? (
+                        <EnvelopeControls disabled={locked} element={element} onPatchElement={onPatchElement} />
+                    ) : null}
+
+                    {element.type === 'flip_polaroid' ? (
+                        <PolaroidControls
+                            disabled={locked}
+                            element={element}
+                            onPatchElement={onPatchElement}
+                            onReplacePhoto={onReplacePhoto}
+                        />
+                    ) : null}
                 </>
             ) : (
                 <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
@@ -149,6 +164,146 @@ export function ElementPropertiesPanel({
     function patchNumber(field: NumberField, value: number) {
         onPatchElement({ [field]: value });
     }
+}
+
+type EnvelopeControlsProps = {
+    disabled: boolean;
+    element: CanvasElement;
+    onPatchElement: (patch: ElementPatch) => void;
+};
+
+function EnvelopeControls({ disabled, element, onPatchElement }: EnvelopeControlsProps) {
+    const record = element as CanvasElement & Record<string, unknown>;
+    const elementStyle = isRecord(record.style) ? record.style : {};
+    const title = typeof record.title === 'string' ? record.title : '';
+    const content = typeof record.content === 'string' ? record.content : '';
+    const variant = typeof elementStyle.variant === 'string' ? elementStyle.variant : 'kraft';
+
+    return (
+        <div className="grid min-w-0 gap-3">
+            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+                <span className="inline-flex items-center gap-2">
+                    <Mail aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                    Título do envelope
+                </span>
+                <input
+                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    disabled={disabled}
+                    maxLength={120}
+                    onChange={(event) => onPatchElement({ title: event.target.value })}
+                    value={title}
+                />
+                <span className="text-right text-xs text-[#6F5A4A]">{title.length}/120</span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+                <span>Conteúdo da carta</span>
+                <textarea
+                    className="min-h-32 w-full min-w-0 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    disabled={disabled}
+                    maxLength={1000}
+                    onChange={(event) => onPatchElement({ content: event.target.value })}
+                    value={content}
+                />
+                <span className="text-right text-xs text-[#6F5A4A]">{content.length}/1000</span>
+            </label>
+
+            <label className="grid gap-1 text-xs font-semibold uppercase text-[#6F5A4A]">
+                <span>Estilo</span>
+                <select
+                    className="h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    disabled={disabled}
+                    onChange={(event) => onPatchElement({ style: { ...elementStyle, variant: event.target.value } })}
+                    value={variant}
+                >
+                    <option value="kraft">Kraft</option>
+                    <option value="cream">Creme</option>
+                    <option value="rose">Rosado</option>
+                </select>
+            </label>
+        </div>
+    );
+}
+
+type PolaroidControlsProps = {
+    disabled: boolean;
+    element: CanvasElement;
+    onPatchElement: (patch: ElementPatch) => void;
+    onReplacePhoto?: (element: CanvasElement) => void;
+};
+
+function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }: PolaroidControlsProps) {
+    const record = element as CanvasElement & Record<string, unknown>;
+    const front = isRecord(record.front) ? record.front : {};
+    const back = isRecord(record.back) ? record.back : {};
+    const caption = typeof front.caption === 'string' ? front.caption : '';
+    const placeholderLabel = typeof front.placeholderLabel === 'string' ? front.placeholderLabel : '';
+    const backText = typeof back.text === 'string' ? back.text : '';
+    const hasPhoto = typeof front.mediaItemId === 'string' && front.mediaItemId.trim() !== '';
+
+    return (
+        <div className="grid min-w-0 gap-3">
+            <div className="grid gap-2 rounded-[6px] border border-[#CBA980] bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#1F150A]">
+                        <ImageIcon aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                        Foto da frente
+                    </span>
+                    <span className="text-xs font-semibold uppercase text-[#6F5A4A]">
+                        {hasPhoto ? 'Com foto' : 'Placeholder'}
+                    </span>
+                </div>
+                {onReplacePhoto ? (
+                    <button
+                        className="min-h-10 rounded-[6px] border border-[#7A2634] bg-[#FFF0EC] px-3 text-sm font-semibold text-[#7A2634] transition hover:bg-[#F9DDD6] disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={disabled}
+                        onClick={() => onReplacePhoto(element)}
+                        type="button"
+                    >
+                        Trocar foto
+                    </button>
+                ) : null}
+            </div>
+
+            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+                <span>Legenda da frente</span>
+                <input
+                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    disabled={disabled}
+                    maxLength={120}
+                    onChange={(event) => onPatchElement({ front: { ...front, caption: event.target.value } })}
+                    value={caption}
+                />
+                <span className="text-right text-xs text-[#6F5A4A]">{caption.length}/120</span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+                <span>Placeholder sem foto</span>
+                <input
+                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    disabled={disabled}
+                    maxLength={120}
+                    onChange={(event) => onPatchElement({ front: { ...front, placeholderLabel: event.target.value } })}
+                    value={placeholderLabel}
+                />
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+                <span className="inline-flex items-center gap-2">
+                    <Rotate3D aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                    Texto do verso
+                </span>
+                <textarea
+                    className="min-h-28 w-full min-w-0 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    disabled={disabled}
+                    maxLength={500}
+                    onChange={(event) => onPatchElement({ back: { ...back, text: event.target.value } })}
+                    value={backText}
+                />
+                <span className="text-right text-xs text-[#6F5A4A]">{backText.length}/500</span>
+            </label>
+        </div>
+    );
 }
 
 type TextControlsProps = {
@@ -288,6 +443,14 @@ function typeLabel(type: string): string {
         return 'Adesivo';
     }
 
+    if (type === 'interactive_envelope') {
+        return 'Envelope com carta';
+    }
+
+    if (type === 'flip_polaroid') {
+        return 'Polaroid virável';
+    }
+
     return 'Item';
 }
 
@@ -305,4 +468,8 @@ function alignLabel(value: 'left' | 'center' | 'right'): string {
     }
 
     return 'Esquerda';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

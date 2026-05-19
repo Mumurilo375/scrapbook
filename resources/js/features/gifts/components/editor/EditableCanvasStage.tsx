@@ -53,12 +53,12 @@ export function EditableCanvasStage({
             ? (canvas.elements.find((element) => element.id === editingElementId && isTextEditableElement(element)) ??
               null)
             : null;
-    const selectedImageElement =
+    const selectedPhotoElement =
         !disabled && selectedElementId
             ? (canvas.elements.find(
                   (element) =>
                       element.id === selectedElementId &&
-                      element.type === 'image' &&
+                      (element.type === 'image' || element.type === 'flip_polaroid') &&
                       !isElementLocked(element) &&
                       !isElementHidden(element),
               ) ?? null)
@@ -118,12 +118,12 @@ export function EditableCanvasStage({
                         theme={theme}
                     />
                 ) : null}
-                {selectedImageElement && onReplaceImage ? (
+                {selectedPhotoElement && onReplaceImage ? (
                     <ImageReplaceButton
                         canvas={canvas}
                         disabled={imageReplacing}
-                        element={selectedImageElement}
-                        onClick={() => onReplaceImage(selectedImageElement)}
+                        element={selectedPhotoElement}
+                        onClick={() => onReplaceImage(selectedPhotoElement)}
                     />
                 ) : null}
             </div>
