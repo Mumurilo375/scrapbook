@@ -282,6 +282,38 @@ final class GiftPublicationChecklist
                     );
                 }
             }
+
+            foreach ($this->flipPolaroidElements($page) as $element) {
+                $front = is_array($element['front'] ?? null) ? $element['front'] : [];
+                $mediaItemId = $front['mediaItemId'] ?? $front['media_item_id'] ?? null;
+                $src = $front['src'] ?? null;
+
+                if (($mediaItemId === null || $mediaItemId === '') && is_string($src) && trim($src) !== '') {
+                    return $this->check(
+                        'media_references',
+                        'Imagens usam mídia segura do Gift',
+                        false,
+                        'error',
+                        "A página {$page->name} tem polaroid com src manual. Use uma imagem enviada para este gift.",
+                    );
+                }
+
+                if ($mediaItemId === null || $mediaItemId === '') {
+                    continue;
+                }
+
+                $mediaItem = $mediaItems->get(trim((string) $mediaItemId));
+
+                if (! $mediaItem instanceof MediaItem || ! $this->mediaCanBePublished($gift, $mediaItem)) {
+                    return $this->check(
+                        'media_references',
+                        'Imagens usam mídia segura do Gift',
+                        false,
+                        'error',
+                        "A página {$page->name} referencia uma imagem indisponível ou de outro gift.",
+                    );
+                }
+            }
         }
 
         return $this->check(
@@ -406,6 +438,20 @@ final class GiftPublicationChecklist
 
         return collect($elements)
             ->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'sticker')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function flipPolaroidElements(GiftPage $page): array
+    {
+        $canvas = is_array($page->canvas) ? $page->canvas : [];
+        $elements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
+
+        return collect($elements)
+            ->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'flip_polaroid')
             ->values()
             ->all();
     }

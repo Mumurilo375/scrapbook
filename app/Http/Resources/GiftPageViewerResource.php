@@ -104,6 +104,10 @@ class GiftPageViewerResource extends JsonResource
             return $this->stickerElementForViewer($element);
         }
 
+        if ($element['type'] === 'flip_polaroid') {
+            return $this->flipPolaroidElementForViewer($element);
+        }
+
         return $element;
     }
 
@@ -179,6 +183,55 @@ class GiftPageViewerResource extends JsonResource
         }
 
         unset($element['asset_id']);
+
+        return $element;
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     * @return array<string, mixed>
+     */
+    private function flipPolaroidElementForViewer(array $element): array
+    {
+        $front = is_array($element['front'] ?? null) ? $element['front'] : [];
+        $back = is_array($element['back'] ?? null) ? $element['back'] : [];
+
+        foreach (['src', 'thumbnailSrc', 'thumbnail_url', 'media_item_id', 'url', 'publicUrl', 'public_url', 'previewUrl', 'preview_url', 'assetUrl', 'asset_url', 'storage_path', 'storagePath'] as $key) {
+            unset($front[$key]);
+        }
+
+        foreach (['src', 'url', 'publicUrl', 'public_url', 'previewUrl', 'preview_url', 'assetUrl', 'asset_url', 'storage_path', 'storagePath'] as $key) {
+            unset($back[$key]);
+        }
+
+        $mediaItemId = $front['mediaItemId'] ?? null;
+
+        if (is_string($mediaItemId) || is_int($mediaItemId)) {
+            $mediaItem = $this->mediaItems()->get(trim((string) $mediaItemId));
+            $resolver = app(ViewerMediaUrlResolver::class);
+            $url = $mediaItem instanceof MediaItem
+                ? $resolver->mediaUrl($this->gift, $mediaItem, $this->mediaContext)
+                : null;
+
+            if ($mediaItem instanceof MediaItem && $url !== null) {
+                $front['mediaItemId'] = $mediaItem->id;
+                $front['src'] = $url;
+
+                $thumbnailUrl = $resolver->thumbnailUrl($this->gift, $mediaItem, $this->mediaContext);
+
+                if ($thumbnailUrl !== null) {
+                    $front['thumbnailSrc'] = $thumbnailUrl;
+                }
+            } else {
+                unset($front['mediaItemId']);
+                $front['missingMedia'] = true;
+            }
+        } else {
+            unset($front['mediaItemId']);
+        }
+
+        $element['front'] = $front;
+        $element['back'] = $back;
 
         return $element;
     }
@@ -272,6 +325,12 @@ class GiftPageViewerResource extends JsonResource
             }
 
             $child = str_replace("\0", '', $child);
+
+            if (in_array(strtolower((string) $key), ['storage_path', 'storagepath'], true)) {
+                unset($value[$key]);
+
+                continue;
+            }
 
             if (in_array(strtolower((string) $key), ['html', 'innerhtml'], true)) {
                 unset($value[$key]);
