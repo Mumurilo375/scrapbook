@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\ThemeVersions\RelationManagers;
+namespace App\Filament\Resources\Assets\RelationManagers;
 
-use App\Domain\Assets\Models\Asset;
-use App\Domain\Assets\Services\AssetUrlResolver;
-use App\Filament\Resources\Assets\AssetResource;
+use App\Domain\Themes\Models\ThemeVersion;
+use App\Filament\Resources\ThemeVersions\ThemeVersionResource;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
@@ -15,32 +14,31 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 
-class AssetsRelationManager extends RelationManager
+class ThemeVersionsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'assets';
+    protected static string $relationship = 'themeVersions';
 
-    protected static ?string $relatedResource = AssetResource::class;
+    protected static ?string $relatedResource = ThemeVersionResource::class;
 
     public function table(Table $table): Table
     {
         return $table
             ->columns([
-                ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => app(AssetUrlResolver::class)->previewUrl($record))->imageHeight(44),
-                TextColumn::make('category.name')->label('Categoria')->searchable()->sortable(),
-                TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('type')->badge(),
+                TextColumn::make('theme.name')->label('Tema')->searchable()->sortable(),
+                TextColumn::make('name')->label('Versão')->searchable()->sortable(),
+                TextColumn::make('version_number')->label('Número')->sortable(),
+                TextColumn::make('status')->badge(),
                 TextColumn::make('pivot.role')->label('Role')->badge(),
                 TextColumn::make('pivot.sort_order')->label('Ordem')->sortable(),
-                IconColumn::make('is_active')->boolean(),
+                IconColumn::make('theme.is_active')->label('Tema ativo')->boolean(),
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Associar asset')
+                    ->label('Associar tema')
                     ->preloadRecordSelect()
                     ->schema(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
@@ -53,13 +51,13 @@ class AssetsRelationManager extends RelationManager
                     ->label('Editar vínculo')
                     ->icon('heroicon-o-adjustments-horizontal')
                     ->schema(self::pivotSchema())
-                    ->fillForm(fn (Asset $record): array => [
+                    ->fillForm(fn (ThemeVersion $record): array => [
                         'role' => $record->pivot?->role ?: 'sticker',
                         'sort_order' => $record->pivot?->sort_order ?? 0,
                         'config' => self::jsonForEditing($record->pivot?->config),
                     ])
-                    ->action(function (Asset $record, array $data): void {
-                        $this->getOwnerRecord()->assets()->updateExistingPivot($record->id, [
+                    ->action(function (ThemeVersion $record, array $data): void {
+                        $this->getOwnerRecord()->themeVersions()->updateExistingPivot($record->id, [
                             'role' => $data['role'] ?? 'sticker',
                             'sort_order' => (int) ($data['sort_order'] ?? 0),
                             'config' => self::jsonForDatabase($data['config'] ?? null),

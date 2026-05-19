@@ -5,6 +5,8 @@ namespace App\Filament\Support;
 use App\Domain\Analytics\Models\GiftEvent;
 use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Services\AssetUrlResolver;
+use App\Domain\Assets\Support\AssetMetadata;
 use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Enums\GiftVisibility;
@@ -23,6 +25,7 @@ use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
 use App\Domain\Themes\Models\ThemeVersion;
 use App\Domain\Themes\ThemeConfig;
+use App\Filament\Resources\Assets\RelationManagers\ThemeVersionsRelationManager;
 use App\Filament\Resources\Gifts\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Gifts\RelationManagers\MediaItemsRelationManager;
 use App\Filament\Resources\Gifts\RelationManagers\OrdersRelationManager;
@@ -42,6 +45,7 @@ use Filament\Forms\Components\CodeEditor;
 use Filament\Forms\Components\CodeEditor\Enums\Language;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -114,6 +118,9 @@ class AdminResourceRegistry
             'ThemeVersion' => [
                 AssetsRelationManager::class,
             ],
+            'Asset' => [
+                ThemeVersionsRelationManager::class,
+            ],
             'Gift' => [
                 \App\Filament\Resources\Gifts\RelationManagers\PagesRelationManager::class,
                 MediaItemsRelationManager::class,
@@ -138,8 +145,8 @@ class AdminResourceRegistry
             'Plan' => ['group' => 'Produto', 'sort' => 20, 'label' => 'plano', 'pluralLabel' => 'Plans', 'icon' => Heroicon::OutlinedBanknotes, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'Theme' => ['group' => 'Visual', 'sort' => 10, 'label' => 'tema', 'pluralLabel' => 'Themes', 'icon' => Heroicon::OutlinedPaintBrush, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'ThemeVersion' => ['group' => 'Visual', 'sort' => 20, 'label' => 'versão de tema', 'pluralLabel' => 'Theme Versions', 'icon' => Heroicon::OutlinedSparkles, 'adminOnly' => true, 'delete' => true],
-            'AssetCategory' => ['group' => 'Visual', 'sort' => 30, 'label' => 'categoria de asset', 'pluralLabel' => 'Asset Categories', 'icon' => Heroicon::OutlinedTag, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
-            'Asset' => ['group' => 'Visual', 'sort' => 40, 'label' => 'asset', 'pluralLabel' => 'Assets', 'icon' => Heroicon::OutlinedPhoto, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
+            'AssetCategory' => ['group' => 'Visual', 'sort' => 30, 'label' => 'categoria de asset', 'pluralLabel' => 'Asset Categories', 'icon' => Heroicon::OutlinedTag, 'delete' => true, 'reorder' => true],
+            'Asset' => ['group' => 'Visual', 'sort' => 40, 'label' => 'asset', 'pluralLabel' => 'Assets', 'icon' => Heroicon::OutlinedPhoto, 'delete' => true, 'reorder' => true],
             'Template' => ['group' => 'Templates', 'sort' => 10, 'label' => 'template', 'pluralLabel' => 'Templates', 'icon' => Heroicon::OutlinedDocumentDuplicate, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
             'TemplateVersion' => ['group' => 'Templates', 'sort' => 20, 'label' => 'versão de template', 'pluralLabel' => 'Template Versions', 'icon' => Heroicon::OutlinedDocumentCheck, 'adminOnly' => true, 'delete' => true],
             'TemplatePage' => ['group' => 'Templates', 'sort' => 30, 'label' => 'página de template', 'pluralLabel' => 'Template Pages', 'icon' => Heroicon::OutlinedRectangleStack, 'adminOnly' => true, 'delete' => true, 'reorder' => true],
@@ -208,20 +215,30 @@ class AdminResourceRegistry
                 self::jsonField('metadata'),
             ],
             'Asset' => [
+                FileUpload::make('asset_file')
+                    ->label('Arquivo do asset')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/webp', 'image/jpeg'])
+                    ->helperText('Envie PNG, WebP ou JPG/JPEG. SVG fica bloqueado nesta etapa; o nome final é gerado pelo sistema.')
+                    ->imagePreviewHeight('150')
+                    ->maxSize((int) config('scrapbook.assets.max_upload_kb', 8192))
+                    ->storeFiles(false)
+                    ->required(fn (?Asset $record): bool => ! $record instanceof Asset || blank($record->storage_path))
+                    ->columnSpanFull(),
                 Select::make('asset_category_id')->relationship('category', 'name')->searchable()->preload(),
                 self::nameField(),
                 self::slugField(required: false),
                 self::enumSelect('type', AssetType::class)->required(),
-                TextInput::make('storage_disk')->required()->default('public')->maxLength(255),
-                TextInput::make('storage_path')->required()->maxLength(255)->columnSpanFull(),
-                TextInput::make('public_url')->maxLength(2048)->columnSpanFull(),
-                TextInput::make('mime_type')->maxLength(255),
-                self::integerField('size_bytes')->minValue(0),
-                self::integerField('width')->minValue(0),
-                self::integerField('height')->minValue(0),
+                TextInput::make('storage_disk')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(255),
+                TextInput::make('storage_path')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(255)->columnSpanFull(),
+                TextInput::make('public_url')->label('URL pública interna')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(2048)->columnSpanFull(),
+                TextInput::make('mime_type')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(255),
+                self::integerField('size_bytes')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset),
+                self::integerField('width')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset),
+                self::integerField('height')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset),
                 Toggle::make('is_active')->default(true),
                 self::integerField('sort_order')->default(0),
-                self::jsonField('metadata'),
+                self::jsonField('metadata', default: AssetMetadata::defaultForAdminForm()),
             ],
             'Template' => [
                 Select::make('occasion_id')->relationship('occasion', 'name')->searchable()->preload()->required(),
@@ -337,6 +354,7 @@ class AdminResourceRegistry
             'Asset' => [
                 ImageEntry::make('preview')->label('Preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(140),
                 TextEntry::make('category.name'), TextEntry::make('name'), TextEntry::make('slug')->copyable(), self::statusEntry('type'), IconEntry::make('is_active')->boolean(),
+                TextEntry::make('scope')->label('Escopo')->getStateUsing(fn (Asset $record): string => $record->themeVersions()->exists() ? 'Tema' : 'Global')->badge(),
                 TextEntry::make('sort_order'),
                 TextEntry::make('storage_disk'), TextEntry::make('storage_path')->copyable(), TextEntry::make('public_url')->copyable(),
                 TextEntry::make('mime_type'), TextEntry::make('size_bytes')->numeric(), TextEntry::make('width'), TextEntry::make('height'), self::jsonEntry('metadata'), ...self::timestamps(),
@@ -415,7 +433,7 @@ class AdminResourceRegistry
                 ->defaultSort('sort_order')
                 ->reorderable('sort_order'),
             'Asset' => $table
-                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('category.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable(), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable()])
+                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('category.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), TextColumn::make('scope')->label('Escopo')->getStateUsing(fn (Asset $record): string => $record->themeVersions()->exists() ? 'Tema' : 'Global')->badge(), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable(), TextColumn::make('dimensions')->label('Dimensões')->getStateUsing(fn (Asset $record): string => $record->width && $record->height ? "{$record->width}x{$record->height}" : 'N/D'), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()])
                 ->filters([SelectFilter::make('asset_category_id')->relationship('category', 'name')->searchable()->preload(), SelectFilter::make('type')->options(self::enumOptions(AssetType::class)), TernaryFilter::make('is_active')])
                 ->defaultSort('sort_order')
                 ->reorderable('sort_order'),
@@ -853,8 +871,8 @@ class AdminResourceRegistry
 
     protected static function storageUrl(Model $record): ?string
     {
-        if ($record instanceof Asset && filled($record->public_url)) {
-            return $record->public_url;
+        if ($record instanceof Asset) {
+            return app(AssetUrlResolver::class)->previewUrl($record);
         }
 
         if (! filled($record->storage_path)) {
