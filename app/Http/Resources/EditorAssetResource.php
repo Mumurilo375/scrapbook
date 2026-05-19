@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\AssetUrlResolver;
+use App\Domain\Assets\Support\AssetMetadata;
 use BackedEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -29,6 +30,9 @@ class EditorAssetResource extends JsonResource
             'category' => $this->categorySummary(),
             'previewUrl' => $renderMode === 'image' ? app(AssetUrlResolver::class)->previewUrl($this->resource) : null,
             'renderMode' => $renderMode,
+            'renderStyle' => $this->renderStyle(),
+            'physical' => $this->physicalConfig(),
+            'defaultTransform' => $this->defaultTransform(),
             'config' => $this->editorConfig(),
             'source' => $source,
             'role' => $source === 'theme' ? $this->getAttribute('editor_role') : null,
@@ -59,6 +63,37 @@ class EditorAssetResource extends JsonResource
         return in_array($renderMode, ['image', 'svg', 'shape'], true) ? $renderMode : 'image';
     }
 
+    private function renderStyle(): ?string
+    {
+        $renderStyle = data_get($this->metadata, 'renderStyle');
+
+        if (is_string($renderStyle) && $renderStyle !== '') {
+            return $renderStyle;
+        }
+
+        return AssetMetadata::renderStyleForType($this->enumValue($this->type));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function physicalConfig(): ?array
+    {
+        $physical = data_get($this->metadata, 'physical');
+
+        return is_array($physical) ? $physical : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function defaultTransform(): ?array
+    {
+        $defaultTransform = data_get($this->metadata, 'defaultTransform');
+
+        return is_array($defaultTransform) ? $defaultTransform : null;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -75,6 +110,14 @@ class EditorAssetResource extends JsonResource
         foreach (['shape', 'colors', 'defaultSize', 'keywords'] as $key) {
             if (array_key_exists($key, $editor)) {
                 $config[$key] = $editor[$key];
+            }
+        }
+
+        foreach (['renderStyle', 'physical', 'defaultTransform'] as $key) {
+            $value = data_get($this->metadata, $key);
+
+            if ($value !== null) {
+                $config[$key] = $value;
             }
         }
 
