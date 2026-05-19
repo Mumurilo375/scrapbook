@@ -10,6 +10,7 @@ class AnalyticsDailyMetric extends Model
         'date',
         'metric_key',
         'dimensions',
+        'dimensions_hash',
         'value_numeric',
         'metadata',
     ];
