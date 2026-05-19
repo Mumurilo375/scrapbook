@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import type { CanvasElement } from '../../domain/canvas/schema';
 import { assetFromMap, type RendererAssetMap } from './assetTypes';
 import { AssetVisual } from './AssetVisual';
-import { isRecord, resolveThemeColor, type NormalizedThemeConfig } from './theme';
+import { isRecord, resolveThemeColor, type NormalizedThemeConfig, type RendererContext } from './theme';
 
 type StickerElementProps = {
     artboard: {
@@ -12,10 +12,11 @@ type StickerElementProps = {
     element: CanvasElement;
     style: CSSProperties;
     assets?: RendererAssetMap;
+    context?: RendererContext;
     theme: NormalizedThemeConfig;
 };
 
-export function StickerElement({ artboard, assets, element, style, theme }: StickerElementProps) {
+export function StickerElement({ artboard, assets, context = 'preview', element, style, theme }: StickerElementProps) {
     const text =
         typeof element.text === 'string'
             ? element.text
@@ -34,23 +35,19 @@ export function StickerElement({ artboard, assets, element, style, theme }: Stic
     const textAlign = safeTextAlign(elementStyle.align) ?? 'center';
 
     if (asset) {
+        const overlay =
+            text !== '' ? (
+                <span
+                    className="pointer-events-none absolute inset-[12%] z-[6] flex items-center justify-center whitespace-pre-wrap break-words px-2 font-semibold"
+                    style={{ color, fontSize, textAlign }}
+                >
+                    {text}
+                </span>
+            ) : null;
+
         return (
-            <div
-                className="absolute flex items-center justify-center"
-                style={{
-                    ...style,
-                    filter: theme.elements.sticker.shadow ? `drop-shadow(0 9px 12px ${theme.tokens.colors.shadow})` : undefined,
-                }}
-            >
-                <AssetVisual asset={asset} theme={theme} />
-                {text !== '' ? (
-                    <span
-                        className="pointer-events-none absolute inset-[12%] flex items-center justify-center whitespace-pre-wrap break-words px-2 font-semibold"
-                        style={{ color, fontSize, textAlign }}
-                    >
-                        {text}
-                    </span>
-                ) : null}
+            <div className="absolute flex items-center justify-center overflow-visible" style={style}>
+                <AssetVisual asset={asset} context={context} overlay={overlay} theme={theme} />
             </div>
         );
     }

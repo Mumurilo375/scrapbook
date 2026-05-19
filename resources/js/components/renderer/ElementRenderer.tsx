@@ -5,13 +5,14 @@ import { InteractiveElement } from './InteractiveElement';
 import { MusicElement } from './MusicElement';
 import { StickerElement } from './StickerElement';
 import { TextElement } from './TextElement';
-import type { NormalizedThemeConfig } from './theme';
+import type { NormalizedThemeConfig, RendererContext } from './theme';
 
 type ElementRendererProps = {
     artboard: {
         width: number;
         height: number;
     };
+    context?: RendererContext;
     element: CanvasElement;
     onElementClick?: (element: CanvasElement) => void;
     onMediaDrop?: (element: CanvasElement, mediaItemId: string) => void;
@@ -20,7 +21,16 @@ type ElementRendererProps = {
     theme: NormalizedThemeConfig;
 };
 
-export function ElementRenderer({ artboard, assets, element, onElementClick, onMediaDrop, selectedElementId = null, theme }: ElementRendererProps) {
+export function ElementRenderer({
+    artboard,
+    assets,
+    context = 'preview',
+    element,
+    onElementClick,
+    onMediaDrop,
+    selectedElementId = null,
+    theme,
+}: ElementRendererProps) {
     const style = {
         left: `${toPercent(element.x, artboard.width)}%`,
         top: `${toPercent(element.y, artboard.height)}%`,
@@ -48,7 +58,7 @@ export function ElementRenderer({ artboard, assets, element, onElementClick, onM
     }
 
     if (element.type === 'sticker') {
-        return <StickerElement artboard={artboard} assets={assets} element={element} style={style} theme={theme} />;
+        return <StickerElement artboard={artboard} assets={assets} context={context} element={element} style={style} theme={theme} />;
     }
 
     if (element.type === 'music') {

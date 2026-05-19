@@ -1,10 +1,11 @@
 import type { Canvas, CanvasElement } from '../../domain/canvas/schema';
 import type { RendererAssetMap } from './assetTypes';
 import { ElementRenderer } from './ElementRenderer';
-import type { NormalizedThemeConfig } from './theme';
+import type { NormalizedThemeConfig, RendererContext } from './theme';
 
 type CanvasElementLayerProps = {
     canvas: Canvas;
+    context?: RendererContext;
     onElementClick?: (element: CanvasElement) => void;
     onMediaDrop?: (element: CanvasElement, mediaItemId: string) => void;
     selectedElementId?: string | null;
@@ -15,6 +16,7 @@ type CanvasElementLayerProps = {
 export function CanvasElementLayer({
     assets,
     canvas,
+    context = 'preview',
     onElementClick,
     onMediaDrop,
     selectedElementId = null,
@@ -32,6 +34,7 @@ export function CanvasElementLayer({
                     <ElementRenderer
                         artboard={{ height, width }}
                         assets={assets}
+                        context={context}
                         element={element}
                         key={element.id}
                         onElementClick={onElementClick}

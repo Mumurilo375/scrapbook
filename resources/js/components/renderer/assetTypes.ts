@@ -12,6 +12,9 @@ export type RendererAsset = {
     category?: RendererAssetCategory | null;
     previewUrl?: string | null;
     renderMode?: 'image' | 'svg' | 'shape';
+    renderStyle?: string | null;
+    physical?: Record<string, unknown> | null;
+    defaultTransform?: Record<string, unknown> | null;
     config?: Record<string, unknown>;
     source?: 'global' | 'theme';
     role?: string | null;

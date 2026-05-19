@@ -1,32 +1,58 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import type { RendererAsset } from './assetTypes';
+import { objectFitForRenderStyle, resolveAssetRenderStyle } from './assetStyleUtils';
+import { PhysicalAssetFrame } from './PhysicalAssetFrame';
 import { isRecord, type NormalizedThemeConfig } from './theme';
+import type { RendererContext } from './theme';
 
 type AssetVisualProps = {
     asset: RendererAsset;
     className?: string;
+    context?: RendererContext;
+    overlay?: ReactNode;
     style?: CSSProperties;
     theme: NormalizedThemeConfig;
 };
 
-export function AssetVisual({ asset, className, style, theme }: AssetVisualProps) {
+export function AssetVisual({ asset, className, context = 'preview', overlay, style, theme }: AssetVisualProps) {
+    const renderStyle = resolveAssetRenderStyle(asset);
+
+    return (
+        <PhysicalAssetFrame asset={asset} className={className} context={context} style={style} theme={theme}>
+            <AssetVisualContent asset={asset} renderStyle={renderStyle} theme={theme} />
+            {overlay}
+        </PhysicalAssetFrame>
+    );
+}
+
+type AssetVisualContentProps = {
+    asset: RendererAsset;
+    renderStyle: ReturnType<typeof resolveAssetRenderStyle>;
+    theme: NormalizedThemeConfig;
+};
+
+function AssetVisualContent({ asset, renderStyle, theme }: AssetVisualContentProps) {
     if (asset.renderMode === 'image' && asset.previewUrl) {
         return (
             <img
                 alt=""
-                className={className}
                 draggable={false}
                 src={asset.previewUrl}
-                style={{ display: 'block', height: '100%', objectFit: 'contain', width: '100%', ...style }}
+                style={{
+                    display: 'block',
+                    height: '100%',
+                    objectFit: objectFitForRenderStyle(renderStyle),
+                    width: '100%',
+                }}
             />
         );
     }
 
-    return <ShapeAssetVisual asset={asset} className={className} style={style} theme={theme} />;
+    return <ShapeAssetVisual asset={asset} theme={theme} />;
 }
 
-function ShapeAssetVisual({ asset, className, style, theme }: AssetVisualProps) {
+function ShapeAssetVisual({ asset, theme }: Pick<AssetVisualProps, 'asset' | 'theme'>) {
     const config = isRecord(asset.config) ? asset.config : {};
     const colors = isRecord(config.colors) ? config.colors : {};
     const primary = colorString(colors.primary, theme.tokens.colors.accent);
@@ -37,10 +63,9 @@ function ShapeAssetVisual({ asset, className, style, theme }: AssetVisualProps) 
     return (
         <svg
             aria-hidden="true"
-            className={className}
             focusable="false"
             preserveAspectRatio="xMidYMid meet"
-            style={{ display: 'block', height: '100%', overflow: 'visible', width: '100%', ...style }}
+            style={{ display: 'block', height: '100%', overflow: 'visible', width: '100%' }}
             viewBox="0 0 100 100"
         >
             <Shape name={shape} primary={primary} secondary={secondary} ink={ink} />

@@ -38,6 +38,7 @@ export function PageRenderer({
                     <CanvasElementLayer
                         assets={assets}
                         canvas={canvas}
+                        context={context}
                         onElementClick={onElementClick}
                         onMediaDrop={onMediaDrop}
                         selectedElementId={selectedElementId}
