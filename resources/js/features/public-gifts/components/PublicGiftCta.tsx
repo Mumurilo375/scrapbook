@@ -12,7 +12,7 @@ type PublicGiftCtaProps = {
 export function PublicGiftCta({ compact = false, createUrl, theme }: PublicGiftCtaProps) {
     return (
         <Link
-            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold transition hover:-translate-y-0.5 ${
+            className={`gift-viewer-action inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold ${
                 compact ? 'mx-auto' : ''
             }`}
             href={createUrl}

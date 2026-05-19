@@ -37,7 +37,7 @@ export function PublicGiftNavigation({
         <div className="mx-auto flex w-full max-w-[920px] items-center justify-between gap-3">
             <button
                 aria-label="Página anterior"
-                className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+                className="gift-viewer-action inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={!canGoPrevious}
                 onClick={onPrevious}
                 style={{
@@ -61,7 +61,7 @@ export function PublicGiftNavigation({
 
             <button
                 aria-label={resolvedNextLabel === 'Final' ? 'Ver final' : 'Próxima página'}
-                className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+                className="gift-viewer-action inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={!canGoNext}
                 onClick={onNext}
                 style={{

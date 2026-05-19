@@ -37,7 +37,7 @@ export function PublicGiftProgress({
                 style={{ backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 24%, transparent)` }}
             >
                 <div
-                    className="h-full rounded-full transition-[width] duration-300 ease-out"
+                    className="gift-viewer-progress-bar h-full rounded-full transition-[width] duration-300 ease-out"
                     style={{
                         backgroundColor: theme.tokens.colors.accent,
                         width: `${progress}%`,

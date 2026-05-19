@@ -8,7 +8,8 @@
 @source '../**/*.tsx';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-hand: 'Caveat', cursive;
     --font-editorial: 'Fraunces', Georgia, serif;
@@ -16,17 +17,17 @@
 
 :root {
     color-scheme: light;
-    --scrap-background: #F4E8D9;
-    --scrap-paper: #FFF7EE;
-    --scrap-kraft-light: #B78D5C;
-    --scrap-kraft: #AD7948;
-    --scrap-brown-dark: #1F150A;
-    --scrap-brown: #42291D;
-    --scrap-rose: #E66F65;
-    --scrap-wine: #D93632;
-    --scrap-gold: #BD8558;
-    --scrap-olive: #7E8F68;
-    --scrap-ink: #221C19;
+    --scrap-background: #f4e8d9;
+    --scrap-paper: #fff7ee;
+    --scrap-kraft-light: #b78d5c;
+    --scrap-kraft: #ad7948;
+    --scrap-brown-dark: #1f150a;
+    --scrap-brown: #42291d;
+    --scrap-rose: #e66f65;
+    --scrap-wine: #d93632;
+    --scrap-gold: #bd8558;
+    --scrap-olive: #7e8f68;
+    --scrap-ink: #221c19;
 }
 
 body {
@@ -50,11 +51,180 @@ html {
 }
 
 .gift-viewer-opening-transition {
-    animation: gift-viewer-fade-up 300ms ease-out both;
+    animation: gift-viewer-opening 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.gift-viewer-page-transition {
-    animation: gift-viewer-fade-up 220ms ease-out both;
+.gift-viewer-ending-transition {
+    animation: gift-viewer-ending 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.gift-viewer-motion {
+    --gift-motion-distance: 18px;
+    --gift-motion-scale: 0.992;
+    --gift-motion-duration: 240ms;
+    animation: gift-viewer-page-next var(--gift-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: opacity, transform;
+}
+
+.gift-viewer-motion[data-intensity='low'] {
+    --gift-motion-distance: 12px;
+    --gift-motion-scale: 0.996;
+    --gift-motion-duration: 190ms;
+}
+
+.gift-viewer-motion[data-intensity='high'] {
+    --gift-motion-distance: 26px;
+    --gift-motion-scale: 0.986;
+    --gift-motion-duration: 310ms;
+}
+
+.gift-viewer-motion[data-view-mode='spread'] {
+    --gift-motion-distance: 24px;
+    --gift-motion-scale: 0.99;
+    --gift-motion-duration: 260ms;
+}
+
+.gift-viewer-motion[data-view-mode='spread'][data-intensity='low'] {
+    --gift-motion-distance: 16px;
+    --gift-motion-scale: 0.995;
+    --gift-motion-duration: 210ms;
+}
+
+.gift-viewer-motion[data-view-mode='spread'][data-intensity='high'] {
+    --gift-motion-distance: 34px;
+    --gift-motion-scale: 0.984;
+    --gift-motion-duration: 330ms;
+}
+
+.gift-viewer-motion[data-direction='previous'] {
+    animation-name: gift-viewer-page-previous;
+}
+
+.gift-viewer-motion[data-direction='none'] {
+    animation-name: gift-viewer-fade-up;
+}
+
+.gift-viewer-motion[data-transition='fade'] {
+    animation-name: gift-viewer-fade-up;
+}
+
+.gift-viewer-motion[data-motion='off'],
+.gift-viewer-motion[data-transition='none'],
+.gift-viewer-opening-transition[data-motion='off'],
+.gift-viewer-ending-transition[data-motion='off'] {
+    animation: none;
+    transform: none;
+    will-change: auto;
+}
+
+.gift-opening-book {
+    animation: gift-viewer-soft-lift 420ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+.gift-viewer-opening-transition[data-motion='off'] .gift-opening-book {
+    animation: none;
+}
+
+.gift-viewer-action {
+    transition:
+        transform 180ms ease,
+        box-shadow 180ms ease,
+        filter 180ms ease,
+        background-color 180ms ease,
+        border-color 180ms ease;
+}
+
+.gift-viewer-action:not(:disabled):hover {
+    filter: saturate(1.04);
+    transform: translateY(-2px);
+}
+
+.gift-viewer-action:not(:disabled):active {
+    transform: translateY(0) scale(0.99);
+}
+
+.gift-viewer-action:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+[data-motion='off'] .gift-viewer-action,
+[data-motion='off'] .gift-viewer-action:hover,
+[data-motion='off'] .gift-viewer-action:active {
+    transform: none;
+    transition-duration: 1ms;
+}
+
+[data-motion='off'] .gift-viewer-progress-bar {
+    transition-duration: 1ms;
+}
+
+.gift-book-shell[data-motion='off'] {
+    transition-duration: 1ms;
+}
+
+.gift-book-motion-shadow {
+    background:
+        linear-gradient(90deg, transparent 34%, rgba(58, 36, 24, 0.16) 50%, transparent 66%),
+        radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.18), transparent 30%);
+    mix-blend-mode: multiply;
+    opacity: 0;
+}
+
+.gift-book-motion-shadow[data-motion='on'] {
+    animation: gift-book-fold-shadow 280ms ease-out both;
+}
+
+.gift-book-motion-shadow[data-direction='previous'] {
+    transform: scaleX(-1);
+}
+
+@keyframes gift-viewer-opening {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.986);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes gift-viewer-ending {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes gift-viewer-page-next {
+    from {
+        opacity: 0;
+        transform: translateX(var(--gift-motion-distance)) scale(var(--gift-motion-scale));
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes gift-viewer-page-previous {
+    from {
+        opacity: 0;
+        transform: translateX(calc(var(--gift-motion-distance) * -1)) scale(var(--gift-motion-scale));
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
 }
 
 @keyframes gift-viewer-fade-up {
@@ -69,11 +239,62 @@ html {
     }
 }
 
+@keyframes gift-viewer-soft-lift {
+    from {
+        opacity: 0.72;
+        transform: translateY(8px) scale(0.985) rotate(-0.4deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0deg);
+    }
+}
+
+@keyframes gift-book-fold-shadow {
+    0% {
+        opacity: 0;
+    }
+
+    45% {
+        opacity: 0.55;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .gift-viewer-opening-transition,
+    .gift-viewer-ending-transition,
+    .gift-viewer-motion,
+    .gift-opening-book,
+    .gift-book-shell,
+    .gift-book-motion-shadow {
+        animation: none !important;
+        transform: none !important;
+        transition-duration: 1ms !important;
+        will-change: auto !important;
+    }
+
+    .gift-viewer-action,
+    .gift-viewer-action:hover,
+    .gift-viewer-action:active,
+    .gift-viewer-progress-bar {
+        transform: none !important;
+        transition-duration: 1ms !important;
+    }
+}
+
 .scrapbook-background {
     background-image:
-        linear-gradient(90deg, #AD79480A 1px, transparent 1px),
-        linear-gradient(#AD794809 1px, transparent 1px),
-        radial-gradient(circle at 24px 24px, #221C190D 1px, transparent 1px);
+        linear-gradient(90deg, #ad79480a 1px, transparent 1px), linear-gradient(#ad794809 1px, transparent 1px),
+        radial-gradient(circle at 24px 24px, #221c190d 1px, transparent 1px);
     background-size:
         54px 54px,
         54px 54px,
@@ -82,9 +303,8 @@ html {
 
 .paper-texture {
     background-image:
-        linear-gradient(90deg, #6F422609 1px, transparent 1px),
-        linear-gradient(#6F422606 1px, transparent 1px),
-        radial-gradient(circle at 12px 16px, #BD855829 1px, transparent 1.5px);
+        linear-gradient(90deg, #6f422609 1px, transparent 1px), linear-gradient(#6f422606 1px, transparent 1px),
+        radial-gradient(circle at 12px 16px, #bd855829 1px, transparent 1.5px);
     background-size:
         42px 42px,
         42px 42px,
@@ -93,9 +313,9 @@ html {
 
 .paper-grain {
     background-image:
-        radial-gradient(circle at 20% 20%, #FFF7EE57 1px, transparent 1px),
-        radial-gradient(circle at 80% 30%, #B78D5C3D 1px, transparent 1px),
-        radial-gradient(circle at 35% 75%, #221C1929 1px, transparent 1px);
+        radial-gradient(circle at 20% 20%, #fff7ee57 1px, transparent 1px),
+        radial-gradient(circle at 80% 30%, #b78d5c3d 1px, transparent 1px),
+        radial-gradient(circle at 35% 75%, #221c1929 1px, transparent 1px);
     background-size:
         18px 18px,
         22px 22px,
