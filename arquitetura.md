@@ -1380,9 +1380,12 @@ gifts/{gift_ulid}/media/{media_ulid}/thumb.webp
 ### Assets do sistema
 
 ```txt
-system/assets/{asset_ulid}/file.png
-system/assets/{asset_ulid}/preview.webp
+system/assets/{asset_ulid}/asset.png
+system/assets/{asset_ulid}/asset.webp
+system/assets/{asset_ulid}/asset.jpg
 ```
+
+Assets do sistema são enviados pelo admin/support e servidos ao editor/viewer por rota ou URL segura calculada pelo backend. O frontend não recebe `storage_path`; ele recebe um `previewUrl` seguro quando o asset é renderizado como imagem.
 
 ### Cartões QR/PDF
 
@@ -1619,7 +1622,7 @@ O admin inicial possui resources para:
 
 - Resources usam os models de `app/Domain`.
 - `admin` acessa todos os resources.
-- `support` acessa recursos operacionais, pagamentos e analytics.
+- `support` acessa recursos operacionais, pagamentos, analytics e gestão de assets/categorias visuais do sistema.
 - `customer` e usuários não autenticados não acessam o painel.
 - `/horizon` continua protegido por Gate para `admin` e `support`.
 
@@ -1803,16 +1806,42 @@ O editor não altera `user_id`, `plan_id`, `status`, `public_code`, versões de 
 Assets decorativos do sistema são diferentes de `MediaItem`.
 
 - `MediaItem` representa arquivos enviados pelo usuário, vinculados a `User`/`Gift`: fotos pessoais e imagens do presente.
-- `Asset` representa elementos decorativos do sistema, cadastrados/admins e reutilizáveis: stickers, fitas, flores, molduras, papéis, selos, rabiscos, ícones e recortes.
-- `AssetCategory` organiza assets em categorias ativas/ordenadas como Corações, Fitas, Flores, Papéis, Molduras, Rabiscos, Aniversário, Romance, Amizade e Vintage.
+- `Asset` representa elementos decorativos do sistema, cadastrados/admins e reutilizáveis: adesivos, fitas, flores, molduras, papéis, texturas, envelopes, selos, etiquetas, fundos, overlays, bordas, ícones e recortes.
+- `AssetCategory` organiza assets em categorias ativas/ordenadas como Corações, Fitas, Flores, Papéis, Texturas, Molduras, Envelopes, Selos, Etiquetas, Rabiscos, Aniversário, Romance, Amizade, Vintage, Kraft, Jornal e Polaroids.
+- Tipos de asset suportados incluem `sticker`, `texture`, `paper`, `background`, `frame`, `tape`, `label`, `envelope`, `stamp`, `flower`, `decoration`, `icon`, `shape`, `border` e `overlay`.
 - Um `Asset` pertence opcionalmente a uma categoria por `asset_category_id`; para o MVP não há many-to-many de categorias.
+- Upload administrativo aceita PNG, WebP e JPG/JPEG com validação de MIME real e extensão. SVG fica bloqueado inicialmente para uploads, salvo decisão futura com sanitização explícita para admin confiável.
+- `ProcessUploadedAsset` salva o arquivo com nome seguro em storage configurado, sem usar nome original, e preenche `storage_disk`, `storage_path`, `mime_type`, `size_bytes`, `width` e `height`.
+- `storage_path` é dado interno. Preview no admin, editor, preview privado e viewer público deve usar rota/URL segura derivada pelo backend.
 - Assets globais são assets ativos sem vínculo em `theme_asset`; assets do tema são os associados ao `ThemeVersion` atual por `theme_asset`.
-- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema.
+- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema. Roles iniciais: `sticker`, `paper_texture`, `background_texture`, `tape`, `frame`, `decoration`, `overlay` e `border`.
+- `Asset.metadata` controla renderização premium com `renderStyle`, `physical` e `defaultTransform`, por exemplo borda branca, sombra projetada, lift, textura de papel, rotação orgânica e dimensões padrão.
+- Cadastrar novos assets reais, categorias e associações de tema deve ser feito pelo admin/support. Código só deve ser necessário para novo comportamento de renderer, novos tipos sem suporte ou mudanças de contrato.
 - O endpoint autenticado `GET /app/gifts/{gift}/assets` lista categorias ativas, assets ativos do tema primeiro e assets globais depois. Ele exige Gift próprio em `draft`.
-- O endpoint não expõe `storage_path` nem metadata administrativa; o frontend recebe `id`, `name`, `type`, categoria, `renderMode`, `previewUrl` seguro quando existir e `config` allowlistado.
-- O editor possui aba `Adesivos`, com busca, filtro por categoria e grid responsivo. Ao clicar em um asset, cria um elemento `sticker` no centro da página atual com `assetId`, dimensões padrão, rotação `0`, `locked = false`, `hidden = false` e camada acima das atuais.
+- O endpoint não expõe `storage_path` nem metadata administrativa; o frontend recebe `id`, `name`, `type`, categoria, `renderMode`, `previewUrl`, `renderStyle`, `physical`, `defaultTransform` e `config` allowlistado.
+- O editor possui aba `Adesivos`, com busca, filtro por categoria e grid responsivo. Ao clicar em um asset, cria um elemento `sticker` no centro da página atual com `assetId`, dimensões/rotação padrão do metadata quando existirem, `locked = false`, `hidden = false` e camada acima das atuais.
 - O renderer compartilhado resolve `assetId` por um mapa seguro `assetId -> asset` recebido do endpoint/editor ou do payload de preview/viewer. Se o asset estiver inativo/indisponível, o sticker fica em fallback seguro.
 - Preview privado e viewer público recebem apenas os assets referenciados por elementos visíveis das páginas visíveis e não expõem caminhos internos.
+
+### Renderização física de assets
+
+O renderer compartilhado aplica uma camada visual física para assets decorativos. A responsabilidade fica em `PhysicalAssetFrame` e utilitários de estilo do renderer; `StickerElement` continua apenas resolvendo `assetId` pelo mapa seguro e renderizando o conteúdo.
+
+- `renderStyle` define a família visual do asset. Valores esperados: `sticker`, `cutout`, `paper`, `tape`, `frame`, `label`, `stamp`, `flower`, `decoration`, `texture`, `background`, `overlay`, `border` e `flat`.
+- Quando `renderStyle` estiver ausente, o fallback vem de `asset.type`: sticker vira sticker, tape vira tape, paper/envelope/newspaper vira paper, frame/border vira frame/border, label vira label, stamp vira stamp, flower vira flower, texture/background/overlay não recebem sombra de sticker e decoration/icon/shape/doodle viram decoração.
+- `physical` controla `whiteBorder`, `borderWidth`, `dropShadow`, `shadowIntensity`, `lift`, `paperTexture`, `slightRotation`, `edgeHighlight` e `opacity`, com defaults seguros por estilo.
+- `defaultTransform` controla `w`, `h` e `rotation` ao adicionar assets no editor. Se ausente, o frontend usa fallbacks por estilo: sticker/decorativos menores, tape horizontal, paper/label retangulares, frame maior e texture/background ocupando a área útil da folha.
+- `sticker` aplica borda branca aproximada, sombras em camadas, lift e highlight para parecer adesivo recortado.
+- `tape` fica sem borda branca, com opacidade, textura leve, sombra discreta e aparência de fita colada.
+- `paper` e `label` recebem textura, backing de papel, sombra e borda/highlight sutis para parecer recorte/etiqueta.
+- `frame` e `border` usam sombra/profundidade sem virar adesivo branco.
+- `stamp` usa opacidade, textura e sombra bem sutis.
+- `flower`, `cutout` e `decoration` usam sombra orgânica e lift leve, sem borda branca obrigatória.
+- `texture`, `background`, `overlay` e `flat` não recebem sombra individual de sticker; eles devem se misturar à folha ou funcionar como camada visual.
+
+A borda branca de sticker é uma aproximação CSS feita com múltiplos `drop-shadow` sem deslocamento/pequeno deslocamento ao redor da imagem. Isso melhora PNG/WebP transparentes, mas não substitui processamento real de contorno por pixel. Uma borda perfeita ao redor do recorte deve ficar para uma etapa futura de processamento de imagem, caso vire requisito de qualidade.
+
+Essa camada é apenas visual. O canvas continua salvando `assetId`, coordenadas e transformações; ele não salva `previewUrl`, `storage_path`, URL externa ou `src` manual para sticker. Editor, preview privado e viewer público usam a mesma renderização física, enquanto handles, seleção, bloqueio, ocultação, undo/redo e autosave continuam pertencendo somente ao editor.
 
 ### Upload/mídia básica
 
