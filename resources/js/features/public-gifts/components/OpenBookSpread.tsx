@@ -50,7 +50,7 @@ export function OpenBookSpread({
             style={spreadStyle}
         >
             <div
-                className={`relative overflow-hidden border border-[rgba(58,36,24,0.16)] bg-[var(--book-bg)] shadow-[0_34px_96px_rgba(58,36,24,0.24)] ${
+                className={`relative overflow-hidden border border-[rgba(58,36,24,0.16)] bg-[var(--book-bg)] shadow-[0_18px_44px_rgba(58,36,24,0.18)] sm:shadow-[0_34px_96px_rgba(58,36,24,0.24)] ${
                     isSpread ? 'rounded-[30px] p-3 sm:p-4 lg:p-5' : 'rounded-[28px] p-3 sm:p-4'
                 }`}
                 style={{

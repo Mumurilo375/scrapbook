@@ -182,6 +182,7 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
         <button
             aria-label={open ? `Fechar carta: ${title}` : `Abrir carta: ${title}`}
             className="absolute block touch-manipulation text-left"
+            data-scrapbook-interactive="true"
             onClick={(event) => {
                 stopCanvasInteraction(event);
                 setOpen((current) => !current);
@@ -234,7 +235,9 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
                         <img
                             alt={caption}
                             className="h-full w-full object-cover"
+                            decoding="async"
                             draggable={false}
+                            loading="lazy"
                             src={src}
                         />
                     ) : (
@@ -329,6 +332,7 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
         <button
             aria-label={flipped ? 'Virar polaroid para frente' : 'Virar polaroid para o verso'}
             className="absolute block touch-manipulation"
+            data-scrapbook-interactive="true"
             onClick={(event) => {
                 stopCanvasInteraction(event);
                 setFlipped((current) => !current);

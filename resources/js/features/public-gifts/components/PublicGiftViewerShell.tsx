@@ -147,7 +147,9 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     }, [goNext, goPrevious, phase]);
 
     function handleTouchStart(event: TouchEvent<HTMLElement>) {
-        if (phase === 'opening') {
+        if (phase === 'opening' || isScrapbookInteractiveTarget(event.target)) {
+            touchStart.current = null;
+
             return;
         }
 
@@ -157,7 +159,9 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     }
 
     function handleTouchEnd(event: TouchEvent<HTMLElement>) {
-        if (phase === 'opening' || touchStart.current === null) {
+        if (phase === 'opening' || isScrapbookInteractiveTarget(event.target) || touchStart.current === null) {
+            touchStart.current = null;
+
             return;
         }
 
@@ -430,4 +434,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
     }
 
     return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+}
+
+function isScrapbookInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof HTMLElement && target.closest('[data-scrapbook-interactive="true"]') !== null;
 }
