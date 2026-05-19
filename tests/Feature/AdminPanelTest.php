@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\VisualQa;
 use App\Filament\Resources\Gifts\GiftResource;
 use App\Filament\Resources\Occasions\OccasionResource;
 use App\Models\User;
@@ -45,6 +46,35 @@ class AdminPanelTest extends TestCase
         $this
             ->actingAs($support)
             ->get(OccasionResource::getUrl())
+            ->assertForbidden();
+    }
+
+    public function test_staff_can_open_visual_qa_checklist(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $support = $this->userWithRole('support');
+
+        $this
+            ->actingAs($admin)
+            ->get(VisualQa::getUrl())
+            ->assertOk()
+            ->assertSee('QA visual/mobile com assets reais')
+            ->assertSee('Auditoria automatica');
+
+        $this
+            ->actingAs($support)
+            ->get(VisualQa::getUrl())
+            ->assertOk()
+            ->assertSee('QA visual/mobile com assets reais');
+    }
+
+    public function test_customer_cannot_open_visual_qa_checklist(): void
+    {
+        $customer = $this->userWithRole('customer');
+
+        $this
+            ->actingAs($customer)
+            ->get(VisualQa::getUrl())
             ->assertForbidden();
     }
 
