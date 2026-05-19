@@ -32,9 +32,9 @@
 - Pipeline visual e Gift para Template implementados como base de criação visual.
 - Sistema de papel/fundo da página estabilizado em `canvas.artboard.background`, com papel do tema vs papel personalizado e preview/viewer consistentes.
 - Transições leves do Book Mode implementadas no viewer público e preview privado, com abertura suave, direção `next`/`previous`, microinterações, suporte a `prefers-reduced-motion` e sem page flip 3D pesado.
-- Fase atual: componentes especiais de scrapbook, começando por envelope com carta (`interactive_envelope`) e polaroid virável (`flip_polaroid`) como elementos seguros do canvas.
-- Próxima fase possível: QA visual com assets reais/templates finais ou ampliação controlada de componentes interativos.
-- Depois: QA visual/templates reais, landing final e gateway real em etapas separadas.
+- Componentes especiais de scrapbook v1 implementados, começando por envelope com carta (`interactive_envelope`) e polaroid virável (`flip_polaroid`) como elementos seguros do canvas.
+- Fase atual: QA visual/mobile com auditoria automática, assets reais, templates finais, editor, viewer, Book Mode, envelope, polaroid, QR Code/cartão e performance.
+- Próxima fase possível: bilhete secreto, page flip mais avançado, landing final ou gateway real, conforme resultado do QA visual.
 - Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
@@ -394,7 +394,7 @@ Controles de camadas atuais: lista de camadas da página, seleção por camada, 
 
 Histórico local atual: undo/redo por página no editor, limite de 40 entradas por página, botões na topbar, atalhos `Ctrl/Cmd + Z`, `Ctrl/Cmd + Shift + Z` e `Ctrl/Cmd + Y`, coalescing para texto/propriedades e uma única entrada ao finalizar mover/redimensionar/rotacionar. Undo/redo não é salvo como versionamento no banco; ele altera o canvas local, preserva o rascunho local e deixa o autosave persistir pelo endpoint existente.
 
-Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado, admin real de assets visuais, renderização premium/física de stickers/assets, texturas reais de tema/papel/fundo, templates premium, book mode, transições leves do Book Mode, sistema de papel/fundo em `canvas.artboard.background` e Gift para Template já foram implementados/refinados. Fase atual: componentes especiais de scrapbook, sem avançar gateway externo real, landing, mini game ou editor pesado.
+Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado, admin real de assets visuais, renderização premium/física de stickers/assets, texturas reais de tema/papel/fundo, templates premium, book mode, transições leves do Book Mode, sistema de papel/fundo em `canvas.artboard.background`, Gift para Template, componentes especiais de scrapbook e auditoria visual automática já foram implementados/refinados. Fase atual: QA visual/mobile com auditoria automática e assets reais, sem avançar gateway externo real, landing, mini game, novo componente interativo ou editor pesado.
 
 ## Fase 12 - Upload e processamento de fotos
 

@@ -17,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: componentes especiais de scrapbook
+## Prioridade atual: QA visual/mobile com assets reais
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -25,19 +25,21 @@ O domínio, banco real e admin inicial em Filament já foram implementados. O pr
 
 Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro, revisão/publicação técnica MVP e checkout interno/manual-dev já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, seleciona elementos existentes, move/redimensiona/rotaciona elementos suportados, edita textos, salva canvas e metadados por autosave, envia fotos reais, aplica fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review`, passa por checkout interno e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`.
 
-A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais, sistema correto de papel/fundo da página em `canvas.artboard.background`, Book Mode com duas páginas e transições leves no preview/viewer.
+A fundação visual do scrapbook já foi aprofundada e as últimas etapas estabilizaram o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais, sistema correto de papel/fundo da página em `canvas.artboard.background`, Book Mode com duas páginas, transições leves no preview/viewer e componentes especiais de scrapbook (`interactive_envelope` e `flip_polaroid`).
 
-Neste momento, a prioridade principal é **componentes especiais de scrapbook**. A primeira versão deve começar pequena e segura, com `interactive_envelope` e `flip_polaroid` como elementos do canvas, integrados ao editor atual, ao renderer compartilhado, ao autosave, às camadas, ao undo/redo, ao preview privado, ao viewer público, ao Book Mode e ao fluxo Gift para Template.
+Neste momento, a prioridade principal é **QA visual/mobile com assets reais**. O foco é validar o fluxo completo com material visual final ou próximo do final, principalmente em celular, e aplicar apenas correções pequenas e objetivas em editor, viewer, admin, performance e documentação.
 
-### Prioridade atual: componentes especiais de scrapbook
+### Prioridade atual: QA visual/mobile com assets reais
 
-- `interactive_envelope` representa um envelope físico com carta. No editor ele é selecionável, móvel, redimensionável e editável pelo painel; no preview/viewer ele abre/fecha com animação leve e respeita `prefers-reduced-motion`.
-- `flip_polaroid` representa uma polaroid com foto/legenda na frente e texto no verso. No editor ele é selecionável, móvel, redimensionável, rotacionável e usa o fluxo atual de mídia para trocar foto; no preview/viewer ele vira com flip leve e respeita `prefers-reduced-motion`.
-- Os dois tipos ficam em `canvas.elements[]`, com `x`, `y`, `w`, `h`, `rotation`, `z`, `name`, `locked` e `hidden` iguais aos outros elementos.
-- Validação backend precisa manter texto puro, sem HTML/script, sem `dangerouslySetInnerHTML`, sem URL externa, sem `storage_path`, e autorizar `mediaItemId` de polaroid por Gift e status `processed`.
-- Limites atuais: título/legenda/placeholder até 120 caracteres, conteúdo de envelope até 1000 caracteres e verso da polaroid até 500 caracteres.
-- Gift para Template deve preservar envelope como default editável e remover mídia pessoal da polaroid, mantendo placeholder/legenda/texto do verso.
-- Esta fase não avança gateway real, landing, marketplace, template builder novo, editor novo, mini game, puzzle ou animação pesada.
+- Existe checklist interno em `/admin/visual-qa` e espelho em `docs/visual-qa-checklist.md`.
+- Antes de avançar feature nova, rode a auditoria automática com `php artisan scrapbook:visual-audit` e depois faça o QA manual com celular/assets reais.
+- A auditoria automática é somente leitura: ela não corrige, não apaga, não faz upload, não acessa URL externa e não substitui o julgamento visual manual.
+- A auditoria ajuda a produzir templates reais encontrando problemas estruturais em assets, categorias, temas, ThemeVersions, TemplateVersions, TemplatePages, canvas, backgrounds e referências antes do teste manual.
+- O QA deve cobrir: upload de assets reais, categorias, associação a tema, texturas de papel/fundo/livro, Gift-base, editor, troca de papel, stickers, envelope, polaroid, autosave, undo/redo, Gift para Template, publicação de TemplateVersion, Gift de cliente, publicação de Gift, viewer público mobile, Book Mode, QR Code/cartão e performance.
+- Recomendações de assets reais: stickers PNG/WebP transparentes com 512px ou 1024px no maior lado; papéis próximos de 1080x1350 ou 2160x2700 em JPG/WebP otimizado; fundos externos grandes o suficiente e otimizados.
+- Correções desta fase devem ser pequenas: layout mobile, labels, estados vazios/erro/loading, overflow, sombras excessivas, imagens sem lazy loading, listas de assets pesadas, conflito de toque em envelope/polaroid e performance óbvia.
+- Manter segurança: sem URL externa, sem `storage_path` no frontend público, stickers por `assetId`, mídia por `mediaItemId` autorizado, HTML/script bloqueado, customer sem admin e viewer público apenas para Gift publicado válido.
+- Esta fase não avança gateway real, landing final, marketplace, template builder novo, editor novo, mini game, puzzle, page flip 3D pesado ou novo componente interativo.
 
 O sistema de papel/fundo da página está estabilizado. Papel da página não é sticker, não entra em `canvas.elements[]` e não deve ser redimensionado manualmente. Tema define o papel padrão; cada página pode sobrescrever esse papel em `canvas.artboard.background` com um asset seguro; editor, preview privado e viewer público devem renderizar a mesma folha.
 
@@ -55,14 +57,14 @@ O sistema de papel/fundo da página está estabilizado. Papel da página não é
 - Não reintroduzir papel como sticker, nem permitir papel em `canvas.elements[]`.
 - Checkerboard/quadriculado de transparência só é aceitável em preview técnico/admin de asset transparente, nunca no fundo geral do editor.
 
-Depois desta primeira leva de interativos, a próxima fase recomendada é QA visual com assets reais/templates finais ou ampliar componentes especiais com outro item simples, mantendo landing final e gateway real em etapas separadas.
+Depois desta rodada de QA visual/mobile, a próxima fase deve ser escolhida pelo resultado do teste real: corrigir mais polimento visual, adicionar bilhete secreto, avançar page flip mais sofisticado, revisar landing final ou integrar gateway real em etapa separada.
 
 ### Base atual: pipeline visual e Gift para Template
 
 - O admin real de assets visuais já existe. Seeds e assets placeholder continuam como exemplo, não como fonte final de estética.
 - `Asset` é decoração do sistema/admin; `MediaItem` continua sendo foto/imagem enviada pelo usuário final dentro de um Gift.
 - Adesivos, papéis, texturas, fitas, molduras, envelopes, selos, flores e recortes devem ser cadastrados pelo admin/support, não hardcoded no frontend.
-- Código novo nesta fase deve focar componentes especiais de scrapbook, mantendo checkout, gateway, publicação, landing, editor pesado, page flip 3D e mini games fora do escopo.
+- Código novo nesta fase deve focar QA visual/mobile, documentação interna e polimentos pequenos, mantendo checkout, gateway real, publicação pesada, landing, editor pesado, page flip 3D, mini games e novos componentes fora do escopo.
 - Template define estrutura: páginas, elementos iniciais, posições, tamanhos, rotações, placeholders, textos editáveis, ordem de camadas, composição e ritmo visual.
 - Theme define aparência: texturas, paleta, papel, fundo, sombras, profundidade e atmosfera visual.
 - Book Mode desktop/tablet largo já mostra livro aberto com página esquerda, página direita, lombada central, sombra na dobra e navegação por pares.

@@ -2507,6 +2507,80 @@ Segurança:
 - preview/viewer resolvem `src` por rotas controladas e removem `storage_path`, URLs manuais e mídia inválida do payload;
 - Gift para Template preserva envelope como default editável e transforma polaroid com mídia pessoal em placeholder, removendo `mediaItemId`, `src` e aliases de mídia.
 
+### QA visual/mobile com assets reais
+
+A fase atual é uma rodada de qualidade visual e mobile, não uma fase de feature nova. O objetivo é validar o produto usando assets reais, templates finais ou quase finais, celular real/viewport mobile e o fluxo completo do admin ao viewer público.
+
+### Auditoria visual automática
+
+Antes do teste manual, existe uma auditoria estrutural read-only para detectar problemas comuns em assets, categorias, temas, versões de tema, templates, páginas e canvas:
+
+```bash
+php artisan scrapbook:visual-audit
+```
+
+A auditoria roda apenas leituras no banco, não dispara jobs, não acessa internet, não baixa URLs externas, não faz upload, não corrige dados e não apaga nada. A página `/admin/visual-qa` mostra um resumo simples com contagem de `error`, `warning` e `info`, além da lista agrupada por Assets, Temas, Templates e Canvas.
+
+Severidades:
+
+- `error`: problema que torna publicação/produção insegura ou inconsistente, como URL externa no canvas, `assetId` inexistente, `mediaItemId` em template, página sem artboard, background inválido ou tema publicado usando asset inativo.
+- `warning`: problema de qualidade visual ou produção, como asset sem categoria, papel pequeno, tema sem `paper_texture`, template visual sem placeholders ou elemento muito fora do artboard.
+- `info`: observação que não bloqueia QA, como categoria vazia, tema sem textura opcional de fundo ou template ainda em rascunho.
+
+Checks principais:
+
+- Assets: categoria, arquivo/preview seguro, width/height, tamanho, proporção de papel, `renderStyle`, metadata física de stickers, tipo válido, `storage_path` e bloqueio de SVG.
+- Categorias: vazias, inativas com assets ativos e duplicidade de slug quando possível.
+- ThemeVersions: tema publicado sem `paper_texture`, sem `background_texture`, sem decorativos, config inválido, role duplicada, asset inativo, ausência de `config.book` e tokens básicos.
+- Templates: template ativo sem versão publicada, versão publicada sem páginas, páginas sem artboard, canvas inseguro, asset inexistente, paper/background inválido, mídia pessoal, URL externa, HTML/script, falta de placeholders e elementos fora de limites absurdos.
+- Canvas: id/type, x/y/w/h/z/rotation, `locked`/`hidden`, background seguro, papel usado como sticker, sticker usado como background e ausência de `storage_path`, `previewUrl`, `src` ou URL externa.
+
+Checklist interno:
+
+- `/admin/visual-qa`: página Filament no grupo Visual, para admin/support acompanharem o roteiro;
+- `docs/visual-qa-checklist.md`: espelho markdown versionado para revisão no repositório.
+
+O checklist cobre:
+
+1. subir assets reais no admin;
+2. criar categorias;
+3. associar assets a tema;
+4. escolher `paper_texture`, `background_texture` e `book_texture`;
+5. criar Gift-base;
+6. montar páginas no editor;
+7. trocar papel da página;
+8. adicionar, mover, redimensionar e rotacionar stickers;
+9. adicionar e editar envelope;
+10. adicionar polaroid virável e trocar foto;
+11. testar autosave e undo/redo;
+12. converter Gift em Template;
+13. publicar TemplateVersion;
+14. criar Gift de cliente a partir do template;
+15. publicar Gift;
+16. abrir viewer público no celular;
+17. navegar no Book Mode;
+18. abrir envelope e virar polaroid sem conflito com swipe;
+19. abrir QR Code/cartão;
+20. verificar performance.
+
+Recomendações para assets reais:
+
+- stickers: PNG/WebP transparente, 512px ou 1024px no maior lado, sem fundo falso e sem recorte sujo;
+- papéis: proporção próxima do artboard `1080x1350`, idealmente `1080x1350` ou `2160x2700`, em JPG/WebP otimizado;
+- fundos externos/texturas grandes: imagem grande o suficiente para o viewport, WebP/JPG otimizado e sem arquivo gigante;
+- assets pequenos demais não devem ser esticados por `defaultTransform`; ajustar metadata no admin quando parecer pixelado.
+
+Performance e mobile:
+
+- listas de assets no editor devem renderizar previews em lotes e usar imagens lazy/async;
+- imagens de canvas, media library e assets visuais devem preferir `loading="lazy"` e `decoding="async"` quando não forem críticas;
+- Book Mode renderiza apenas a página/par atual e não deve pré-renderizar o livro inteiro;
+- no mobile, sombras e overlays devem ser moderados para evitar custo visual alto;
+- topbar, abas, painel de propriedades e canvas não podem gerar overflow horizontal;
+- envelope/polaroid devem parar propagação de toque e o viewer deve ignorar gestos iniciados nesses componentes para não avançar página acidentalmente.
+
+Esta fase mantém as mesmas regras de segurança: sem URL externa, sem `storage_path` no payload público, stickers por `assetId`, mídia por `mediaItemId` autorizado, texto puro sem HTML/script, customer sem acesso ao admin e viewer público apenas para Gift publicado válido.
+
 ### Estado visual mínimo esperado
 
 A página renderizada não deve parecer um retângulo branco simples. Ela deve mostrar:
