@@ -65,6 +65,64 @@ final class EditorAssetCatalog
             ->get();
     }
 
+    /**
+     * @param  array<int, string>  $assetIds
+     * @return Collection<int, Asset>
+     */
+    public function assetsForGiftByIds(Gift $gift, array $assetIds): Collection
+    {
+        $assetIds = array_values(array_unique(array_filter(
+            array_map(fn (mixed $assetId): string => trim((string) $assetId), $assetIds),
+            fn (string $assetId): bool => $assetId !== '',
+        )));
+
+        if ($assetIds === []) {
+            return collect();
+        }
+
+        $gift->loadMissing('themeVersion');
+
+        $themeAssets = $gift->themeVersion
+            ? $gift->themeVersion
+                ->assets()
+                ->with('category')
+                ->whereIn('assets.id', $assetIds)
+                ->where('assets.is_active', true)
+                ->where(fn (Builder $query): Builder => $this->whereCategoryIsActiveOrEmpty($query))
+                ->orderBy('theme_asset.sort_order')
+                ->orderBy('assets.name')
+                ->get()
+                ->each(function (Asset $asset): void {
+                    $asset->setAttribute('editor_source', 'theme');
+                    $asset->setAttribute('editor_role', $asset->pivot?->role);
+                    $asset->setAttribute('editor_theme_config', $this->decodePivotConfig($asset->pivot?->config));
+                })
+            : collect();
+
+        $themeAssetIds = $themeAssets->pluck('id')->all();
+
+        $globalAssets = Asset::query()
+            ->with('category')
+            ->whereIn('id', $assetIds)
+            ->where('is_active', true)
+            ->whereNotIn('id', $themeAssetIds)
+            ->whereDoesntHave('themeVersions')
+            ->where(fn (Builder $query): Builder => $this->whereCategoryIsActiveOrEmpty($query))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->each(function (Asset $asset): void {
+                $asset->setAttribute('editor_source', 'global');
+                $asset->setAttribute('editor_role', null);
+                $asset->setAttribute('editor_theme_config', null);
+            });
+
+        return $themeAssets
+            ->concat($globalAssets)
+            ->unique('id')
+            ->values();
+    }
+
     public function assetIsAllowedForGift(Gift $gift, Asset $asset): bool
     {
         if (! $asset->is_active) {
