@@ -17,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: analytics, métricas e logs
+## Prioridade atual: analytics aggregation and retention
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -27,7 +27,9 @@ Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado,
 
 A fundação visual do scrapbook já foi aprofundada e as últimas etapas estabilizaram o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais, sistema correto de papel/fundo da página em `canvas.artboard.background`, Book Mode com duas páginas, transições leves no preview/viewer e componentes especiais de scrapbook (`interactive_envelope` e `flip_polaroid`).
 
-Neste momento, a prioridade principal é **analytics, métricas e logs internos**. O foco é dar inteligência operacional ao produto: visitantes, funil de criação, editor, publicação, checkout, receita, viewer público, interações do presente, QR Code/cartão, eventos recentes, erros operacionais e auditoria administrativa.
+Neste momento, a prioridade principal é **sustentabilidade do analytics: agregação diária, retenção e prune seguro**. A base de analytics, métricas e logs internos já existe; agora o foco é preencher `analytics_daily_metrics`, reduzir dependência de consultas brutas pesadas, controlar crescimento de `analytics_events`, `analytics_sessions`, `gift_visits` e `gift_events`, preservar eventos financeiros conforme configuração e manter o dashboard admin compatível.
+
+A etapa visual mais recente priorizou o redesign do dashboard admin `/admin/analytics`: a funcionalidade de analytics já estava implementada, e a página foi reorganizada como um dashboard Filament profissional com header, filtro segmentado, abas de Visão geral/Funil/Receita/Viewer/Eventos/Saúde, cards fortes, linhas de funil visuais, listas/tabelas estilizadas, comandos formatados, estados vazios e payloads em chips resumidos sem dados sensíveis.
 
 Analytics deve ser útil, mas seguro:
 
@@ -43,7 +45,10 @@ Analytics deve ser útil, mas seguro:
 - customer não acessa analytics global;
 - dono do gift pode ver apenas analytics simples do próprio gift;
 - tracking client-side deve ser controlado, permitido por taxonomia e leve;
-- viewer público não pode ser bloqueado por analytics.
+- viewer público não pode ser bloqueado por analytics;
+- não criar tracking novo invasivo nesta fase;
+- agregação e prune devem preservar privacidade, sem IP puro, user-agent puro ou payload sensível;
+- prune nunca deve apagar `orders`, `payments`, `gifts` ou `users`.
 
 ### QA visual/mobile com assets reais
 

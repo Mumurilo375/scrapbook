@@ -1252,17 +1252,63 @@ timestamps
 
 #### `analytics_daily_metrics`
 
-Tabela de agregados futuros. A primeira versão calcula dashboard a partir das tabelas transacionais, mas deixa essa base pronta para acelerar painéis.
+Tabela de agregados diários para acelerar painéis e limitar dependência de consultas em tabelas brutas. Ela é alimentada pelo comando `scrapbook:analytics-aggregate` e usa idempotência por `date + metric_key + dimensions_hash`, onde `dimensions_hash` é derivado das dimensões normalizadas.
 
 ```txt
 id bigint pk
 date date
 metric_key varchar
 dimensions jsonb nullable
+dimensions_hash varchar(64) nullable
 value_numeric decimal(16,2)
 metadata jsonb nullable
 timestamps
 ```
+
+Métricas diárias atuais:
+
+- Produto: `sessions_total`, `visitors_estimated`, `users_registered`, `gifts_created`, `gifts_published`, `templates_selected`, `editor_opened`, `preview_opened`, `review_opened`.
+- Funil: `funnel_landing_viewed`, `funnel_create_started`, `funnel_occasion_selected`, `funnel_template_selected`, `funnel_gift_created`, `funnel_editor_opened`, `funnel_review_opened`, `funnel_checkout_opened`, `funnel_order_created`, `funnel_payment_approved`, `funnel_gift_published`, `funnel_public_gift_opened`.
+- Viewer: `public_gift_opened`, `gift_page_viewed`, `gift_completed`, `envelope_opened`, `polaroid_flipped`, `create_my_own_clicked`.
+- Share: `share_page_opened`, `public_link_copied`, `qr_code_viewed`, `qr_code_downloaded`, `share_card_opened`, `share_card_print_clicked`.
+- Financeiro: `revenue_approved_cents`, `orders_created`, `orders_paid`, `payments_approved`, `payments_rejected`, `average_ticket_cents`.
+
+Dimensões usadas com parcimônia: `template_version_id`, `theme_version_id`, `occasion_id`, `plan_id`, `source`, `device_type` e `event_group`. Dinheiro continua em centavos inteiros; não usar float para receita.
+
+#### Agregação diária e retenção
+
+Comandos Artisan:
+
+```bash
+php artisan scrapbook:analytics-aggregate
+php artisan scrapbook:analytics-aggregate --date=YYYY-MM-DD
+php artisan scrapbook:analytics-aggregate --from=YYYY-MM-DD --to=YYYY-MM-DD
+php artisan scrapbook:analytics-aggregate --from=YYYY-MM-DD --to=YYYY-MM-DD --force
+php artisan scrapbook:analytics-prune --dry-run
+php artisan scrapbook:analytics-prune --force
+```
+
+Regras:
+
+- sem parâmetros, a agregação calcula ontem;
+- `--date` calcula um dia específico;
+- `--from` e `--to` calculam intervalo inclusivo;
+- `--force` remove os agregados do período antes de recalcular;
+- sem `--force`, o writer usa upsert por `date + metric_key + dimensions_hash`, evitando duplicação;
+- dias sem dados ainda recebem métricas totais com valor zero;
+- falha em um grupo de métricas não derruba todos os outros grupos, mas é reportada em log e no comando;
+- o scheduler registra agregação diária de madrugada e prune diário com `--force`.
+
+Retenção configurável em `config/scrapbook.php` e `.env`:
+
+- `SCRAPBOOK_ANALYTICS_EVENTS_RETENTION_DAYS`;
+- `SCRAPBOOK_ANALYTICS_SESSIONS_RETENTION_DAYS`;
+- `SCRAPBOOK_GIFT_VISITS_RETENTION_DAYS`;
+- `SCRAPBOOK_GIFT_EVENTS_RETENTION_DAYS`;
+- `SCRAPBOOK_ANALYTICS_DAILY_METRICS_RETENTION_DAYS`;
+- `SCRAPBOOK_ANALYTICS_KEEP_FINANCIAL_EVENTS_FOREVER`.
+
+O prune nunca apaga `orders`, `payments`, `gifts` ou `users`. Quando `SCRAPBOOK_ANALYTICS_KEEP_FINANCIAL_EVENTS_FOREVER=true`, eventos financeiros antigos em `analytics_events` são preservados, incluindo eventos de checkout/pagamento e eventos com `order_id` ou `payment_id`.
 
 ### 7.13 Dashboard de analytics
 
@@ -1275,8 +1321,12 @@ O admin `/admin/analytics` mostra:
 - pedidos/pagamentos por status;
 - receita por plano, template, ocasião e tema;
 - gifts mais visualizados, fontes de tráfego, conclusão, envelopes e polaroids;
+- séries diárias de receita, sessões, gifts publicados, aberturas públicas e funil usando `analytics_daily_metrics` quando houver agregado, com fallback para dados brutos;
+- saúde dos analytics: última data agregada, quantidade de métricas diárias, eventos mais antigos/recentes, estimativa de prune e comandos operacionais;
 - eventos recentes com payload já sanitizado;
 - eventos de erro/sistema como autosave, upload, mídia, asset, webhook e viewer.
+
+Visualmente, `/admin/analytics` é uma Filament Page organizada como dashboard administrativo SaaS, com header explicativo, filtro de período segmentado, abas de Visão geral/Funil/Receita/Viewer/Eventos/Saúde, cards estatísticos fortes, linhas de funil com barras, badges de status, listas/tabelas estilizadas, estados vazios e blocos de comandos formatados. A Blade não deve fazer consultas pesadas nem imprimir JSON bruto; os dados de exibição devem chegar preparados pela Page/service, com payload resumido em chips e mascarado quando necessário.
 
 Usuário customer não acessa analytics global. O dono do gift tem uma tela simples em `/app/gifts/{gift}/analytics`, limitada a seus próprios gifts, com totais agregados e sem IP, user-agent ou detalhes invasivos.
 

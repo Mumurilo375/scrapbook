@@ -34,8 +34,10 @@
 - Transições leves do Book Mode implementadas no viewer público e preview privado, com abertura suave, direção `next`/`previous`, microinterações, suporte a `prefers-reduced-motion` e sem page flip 3D pesado.
 - Componentes especiais de scrapbook v1 implementados, começando por envelope com carta (`interactive_envelope`) e polaroid virável (`flip_polaroid`) como elementos seguros do canvas.
 - QA visual/mobile com auditoria automática, assets reais, templates finais, editor, viewer, Book Mode, envelope, polaroid, QR Code/cartão e performance ficou como trilha de validação/polimento contínuo.
-- Fase atual: analytics, métricas, logs e observabilidade interna, sem ferramenta externa e sem tracking invasivo.
-- Próxima fase possível: QA real com assets finais, polimentos de performance/mobile, landing final ou gateway real em etapa separada.
+- Analytics, métricas, logs e observabilidade interna implementados sem ferramenta externa e sem tracking invasivo.
+- Analytics funcional implementado e dashboard admin `/admin/analytics` redesenhado como dashboard Filament profissional com header, filtro segmentado, abas, cards, funil visual, listas/tabelas estilizadas, badges, comandos e estados vazios.
+- Fase atual: agregação diária, retenção/prune e QA de analytics com dados reais/volume maior para sustentabilidade e performance futura.
+- Próxima fase recomendada: QA manual visual com assets reais ou correções resultantes do teste, mantendo landing final e gateway real em etapas separadas.
 - Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
@@ -589,23 +591,26 @@ Status: refinado como base atual. O objetivo desta fase foi fazer `/p/{slug}-{pu
 407. [feito] Ajustar QR Code para usar `?src=qr` e cartão para usar `?src=share_card`.
 408. [feito] Criar métricas financeiras por pedidos/pagamentos existentes usando centavos inteiros.
 409. [feito] Criar funil principal com contagens, conversão e queda.
-410. [feito] Criar dashboard admin `/admin/analytics` com receita, funil, viewer, eventos recentes e erros.
+410. [feito] Criar dashboard admin `/admin/analytics` com receita, funil, viewer, eventos recentes e erros; dashboard visual redesenhado com componentes Filament, cards, filtro segmentado, abas, badges, linhas de funil, comandos formatados, tabelas/listas responsivas e payloads resumidos.
 411. [feito] Criar analytics simples do dono em `/app/gifts/{gift}/analytics`.
 412. [feito] Integrar eventos administrativos importantes com analytics/activitylog.
-413. [pendente] Criar job/comando destrutivo de retenção/prune depois de validar política operacional.
+413. [feito] Criar agregação diária em `analytics_daily_metrics` com comando `scrapbook:analytics-aggregate`, idempotência por dimensões e métricas de produto, funil, viewer, share e financeiro.
+414. [feito] Criar retenção/prune seguro com `scrapbook:analytics-prune`, dry-run, confirmação, `--force`, preservação de eventos financeiros configurável e scheduler.
+415. [feito] Expor saúde dos analytics no admin: última data agregada, volume de métricas diárias, eventos antigos/recentes e estimativa de prune.
+416. [pendente] Validar em QA manual com dados reais/volume maior e ajustar janelas de retenção conforme operação.
 
 ## Fase 21 - Limpeza e expiração
 
-413. Criar command `ExpireOldDrafts`.
-414. Criar command `ExpirePaidGifts`.
-415. Criar command `PurgeDeletedMedia`.
-416. Agendar commands no scheduler.
-417. Draft sem atividade por 7 dias vira expirado/deletável.
-418. Gift pago vencido vira expired.
-419. Media de draft expirado é removida após janela definida.
-420. Media de gift deletado é removida após janela definida.
-421. Registrar logs das limpezas.
-422. Criar testes de expiração.
+417. Criar command `ExpireOldDrafts`.
+418. Criar command `ExpirePaidGifts`.
+419. Criar command `PurgeDeletedMedia`.
+420. Agendar commands no scheduler.
+421. Draft sem atividade por 7 dias vira expirado/deletável.
+422. Gift pago vencido vira expired.
+423. Media de draft expirado é removida após janela definida.
+424. Media de gift deletado é removida após janela definida.
+425. Registrar logs das limpezas.
+426. Criar testes de expiração.
 
 ## Fase 22 - Admin avançado
 
