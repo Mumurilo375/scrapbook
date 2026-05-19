@@ -8,7 +8,7 @@ export const LAYER_STEP = 10;
 const MAX_ELEMENT_MULTIPLIER = 2;
 const OUTSIDE_ARTBOARD_RATIO = 0.85;
 
-export type TransformableElementType = 'text' | 'image' | 'sticker';
+export type TransformableElementType = 'text' | 'image' | 'sticker' | 'interactive_envelope' | 'flip_polaroid';
 
 export type ElementPatch = Partial<Pick<CanvasElement, 'x' | 'y' | 'w' | 'h' | 'rotation' | 'z'>> & {
     name?: string;
@@ -17,10 +17,20 @@ export type ElementPatch = Partial<Pick<CanvasElement, 'x' | 'y' | 'w' | 'h' | '
     style?: Record<string, unknown>;
     text?: string;
     content?: string;
+    title?: string;
+    front?: Record<string, unknown>;
+    back?: Record<string, unknown>;
+    state?: Record<string, unknown>;
 };
 
 export function isTransformableElement(element: CanvasElement | null | undefined): element is CanvasElement {
-    return element?.type === 'text' || element?.type === 'image' || element?.type === 'sticker';
+    return (
+        element?.type === 'text' ||
+        element?.type === 'image' ||
+        element?.type === 'sticker' ||
+        element?.type === 'interactive_envelope' ||
+        element?.type === 'flip_polaroid'
+    );
 }
 
 export function isTextEditableElement(element: CanvasElement | null | undefined): element is CanvasElement {
@@ -173,6 +183,19 @@ export function elementLabel(element: CanvasElement): string {
         return 'Imagem';
     }
 
+    if (element.type === 'interactive_envelope') {
+        const title = typeof record.title === 'string' ? record.title : '';
+
+        return title.trim() !== '' ? `Envelope: ${truncateLabel(title.trim())}` : 'Envelope com carta';
+    }
+
+    if (element.type === 'flip_polaroid') {
+        const front = isRecord(record.front) ? record.front : {};
+        const caption = typeof front.caption === 'string' ? front.caption : '';
+
+        return caption.trim() !== '' ? `Polaroid: ${truncateLabel(caption.trim())}` : 'Polaroid virável';
+    }
+
     if (element.type === 'sticker') {
         const text = textValueForElement(element);
 
@@ -246,6 +269,14 @@ export function minimumWidthForElement(element: CanvasElement): number {
         return 72;
     }
 
+    if (element.type === 'interactive_envelope') {
+        return 220;
+    }
+
+    if (element.type === 'flip_polaroid') {
+        return 160;
+    }
+
     return MIN_ELEMENT_WIDTH;
 }
 
@@ -256,6 +287,14 @@ export function minimumHeightForElement(element: CanvasElement): number {
 
     if (element.type === 'image') {
         return 72;
+    }
+
+    if (element.type === 'interactive_envelope') {
+        return 150;
+    }
+
+    if (element.type === 'flip_polaroid') {
+        return 210;
     }
 
     return MIN_ELEMENT_HEIGHT;

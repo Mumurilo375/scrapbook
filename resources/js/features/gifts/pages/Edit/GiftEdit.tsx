@@ -16,6 +16,10 @@ import { GiftDebugPanel } from '../../components/editor/GiftDebugPanel';
 import { GiftEditorLayout } from '../../components/editor/GiftEditorLayout';
 import { GiftEditorTopBar } from '../../components/editor/GiftEditorTopBar';
 import { GiftImagesPanel } from '../../components/editor/GiftImagesPanel';
+import {
+    GiftInteractiveElementsPanel,
+    type InteractiveElementKind,
+} from '../../components/editor/GiftInteractiveElementsPanel';
 import { GiftLayersPanel } from '../../components/editor/GiftLayersPanel';
 import type { GiftMediaLibraryHandle } from '../../components/editor/GiftMediaLibrary';
 import { GiftMetadataPanel, type GiftMetadataDraft } from '../../components/editor/GiftMetadataPanel';
@@ -853,7 +857,12 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     }
 
     function openImageUpload(element: CanvasElement) {
-        if (!selectedPage || editorDisabled || directImageUploading || element.type !== 'image') {
+        if (
+            !selectedPage ||
+            editorDisabled ||
+            directImageUploading ||
+            (element.type !== 'image' && element.type !== 'flip_polaroid')
+        ) {
             return;
         }
 
@@ -949,6 +958,27 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
         selection.selectElement(elementId);
     }
 
+    function addInteractiveElementToCurrentPage(kind: InteractiveElementKind) {
+        if (!selectedPage || !selectedCanvas || editorDisabled) {
+            return;
+        }
+
+        const nextElement = defaultInteractiveElement(kind, selectedCanvas);
+
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) =>
+                normalizeCanvasLayerOrder({
+                    ...canvas,
+                    elements: [...canvas.elements, nextElement],
+                }),
+            {
+                label: kind === 'interactive_envelope' ? 'Adicionar envelope' : 'Adicionar polaroid',
+            },
+        );
+        selection.selectElement(nextElement.id);
+    }
+
     function applyPageBackgroundToCurrentPage(asset: EditorAsset) {
         if (!selectedPage || !selectedCanvas || editorDisabled) {
             return;
@@ -1022,7 +1052,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                     return canvas;
                 }
 
-                return applyMediaToImageElement(canvas, elementId, mediaItem);
+                return applyMediaToPhotoElement(canvas, elementId, mediaItem);
             },
             {
                 label: 'Trocar imagem',
@@ -1351,6 +1381,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                     onLayerAction={changeSelectedElementLayer}
                                     onPatchElement={patchSelectedElement}
                                     onPatchStyle={patchSelectedElementStyle}
+                                    onReplacePhoto={openImageUpload}
                                 />
                                 <EditorTabs activeTab={activeTab} onChange={setActiveTab} showDebug={debugEnabled} />
                                 <div className="mt-5">
@@ -1385,6 +1416,13 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                             saveStatus={selectedPageSaveStatus}
                                             status={assetLibraryStatus}
                                             theme={gift.theme?.config}
+                                        />
+                                    ) : null}
+                                    {activeTab === 'interactive' ? (
+                                        <GiftInteractiveElementsPanel
+                                            disabled={editorDisabled || !selectedPage || !selectedCanvas}
+                                            onAddElement={addInteractiveElementToCurrentPage}
+                                            saveStatus={selectedPageSaveStatus}
                                         />
                                     ) : null}
                                     {activeTab === 'page' ? (
@@ -1724,6 +1762,107 @@ function generatedStickerId(asset: EditorAsset): string {
     return `sticker_${String(asset.id).replace(/[^a-z0-9_-]/gi, '_')}_${suffix}`;
 }
 
+function generatedInteractiveElementId(kind: InteractiveElementKind): string {
+    const suffix =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    return `${kind}_${suffix}`;
+}
+
+function defaultInteractiveElement(kind: InteractiveElementKind, canvas: Canvas): CanvasElement {
+    const z = Math.max(0, ...canvas.elements.map((element) => element.z)) + 10;
+
+    if (kind === 'flip_polaroid') {
+        const w = 390;
+        const h = 510;
+
+        return {
+            id: generatedInteractiveElementId(kind),
+            type: 'flip_polaroid',
+            name: 'Polaroid virável',
+            x: Math.max(0, Math.round((canvas.artboard.width - w) / 2)),
+            y: Math.max(0, Math.round((canvas.artboard.height - h) / 2)),
+            w,
+            h,
+            rotation: -3,
+            z,
+            locked: false,
+            hidden: false,
+            front: {
+                mediaItemId: null,
+                placeholderLabel: 'Sua foto aqui',
+                caption: 'Nosso momento',
+            },
+            back: {
+                text: 'Eu amo essa lembrança.',
+            },
+        };
+    }
+
+    const w = 700;
+    const h = 420;
+
+    return {
+        id: generatedInteractiveElementId(kind),
+        type: 'interactive_envelope',
+        name: 'Envelope com carta',
+        x: Math.max(0, Math.round((canvas.artboard.width - w) / 2)),
+        y: Math.max(0, Math.round((canvas.artboard.height - h) / 2)),
+        w,
+        h,
+        rotation: -2,
+        z,
+        locked: false,
+        hidden: false,
+        title: 'Abra quando sentir saudade',
+        content: 'Escrevi essa cartinha só para você...',
+        state: {
+            defaultOpen: false,
+        },
+        style: {
+            variant: 'kraft',
+        },
+    };
+}
+
+function applyMediaToPhotoElement(canvas: Canvas, elementId: string, mediaItem: EditorMediaItem): Canvas {
+    const target = canvas.elements.find((element) => element.id === elementId);
+
+    if (target?.type === 'image') {
+        return applyMediaToImageElement(canvas, elementId, mediaItem);
+    }
+
+    if (target?.type !== 'flip_polaroid') {
+        return canvas;
+    }
+
+    return {
+        ...canvas,
+        elements: canvas.elements.map((element) => {
+            if (element.id !== elementId || element.type !== 'flip_polaroid') {
+                return element;
+            }
+
+            const record = element as CanvasElement & Record<string, unknown>;
+            const front = isRecord(record.front) ? record.front : {};
+            const nextFront = { ...front };
+
+            delete nextFront.media_item_id;
+
+            return {
+                ...record,
+                front: {
+                    ...nextFront,
+                    mediaItemId: mediaItem.id,
+                    src: mediaItem.url,
+                },
+            };
+        }),
+    };
+}
+
 function defaultAssetSize(asset: EditorAsset, canvas: Canvas): { h: number; w: number } {
     const transform = resolveAssetDefaultTransform(asset, {
         artboardHeight: canvas.artboard.height,
@@ -1752,6 +1891,10 @@ function mergeAssets(current: EditorAsset[], incoming: EditorAsset[]): EditorAss
     }
 
     return [...merged.values()];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function canModifyElement(element: CanvasElement | null | undefined): element is CanvasElement {

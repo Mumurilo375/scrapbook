@@ -182,6 +182,19 @@ export function getLayerName(element: CanvasElement, assets?: RendererAssetMap):
         return 'Imagem';
     }
 
+    if (element.type === 'interactive_envelope') {
+        const title = stringValue(record.title);
+
+        return title !== '' ? `Envelope: ${truncateLabel(title, 32)}` : 'Envelope com carta';
+    }
+
+    if (element.type === 'flip_polaroid') {
+        const front = isRecord(record.front) ? record.front : {};
+        const caption = stringValue(front.caption);
+
+        return caption !== '' ? `Polaroid: ${truncateLabel(caption, 32)}` : 'Polaroid virável';
+    }
+
     if (element.type === 'sticker') {
         const asset = assetFromMap(assets, record.assetId ?? record.asset_id);
         const assetName = typeof asset?.name === 'string' ? asset.name.trim() : '';
@@ -212,6 +225,14 @@ export function getLayerTypeLabel(type: string): string {
 
     if (type === 'sticker') {
         return 'Adesivo';
+    }
+
+    if (type === 'interactive_envelope') {
+        return 'Envelope';
+    }
+
+    if (type === 'flip_polaroid') {
+        return 'Polaroid';
     }
 
     if (type === 'music') {
@@ -329,6 +350,10 @@ function uniqueElementId(canvas: Canvas, prefix: string): string {
 
 function stringValue(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function truncateLabel(value: string, maxLength: number): string {

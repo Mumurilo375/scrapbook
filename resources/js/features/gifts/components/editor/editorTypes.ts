@@ -5,7 +5,7 @@ export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error' | 'offl
 
 export type EditorSaveState = SaveStatus;
 
-export type EditorTab = 'content' | 'images' | 'stickers' | 'page' | 'gift' | 'layers' | 'debug';
+export type EditorTab = 'content' | 'images' | 'stickers' | 'interactive' | 'page' | 'gift' | 'layers' | 'debug';
 
 export type EditorAssetCategory = RendererAssetCategory & {
     description?: string | null;

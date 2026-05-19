@@ -1,4 +1,4 @@
-import { Code2, FileImage, Gift, Images, Layers, Sparkles, Type } from 'lucide-react';
+import { Code2, FileImage, Gift, Images, Layers, Shapes, Sparkles, Type } from 'lucide-react';
 
 import type { EditorTab } from './editorTypes';
 
@@ -12,6 +12,7 @@ const TABS: Array<{ id: EditorTab; label: string; icon: typeof Type }> = [
     { id: 'content', label: 'Conteúdo', icon: Type },
     { id: 'images', label: 'Imagens', icon: Images },
     { id: 'stickers', label: 'Adesivos', icon: Sparkles },
+    { id: 'interactive', label: 'Elementos', icon: Shapes },
     { id: 'page', label: 'Página', icon: FileImage },
     { id: 'gift', label: 'Presente', icon: Gift },
     { id: 'layers', label: 'Camadas', icon: Layers },
