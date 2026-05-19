@@ -145,7 +145,7 @@ export function GiftAssetsPanel({
                             <span className="min-w-0">
                                 <span className="block truncate text-xs font-semibold text-[#1F150A]">{asset.name}</span>
                                 <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase text-[#7A5A43]">
-                                    {asset.isThemeAsset ? 'Tema atual' : asset.category?.name ?? assetTypeLabel(asset.type)}
+                                    {asset.isThemeAsset ? 'Do tema' : asset.category?.name ?? assetTypeLabel(asset.type)}
                                 </span>
                             </span>
                         </button>

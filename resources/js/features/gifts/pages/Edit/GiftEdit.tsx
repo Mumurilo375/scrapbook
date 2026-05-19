@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
     assetMapFromList,
-    firstTextureLayerStyle,
     normalizeThemeConfig,
     resolveAssetDefaultTransform,
 } from '../../../../components/renderer';
@@ -403,7 +402,6 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     const textElements =
         selectedCanvas && selectedPage ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length) : [];
     const assetMap = useMemo(() => assetMapFromList(renderAssets), [renderAssets]);
-    const appTextureStyle = firstTextureLayerStyle(normalizedTheme, assetMap, ['fabricBackground', 'appBackground']);
     const editorDisabled = Boolean(selectedPage?.locked || !canEditGift);
     const selectedPageHistory = editorHistory.availability(selectedPage?.id);
     const hasSaving =
@@ -503,6 +501,17 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                 const savedCanvasFromServer = normalizeCanvas(response.data.page.canvas);
 
                 if (pageSaveTokensRef.current[pageId] !== saveToken) {
+                    return;
+                }
+
+                if (!pageBackgroundsAreEqual(snapshot.artboard.background, savedCanvasFromServer.artboard.background)) {
+                    setPageErrors((current) => ({
+                        ...current,
+                        [pageId]: 'O servidor não confirmou o papel escolhido. A alteração local foi mantida para tentar salvar novamente.',
+                    }));
+                    setPageSaveStates((current) => ({ ...current, [pageId]: 'error' }));
+                    debugAutosave('page-save-background-mismatch', { pageId });
+
                     return;
                 }
 
@@ -1255,9 +1264,6 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                     } as CSSProperties
                 }
             >
-                {appTextureStyle ? (
-                    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0" style={appTextureStyle} />
-                ) : null}
                 <div className="relative z-10">
                     <GiftEditorTopBar
                         canRedo={selectedPageHistory.canRedo}
@@ -1644,6 +1650,36 @@ function saveDetail(status: SaveStatus, visibleError: string | null, hasRecovere
     }
 
     return null;
+}
+
+function pageBackgroundsAreEqual(
+    left: Canvas['artboard']['background'] | undefined,
+    right: Canvas['artboard']['background'] | undefined,
+): boolean {
+    const normalizedLeft = left ?? { type: 'theme' };
+    const normalizedRight = right ?? { type: 'theme' };
+
+    if (normalizedLeft.type !== normalizedRight.type) {
+        return false;
+    }
+
+    if (normalizedLeft.type === 'theme') {
+        return true;
+    }
+
+    if (normalizedRight.type !== 'asset') {
+        return false;
+    }
+
+    return (
+        String(normalizedLeft.assetId) === String(normalizedRight.assetId) &&
+        (normalizedLeft.fit ?? 'cover') === (normalizedRight.fit ?? 'cover') &&
+        backgroundOpacity(normalizedLeft.opacity) === backgroundOpacity(normalizedRight.opacity)
+    );
+}
+
+function backgroundOpacity(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
 }
 
 function transformHistoryLabel(mode: TransformMode): string {

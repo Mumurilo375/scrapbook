@@ -42,7 +42,9 @@ export function GiftPageBackgroundPanel({
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                     <h2 className="text-base font-semibold text-[#1F150A]">Página</h2>
-                    <p className="text-xs font-semibold uppercase text-[#7A2634]">{statusLabel(status, saveStatus)}</p>
+                    <p className="text-xs font-semibold uppercase text-[#7A2634]">
+                        {statusLabel(status, saveStatus, usingTheme)}
+                    </p>
                 </div>
                 <FileImage aria-hidden="true" className="h-5 w-5 shrink-0 text-[#7A2634]" />
             </div>
@@ -118,6 +120,7 @@ export function GiftPageBackgroundPanel({
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {backgrounds.map((asset) => {
                         const selected = currentAssetId === String(asset.id);
+                        const previewUrl = safePreviewUrl(asset);
 
                         return (
                             <button
@@ -136,8 +139,16 @@ export function GiftPageBackgroundPanel({
                                 <span
                                     aria-hidden="true"
                                     className="relative block aspect-[4/5] overflow-hidden rounded-[6px] border border-[#D8B991] bg-[#FFF8EF]"
-                                    style={paperPreviewStyle(asset)}
                                 >
+                                    {previewUrl ? (
+                                        <img
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                            decoding="async"
+                                            loading="lazy"
+                                            src={previewUrl}
+                                        />
+                                    ) : null}
                                     {selected ? (
                                         <span className="absolute top-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-[#7A2634] text-white shadow-sm">
                                             <Check aria-hidden="true" className="h-3.5 w-3.5" />
@@ -147,7 +158,7 @@ export function GiftPageBackgroundPanel({
                                 <span className="min-w-0">
                                     <span className="block truncate text-xs font-semibold text-[#1F150A]">{asset.name}</span>
                                     <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase text-[#7A5A43]">
-                                        {asset.isThemeAsset ? 'Tema atual' : asset.category?.name ?? pageBackgroundLabel(asset)}
+                                        {asset.isThemeAsset ? 'Papel do tema' : asset.category?.name ?? pageBackgroundLabel(asset)}
                                     </span>
                                 </span>
                             </button>
@@ -159,20 +170,15 @@ export function GiftPageBackgroundPanel({
     );
 }
 
-function paperPreviewStyle(asset: EditorAsset) {
+function safePreviewUrl(asset: EditorAsset): string | null {
     if (typeof asset.previewUrl !== 'string' || !asset.previewUrl.startsWith('/') || asset.previewUrl.startsWith('//')) {
-        return {};
+        return null;
     }
 
-    return {
-        backgroundImage: `url("${asset.previewUrl.replace(/"/g, '%22')}")`,
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-    };
+    return asset.previewUrl;
 }
 
-function statusLabel(status: PageBackgroundLibraryStatus, saveStatus: SaveStatus): string {
+function statusLabel(status: PageBackgroundLibraryStatus, saveStatus: SaveStatus, usingTheme: boolean): string {
     if (status === 'loading') {
         return 'Carregando papéis';
     }
@@ -182,10 +188,10 @@ function statusLabel(status: PageBackgroundLibraryStatus, saveStatus: SaveStatus
     }
 
     if (saveStatus === 'saving') {
-        return 'Autosave ativo';
+        return 'Salvando papel';
     }
 
-    return 'Página atual';
+    return usingTheme ? 'Usando papel do tema' : 'Papel personalizado';
 }
 
 function pageBackgroundLabel(asset: EditorAsset): string {
