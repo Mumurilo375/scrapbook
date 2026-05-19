@@ -17,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: renderização premium de assets
+## Prioridade atual: book mode com duas páginas
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -27,21 +27,32 @@ Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado,
 
 A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável e admin real de assets visuais.
 
-Neste momento, a prioridade principal é **fazer assets reais parecerem objetos físicos de scrapbook** no editor, preview privado e viewer público. Assets já podem ser cadastrados pelo admin com upload real, preview seguro, categoria/tipo, vínculo com `ThemeVersion` e metadata `renderStyle`/`physical`/`defaultTransform`; agora o renderer deve usar esses dados para aplicar borda branca aproximada, sombra, lift, textura, profundidade, highlight e tratamentos distintos para sticker, fita, papel, moldura, etiqueta, selo, flor, textura, overlay e fundo.
+Neste momento, a prioridade principal é **fazer o viewer público e o preview privado parecerem um scrapbook/caderno aberto**. A renderização premium/física de stickers/assets já foi implementada, texturas reais de tema/papel/fundo/livro por assets associados ao `ThemeVersion` já foram implementadas e a primeira leva de templates premium já existe. A etapa atual implementa Book Mode responsivo: desktop/tablet largo mostra duas páginas lado a lado com lombada, sombra central e profundidade; mobile continua mostrando uma página grande por vez. Ainda não é page flip 3D pesado.
 
-### Prioridade atual: renderização premium de assets
+### Prioridade atual: book mode com duas páginas
 
 - O admin real de assets visuais já existe. Seeds e assets placeholder continuam como exemplo, não como fonte final de estética.
 - `Asset` é decoração do sistema/admin; `MediaItem` continua sendo foto/imagem enviada pelo usuário final dentro de um Gift.
 - Adesivos, papéis, texturas, fitas, molduras, envelopes, selos, flores e recortes devem ser cadastrados pelo admin/support, não hardcoded no frontend.
-- Código novo deve focar comportamento de renderer, tipos, validações e contratos; cadastrar novos assets/temas/categorias deve ser fluxo administrativo sempre que possível.
+- Código novo deve focar experiência visual do viewer/preview e manter editor, checkout, publicação e landing sem reescrita.
+- Template define estrutura: páginas, elementos iniciais, posições, tamanhos, rotações, placeholders, textos editáveis, ordem de camadas, composição e ritmo visual.
+- Theme define aparência: texturas, paleta, papel, fundo, sombras, profundidade e atmosfera visual.
+- Book Mode desktop/tablet largo deve mostrar livro aberto com página esquerda, página direita, lombada central, sombra na dobra e navegação por pares.
+- Book Mode mobile deve manter uma página por vez, sem espremer duas páginas na tela.
+- Quando houver número ímpar de páginas, a direita do último par deve ser página vazia decorativa com o mesmo tema/textura, sem contar como página real.
+- Preview privado e viewer público devem usar a mesma experiência visual; o preview só adiciona barra privada discreta.
+- O editor continua uma página por vez nesta fase. Não transformar o editor em spread.
 - Assets ativos aparecem no editor; assets inativos não aparecem e não são aceitos no autosave.
 - Assets do tema atual aparecem priorizados; assets globais aparecem depois e podem ser usados por qualquer Gift/template.
 - O frontend nunca deve receber `storage_path`, nem salvar URL arbitrária de sticker no canvas. Sticker salva `assetId`.
 - O renderer compartilhado deve resolver `renderStyle` por metadata e cair para `asset.type` quando ausente.
 - Metadata `physical` controla borda branca aproximada, sombra, lift, textura de papel, rotação sutil, highlight de borda e opacidade.
 - Metadata `defaultTransform` controla tamanho e rotação inicial ao adicionar o asset no editor.
-- Não avançar para gateway real, book mode, animação de virar página, marketplace, landing final ou demo pública enquanto esta fase estiver aberta.
+- `theme_versions.config.textures` pode referenciar apenas `assetRole`, `assetId` seguro e valores visuais como `opacity`, `blendMode`, `size`, `position` e `repeat`.
+- O config de tema não deve salvar URL externa de textura. Stage, PageFrame e PageSurface só usam `previewUrl` resolvido a partir de assets seguros enviados pelo backend.
+- Roles de textura importantes em `theme_asset.role`: `paper_texture`, `background_texture`, `book_texture`, `spine_texture`, `page_overlay`, `edge_overlay`, `fabric_background`, `kraft_surface`, `aging_overlay` e `stain_overlay`.
+- Viewer público e preview privado recebem apenas assets de textura necessários e stickers visíveis/referenciados; não devem carregar a biblioteca inteira.
+- Não avançar para gateway real, page flip 3D pesado, marketplace, landing final ou demo pública enquanto esta fase estiver aberta.
 
 A fundação visual atual deve garantir:
 
@@ -57,7 +68,7 @@ A fundação visual atual deve garantir:
 10. `theme_versions.config` deve controlar fundo da aplicação, livro, lombada, papel, textura, grão, manchas, bordas, sombra, fitas e defaults de elementos;
 11. os seeds iniciais devem manter múltiplos temas/templates publicados para comparar se trocar tema realmente muda o produto;
 12. os temas seedados atuais são `Kraft Vintage`, `Romance Delicado` e `Aniversário Fofo`;
-13. os templates seedados atuais são `Amor / Namoro`, `Feliz Aniversário` e `Melhor Amiga`, cada um com páginas estruturais e artboard válido.
+13. os templates seedados atuais incluem templates básicos e a primeira leva premium: `Love Letter Scrapbook`, `Birthday Handmade`, `Best Friends Collage` e `Vintage Memory Book`, todos com páginas estruturais, artboard válido e composição mais orgânica.
 14. `MediaItem` continua sendo upload do usuário vinculado a `User`/`Gift`, enquanto `Asset` é decoração do sistema cadastrada/admin.
 15. stickers decorativos no canvas salvam `assetId`, nunca URL arbitrária.
 16. assets globais ativos e assets associados ao tema atual podem aparecer no editor; assets inativos não aparecem e não são aceitos no autosave.
@@ -109,9 +120,12 @@ A IA deve seguir o roadmap e não continuar refinando landing, demo pública, ch
 11. refinamento do viewer público e preview privado;
 12. admin de assets visuais reais;
 13. renderização premium/física de stickers/assets;
-14. texturas reais de papel/tema ou book mode, conforme decisão explícita;
-15. escolha e integração de gateway real antes de produção;
-16. demo pública refinada e landing final baseada no produto real.
+14. texturas reais de papel/tema usando assets do admin;
+15. templates premium com assets reais;
+16. book mode com duas páginas;
+17. page flip leve/transições e componentes especiais de scrapbook;
+18. escolha e integração de gateway real antes de produção;
+19. demo pública refinada e landing final baseada no produto real.
 
 ### Restrições atuais
 

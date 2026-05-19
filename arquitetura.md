@@ -1814,14 +1814,14 @@ Assets decorativos do sistema são diferentes de `MediaItem`.
 - `ProcessUploadedAsset` salva o arquivo com nome seguro em storage configurado, sem usar nome original, e preenche `storage_disk`, `storage_path`, `mime_type`, `size_bytes`, `width` e `height`.
 - `storage_path` é dado interno. Preview no admin, editor, preview privado e viewer público deve usar rota/URL segura derivada pelo backend.
 - Assets globais são assets ativos sem vínculo em `theme_asset`; assets do tema são os associados ao `ThemeVersion` atual por `theme_asset`.
-- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema. Roles iniciais: `sticker`, `paper_texture`, `background_texture`, `tape`, `frame`, `decoration`, `overlay` e `border`.
+- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema. Roles atuais incluem `sticker`, `paper_texture`, `background_texture`, `book_texture`, `spine_texture`, `page_overlay`, `edge_overlay`, `fabric_background`, `kraft_surface`, `aging_overlay`, `stain_overlay`, `tape`, `frame`, `decoration`, `overlay` e `border`.
 - `Asset.metadata` controla renderização premium com `renderStyle`, `physical` e `defaultTransform`, por exemplo borda branca, sombra projetada, lift, textura de papel, rotação orgânica e dimensões padrão.
 - Cadastrar novos assets reais, categorias e associações de tema deve ser feito pelo admin/support. Código só deve ser necessário para novo comportamento de renderer, novos tipos sem suporte ou mudanças de contrato.
 - O endpoint autenticado `GET /app/gifts/{gift}/assets` lista categorias ativas, assets ativos do tema primeiro e assets globais depois. Ele exige Gift próprio em `draft`.
 - O endpoint não expõe `storage_path` nem metadata administrativa; o frontend recebe `id`, `name`, `type`, categoria, `renderMode`, `previewUrl`, `renderStyle`, `physical`, `defaultTransform` e `config` allowlistado.
 - O editor possui aba `Adesivos`, com busca, filtro por categoria e grid responsivo. Ao clicar em um asset, cria um elemento `sticker` no centro da página atual com `assetId`, dimensões/rotação padrão do metadata quando existirem, `locked = false`, `hidden = false` e camada acima das atuais.
 - O renderer compartilhado resolve `assetId` por um mapa seguro `assetId -> asset` recebido do endpoint/editor ou do payload de preview/viewer. Se o asset estiver inativo/indisponível, o sticker fica em fallback seguro.
-- Preview privado e viewer público recebem apenas os assets referenciados por elementos visíveis das páginas visíveis e não expõem caminhos internos.
+- Preview privado e viewer público recebem apenas os assets de textura necessários ao tema e os assets referenciados por elementos visíveis das páginas visíveis; não carregam a biblioteca inteira e não expõem caminhos internos.
 
 ### Renderização física de assets
 
@@ -1842,6 +1842,37 @@ O renderer compartilhado aplica uma camada visual física para assets decorativo
 A borda branca de sticker é uma aproximação CSS feita com múltiplos `drop-shadow` sem deslocamento/pequeno deslocamento ao redor da imagem. Isso melhora PNG/WebP transparentes, mas não substitui processamento real de contorno por pixel. Uma borda perfeita ao redor do recorte deve ficar para uma etapa futura de processamento de imagem, caso vire requisito de qualidade.
 
 Essa camada é apenas visual. O canvas continua salvando `assetId`, coordenadas e transformações; ele não salva `previewUrl`, `storage_path`, URL externa ou `src` manual para sticker. Editor, preview privado e viewer público usam a mesma renderização física, enquanto handles, seleção, bloqueio, ocultação, undo/redo e autosave continuam pertencendo somente ao editor.
+
+### Texturas reais de tema e superfície
+
+`ThemeVersion` também funciona como direção de arte material do scrapbook. Além de cores, fontes e sombras, o tema pode referenciar assets reais associados em `theme_asset` para compor papel, fundo, capa/livro, lombada e overlays.
+
+O contrato público de `theme_versions.config` aceita `textures` com slots seguros:
+
+- `appBackground` e `fabricBackground`: fundo externo, mesa ou tecido;
+- `bookSurface` e `bookSpine`: superfície do livro/caderno e lombada;
+- `pagePaper` e `kraftSurface`: papel real da folha;
+- `pageOverlay`, `agingOverlay`, `stainOverlay` e `edgeOverlay`: envelhecimento, manchas e bordas.
+
+Cada slot pode conter apenas `assetRole`, `assetId` seguro e valores visuais allowlistados como `opacity`, `blendMode`, `size`, `position` e `repeat`. O config do tema não salva URL de textura. Mesmo que um campo como `url`, `src`, `storage_path` ou URL externa apareça no JSON administrativo, `ThemeConfig::publicConfig()` não envia esses campos ao frontend.
+
+A resolução segura acontece no backend:
+
+- `ThemeConfig::textureAssetReferences()` extrai roles/assetIds necessários a partir do config público;
+- `ThemeAssetCatalog` busca somente assets ativos associados ao `ThemeVersion`, com categoria ativa quando houver;
+- `RendererAssetCatalog` une esses assets de textura com stickers realmente referenciados no canvas;
+- `EditorAssetResource` envia `previewUrl` seguro, `role`, `renderStyle`, `physical` e `defaultTransform`, nunca `storage_path`.
+
+No frontend, `themeTextureUtils.ts` resolve `assetRole -> asset.previewUrl` ou `assetId -> asset.previewUrl`. Os componentes só montam `background-image` a partir desse `previewUrl` resolvido pelo backend e ignoram qualquer URL presente no config. As camadas têm `pointer-events: none`, então não interferem em seleção, handles, autosave, camadas ou edição de texto/imagem.
+
+Aplicação visual:
+
+- `GiftViewerLayout` e a tela do editor aplicam textura de fundo externo quando disponível;
+- `ScrapbookStage` aplica textura geral do palco/livro;
+- `ScrapbookPageFrame` aplica textura de capa/superfície e, quando houver, textura de lombada;
+- `PageSurface` aplica textura de papel, overlays de envelhecimento/mancha/borda e mantém os fallbacks CSS de grão, manchas e desgaste.
+
+Fallbacks continuam obrigatórios: se o asset estiver ausente, inativo, sem `previewUrl` seguro ou com role inexistente, o renderer usa as texturas CSS atuais. Por performance, o viewer público não deve baixar todos os assets da biblioteca; ele recebe apenas texturas usadas pelo tema e assets visíveis/referenciados.
 
 ### Upload/mídia básica
 
@@ -2211,11 +2242,16 @@ O config de tema deve ter defaults úteis para o renderer:
     "style": "scrapbook",
     "binding": "left",
     "background": "#F3E7D3",
-    "spineColor": "#7B4F32"
+    "spineColor": "#7B4F32",
+    "mode": "spread",
+    "spineWidth": 28,
+    "spreadGap": 0,
+    "pageCurl": "subtle",
+    "foldShadow": true
   },
-  "page": {
-    "surface": "kraft",
-    "backgroundColor": "#FFF4DE",
+	  "page": {
+	    "surface": "kraft",
+	    "backgroundColor": "#FFF4DE",
     "texture": "paper-grain",
     "textureAssetRole": "paper_texture",
     "edge": "deckled",
@@ -2226,18 +2262,44 @@ O config de tema deve ter defaults úteis para o renderer:
       "cornerTape": true,
       "paperGrain": true,
       "subtleStains": true,
-      "edgeWear": true
-    }
-  },
-  "elements": {
-    "text": { "defaultColor": "#3A2418", "headingColor": "#3A2418" },
+	      "edgeWear": true
+	    }
+	  },
+	  "textures": {
+	    "appBackground": {
+	      "assetRole": "background_texture",
+	      "opacity": 0.72,
+	      "blendMode": "multiply",
+	      "size": "cover"
+	    },
+	    "bookSurface": {
+	      "assetRole": "book_texture",
+	      "opacity": 0.58,
+	      "blendMode": "overlay",
+	      "size": "cover"
+	    },
+	    "pagePaper": {
+	      "assetRole": "paper_texture",
+	      "opacity": 0.84,
+	      "blendMode": "multiply",
+	      "size": "cover"
+	    },
+	    "agingOverlay": {
+	      "assetRole": "aging_overlay",
+	      "opacity": 0.18,
+	      "blendMode": "multiply",
+	      "size": "cover"
+	    }
+	  },
+	  "elements": {
+	    "text": { "defaultColor": "#3A2418", "headingColor": "#3A2418" },
     "image": { "defaultFrame": "polaroid", "shadow": true },
     "sticker": { "shadow": true }
   }
 }
 ```
 
-`App\Domain\Themes\ThemeConfig` fornece defaults, normalização e payload público allowlistado. O viewer público recebe apenas o config visual permitido, sem `storage_path`, dados de usuário, pedidos, pagamentos ou campos internos. `defaultShadow` ainda pode ser aceito como alias legado de `elements.sticker.shadow`, mas o contrato novo usa `shadow`.
+`App\Domain\Themes\ThemeConfig` fornece defaults, normalização e payload público allowlistado. O viewer público recebe apenas o config visual permitido, sem `storage_path`, URLs externas, dados de usuário, pedidos, pagamentos ou campos internos. `defaultShadow` ainda pode ser aceito como alias legado de `elements.sticker.shadow`, mas o contrato novo usa `shadow`.
 
 Os tokens agora precisam afetar visualmente mais do que a borda: fundo da aplicação, fundo do livro, cor da folha, folha alternativa, tinta, tinta secundária, acento, fita, lombada, sombra, textura, desgaste de borda, grão de papel, manchas suaves e molduras de imagem. Os seeds iniciais mantêm pelo menos três temas publicados para comparação:
 
@@ -2245,15 +2307,41 @@ Os tokens agora precisam afetar visualmente mais do que a borda: fundo da aplica
 - `Romance Delicado`: fundo off-white rosado, folha creme, acentos vinho/rosa queimado, sombras suaves e acabamento delicado;
 - `Aniversário Fofo`: fundo claro quente, folha clara, acentos pêssego/rosa/dourado e visual comemorativo controlado.
 
-Texturas reais podem vir de assets depois. Nesta fase, `PageSurface` usa CSS leve (`radial-gradient`, `linear-gradient`, `background-blend` implícito por camadas, grão simulado, manchas sutis, desgaste de borda e sombras multicamada), sem depender de URL externa.
+Texturas reais agora podem vir de assets associados ao `ThemeVersion` por role. O config referencia roles/assetIds seguros; o renderer resolve `previewUrl` no payload de assets. Quando uma textura real não existir, `PageSurface` e os demais componentes mantêm CSS leve (`radial-gradient`, `linear-gradient`, grão simulado, manchas sutis, desgaste de borda e sombras multicamada), sem depender de URL externa.
 
 ### Seeds de templates
 
-Os templates seedados publicados são estruturais e não carregam a aparência que pertence ao tema:
+Os templates seedados publicados são estruturais e não carregam a aparência que pertence ao tema. A base antiga continua útil para comparação e fluxo simples:
 
 - `Amor / Namoro`: capa, carta principal, galeria, música e página final;
 - `Feliz Aniversário`: capa de aniversário, mensagem de parabéns, galeria, coisas que amo/admiro em você e página final;
 - `Melhor Amiga`: capa, nossa amizade, melhores momentos, piadas/memórias e página final.
+
+### Templates premium
+
+A primeira leva premium usa a mesma estrutura versionada de `Template`, `TemplateVersion` e `TemplatePage`, mas com composição mais próxima de scrapbook real:
+
+- `Love Letter Scrapbook`: casal/carta romântica, capa com foto principal, carta, galeria de polaroids, lista emocional e final;
+- `Birthday Handmade`: aniversário, capa handmade, mensagem, galeria, calendário/data especial e desejos finais;
+- `Best Friends Collage`: amizade, capa jovem, história, colagem de momentos, piadas internas e final;
+- `Vintage Memory Book`: memória/retrospectiva, capa vintage, linha de memórias, fotos em molduras antigas, carta curta e final nostálgico.
+
+Templates premium são construídos por `App\Domain\Templates\Support\PremiumTemplateCanvasFactory`. Esse helper evita JSON gigante no seeder e oferece primitivas reutilizáveis para:
+
+- textos editáveis com nomes amigáveis;
+- placeholders de imagem com `placeholderLabel`, sem `mediaItemId` fake;
+- polaroids inclinadas;
+- fitas sobre fotos;
+- etiquetas editáveis;
+- papéis rasgados, envelopes, selos, calendários, jornais e doodles;
+- zIndex e rotações leves para colagem orgânica.
+
+Template e Theme continuam separados:
+
+- Template define estrutura, páginas, elementos iniciais, posições, tamanhos, rotações, textos, placeholders, ordem de camadas e composição;
+- Theme define aparência, paleta, texturas, papel, fundo, sombra, profundidade e atmosfera.
+
+Templates podem referenciar assets por `assetId` seguro quando o asset seedado/admin existir. Se um asset opcional não existir, a factory cria fallback de sticker textual seguro, sem URL externa. O canvas nunca salva `previewUrl`, `storage_path`, `src` manual em sticker, HTML ou script. Fotos do usuário continuam entrando depois por `mediaItemId` real do Gift.
 
 Cada `TemplatePage.canvas` seedado tem `schemaVersion = 1`, `version = 1`, `artboard` `1080x1350`, `unit = px`, `safeArea` padrão e `elements` como array. `CreateGiftFromTemplate` copia esses canvases para `GiftPage` já normalizados, então gifts novos não devem falhar com erro de artboard da capa.
 
@@ -2269,6 +2357,37 @@ O renderer compartilhado continua sendo a fonte única para editor e viewer. A b
 - `ElementRenderer`, `TextElement`, `ImageElement`, `StickerElement`, `MusicElement` e `InteractiveElement`.
 
 `PageRenderer` segue sendo a entrada principal, recebendo `canvas`, `theme` e `context` (`editor`, `preview` ou `public`). Editor, preview privado e viewer público devem passar o mesmo `theme.config` resumido pelo backend.
+
+### Book Mode no viewer e preview
+
+O viewer público e o preview privado usam Book Mode para aproximar a experiência de um scrapbook/caderno real, sem transformar o editor em duas páginas.
+
+No desktop/tablet largo:
+
+- o livro é renderizado como spread aberto;
+- página esquerda e direita aparecem lado a lado;
+- a navegação avança por pares;
+- há lombada central, sombra na dobra, textura/superfície do livro e profundidade;
+- quando o número de páginas é ímpar, o último spread mostra a página real à esquerda e uma folha vazia decorativa à direita.
+
+No mobile:
+
+- o viewer mantém uma página por vez;
+- a página continua grande o suficiente para leitura/toque;
+- navegação por botões, teclado e swipe continua funcionando;
+- o progresso mostra página individual, não par.
+
+Componentes principais:
+
+- `PublicGiftViewerShell`: controla abertura, páginas, final, teclado, swipe e estado atual;
+- `BookViewerShell`: traduz range atual em página esquerda/direita;
+- `OpenBookSpread`: monta o livro aberto, textura de capa/superfície, sombra externa e layout responsivo;
+- `BookPageSlot`: renderiza página real ou folha vazia decorativa usando `PageSurface`, `ThemedArtboard` e `CanvasElementLayer`;
+- `BookSpine`: renderiza lombada central e textura de lombada/livro.
+
+O cálculo de pares fica em `bookModeUtils`: no modo `spread`, índice `0` mostra páginas 1–2, índice `2` mostra páginas 3–4 e assim por diante; no modo `single`, cada índice corresponde a uma página real. A folha vazia decorativa não entra no total de progresso.
+
+`theme_versions.config.book` pode controlar `mode`, `spineWidth`, `spreadGap`, `pageCurl` e `foldShadow`, sempre com fallback seguro. O backend expõe esses campos por `ThemeConfig::publicConfig()` sem caminhos internos; o frontend normaliza/clampa valores antes de usar CSS. As texturas continuam vindo apenas de assets seguros resolvidos pelo backend.
 
 ### Estado visual mínimo esperado
 

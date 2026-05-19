@@ -25,9 +25,12 @@
 - QR Code e cartão compartilhável para Gifts publicados implementados.
 - Viewer público e preview privado refinados como experiência final do presente.
 - Admin real de assets visuais implementado, com upload, preview seguro, categorias, tipos, vínculo com tema e metadata física.
-- Fase atual: renderização premium/física de stickers/assets no editor, preview privado e viewer público.
-- Próxima fase: texturas reais de papel/tema ou book mode, conforme decisão explícita.
-- Depois: templates premium com assets reais e composição visual mais autoral.
+- Renderização premium/física de stickers/assets implementada no editor, preview privado e viewer público.
+- Texturas reais de tema, papel, fundo, livro e overlays usando assets associados ao `ThemeVersion` implementadas.
+- Templates premium com assets reais, colagem, polaroids, fitas, etiquetas e composição visual mais autoral implementados.
+- Fase atual: book mode com duas páginas no desktop/tablet largo e página única no mobile.
+- Próxima fase: transições/page flip leve ou componentes especiais de scrapbook.
+- Depois: QA visual, landing final baseada no produto real e gateway externo real antes de produção.
 - Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
@@ -385,7 +388,7 @@ Controles de camadas atuais: lista de camadas da página, seleção por camada, 
 
 Histórico local atual: undo/redo por página no editor, limite de 40 entradas por página, botões na topbar, atalhos `Ctrl/Cmd + Z`, `Ctrl/Cmd + Shift + Z` e `Ctrl/Cmd + Y`, coalescing para texto/propriedades e uma única entrada ao finalizar mover/redimensionar/rotacionar. Undo/redo não é salvo como versionamento no banco; ele altera o canvas local, preserva o rascunho local e deixa o autosave persistir pelo endpoint existente.
 
-Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado e admin real de assets visuais já foram implementados/refinados. Fase atual: renderização premium/física de stickers/assets. Gateway externo real continua etapa futura antes de produção.
+Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado, admin real de assets visuais, renderização premium/física de stickers/assets, texturas reais de tema/papel/fundo e templates premium já foram implementados/refinados. Fase atual: book mode com duas páginas no viewer/preview. Gateway externo real continua etapa futura antes de produção.
 
 ## Fase 12 - Upload e processamento de fotos
 
@@ -534,7 +537,7 @@ Status: primeira versão implementada. O QR Code é gerado on-demand com `chille
 
 ## Fase 18.1 - Refinamento do viewer público
 
-Status: refinado como base atual. O objetivo desta fase foi fazer `/p/{slug}-{public_code}` parecer um presente digital mobile-first, preservando segurança, renderer compartilhado, QR Code/cartão e regras de pagamento/publicação existentes. A prioridade atual saiu desta fase e está na renderização premium/física de assets.
+Status: refinado como base atual. O objetivo desta fase foi fazer `/p/{slug}-{public_code}` parecer um presente digital mobile-first, preservando segurança, renderer compartilhado, QR Code/cartão e regras de pagamento/publicação existentes. A prioridade atual saiu desta fase e está em book mode para que viewer público e preview privado pareçam um scrapbook aberto.
 
 379.1. Criar tela de abertura com título, destinatário/remetente e botão “Abrir presente”.
 379.2. Melhorar navegação por páginas com anterior/próxima, teclado, swipe simples no mobile, indicador e progresso discreto.
