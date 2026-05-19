@@ -1811,17 +1811,42 @@ Assets decorativos do sistema são diferentes de `MediaItem`.
 - Tipos de asset suportados incluem `sticker`, `texture`, `paper`, `background`, `frame`, `tape`, `label`, `envelope`, `stamp`, `flower`, `decoration`, `icon`, `shape`, `border` e `overlay`.
 - Um `Asset` pertence opcionalmente a uma categoria por `asset_category_id`; para o MVP não há many-to-many de categorias.
 - Upload administrativo aceita PNG, WebP e JPG/JPEG com validação de MIME real e extensão. SVG fica bloqueado inicialmente para uploads, salvo decisão futura com sanitização explícita para admin confiável.
+- Upload temporário do Filament/Livewire deve usar disk local (`LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=local`) para evitar spinner infinito quando o disk final é S3/MinIO e o storage externo está indisponível em desenvolvimento.
 - `ProcessUploadedAsset` salva o arquivo com nome seguro em storage configurado, sem usar nome original, e preenche `storage_disk`, `storage_path`, `mime_type`, `size_bytes`, `width` e `height`.
+- Se o storage final falhar, `ProcessUploadedAsset` deve devolver erro de validação amigável em `asset_file`, não exceção silenciosa nem loading infinito.
 - `storage_path` é dado interno. Preview no admin, editor, preview privado e viewer público deve usar rota/URL segura derivada pelo backend.
 - Assets globais são assets ativos sem vínculo em `theme_asset`; assets do tema são os associados ao `ThemeVersion` atual por `theme_asset`.
-- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema. Roles atuais incluem `sticker`, `paper_texture`, `background_texture`, `book_texture`, `spine_texture`, `page_overlay`, `edge_overlay`, `fabric_background`, `kraft_surface`, `aging_overlay`, `stain_overlay`, `tape`, `frame`, `decoration`, `overlay` e `border`.
+- `theme_asset` permite definir `role`, `sort_order` e `config` para destacar/priorizar assets do tema sem criar builder visual de tema. Roles atuais incluem `sticker`, `paper_texture`, `background_texture`, `book_texture`, `spine_texture`, `page_overlay`, `edge_overlay`, `fabric_background`, `kraft_surface`, `page_background`, `aging_overlay`, `stain_overlay`, `tape`, `frame`, `decoration`, `overlay` e `border`.
+- No admin, `AssetResource` deve indicar se o asset é Global ou associado a tema. `ThemeVersionResource` deve permitir associar/remover assets, definir uso no tema, prioridade e config avançado opcional.
+- Ações rápidas como "Usar como papel", "Usar como fundo" e "Usar como livro" podem apenas alterar o role do vínculo `theme_asset`, sem alterar o arquivo nem o canvas.
 - `Asset.metadata` controla renderização premium com `renderStyle`, `physical` e `defaultTransform`, por exemplo borda branca, sombra projetada, lift, textura de papel, rotação orgânica e dimensões padrão.
 - Cadastrar novos assets reais, categorias e associações de tema deve ser feito pelo admin/support. Código só deve ser necessário para novo comportamento de renderer, novos tipos sem suporte ou mudanças de contrato.
-- O endpoint autenticado `GET /app/gifts/{gift}/assets` lista categorias ativas, assets ativos do tema primeiro e assets globais depois. Ele exige Gift próprio em `draft`.
+- O endpoint autenticado `GET /app/gifts/{gift}/assets` lista categorias ativas e assets decorativos posicionáveis, com assets ativos do tema primeiro e assets globais depois. Ele exige Gift próprio em `draft`.
+- O endpoint autenticado `GET /app/gifts/{gift}/page-backgrounds` lista papéis/texturas adequados para fundo da página atual. Ele não expõe `storage_path` e não mistura esses papéis com a aba `Adesivos`.
 - O endpoint não expõe `storage_path` nem metadata administrativa; o frontend recebe `id`, `name`, `type`, categoria, `renderMode`, `previewUrl`, `renderStyle`, `physical`, `defaultTransform` e `config` allowlistado.
-- O editor possui aba `Adesivos`, com busca, filtro por categoria e grid responsivo. Ao clicar em um asset, cria um elemento `sticker` no centro da página atual com `assetId`, dimensões/rotação padrão do metadata quando existirem, `locked = false`, `hidden = false` e camada acima das atuais.
+- O editor possui aba `Adesivos`, com instrução simples, busca, filtro por categoria e grid responsivo. Ao clicar em um asset, cria um elemento `sticker` no centro da página atual com `assetId`, dimensões/rotação padrão do metadata quando existirem, `locked = false`, `hidden = false` e camada acima das atuais.
 - O renderer compartilhado resolve `assetId` por um mapa seguro `assetId -> asset` recebido do endpoint/editor ou do payload de preview/viewer. Se o asset estiver inativo/indisponível, o sticker fica em fallback seguro.
 - Preview privado e viewer público recebem apenas os assets de textura necessários ao tema e os assets referenciados por elementos visíveis das páginas visíveis; não carregam a biblioteca inteira e não expõem caminhos internos.
+
+### Papel/fundo da página
+
+Papel da página não é elemento do canvas. Ele é propriedade visual da folha/artboard e deve ser salvo em `canvas.artboard.background`.
+
+- `{"type": "theme"}` usa o papel padrão resolvido pelo tema.
+- `{"type": "asset", "assetId": "...", "fit": "cover", "opacity": 1}` usa um papel específico somente naquela página.
+- O canvas nunca deve salvar `previewUrl`, `storage_path`, `assetUrl`, URL externa ou path manual no background.
+- `type: asset` exige asset ativo, permitido para o Gift e adequado para fundo de página.
+- Papéis permitidos incluem roles `paper_texture`, `kraft_surface` e `page_background`, assets do tipo `paper`/`texture` e `background` marcado como fundo de página.
+
+Separação obrigatória:
+
+- stickers, fitas, selos, flores, etiquetas, recortes e molduras posicionáveis ficam em `canvas.elements[]`;
+- papel kraft, papel creme, papel jornal, textura de diário e folha envelhecida ficam em `canvas.artboard.background`;
+- a aba `Adesivos` cria elementos `sticker`; a aba `Página` troca o papel da folha inteira com 1 clique.
+
+O renderer (`PageSurface`) aplica o papel como camada de fundo que cobre a folha inteira, com `background-size: cover` por padrão, `background-position: center` e overlays do tema por cima quando existirem. O usuário não redimensiona papel manualmente, não manda camada para trás e não cria sticker para isso.
+
+O papel padrão do tema é resolvido preferencialmente por `paper_texture`, depois `kraft_surface`, depois config visual/CSS do tema. Para qualidade, papéis cadastrados no admin devem ter proporção próxima do artboard padrão `1080x1350` ou maior, preferencialmente WebP/JPG otimizados.
 
 ### Renderização física de assets
 
@@ -1874,6 +1899,29 @@ Aplicação visual:
 
 Fallbacks continuam obrigatórios: se o asset estiver ausente, inativo, sem `previewUrl` seguro ou com role inexistente, o renderer usa as texturas CSS atuais. Por performance, o viewer público não deve baixar todos os assets da biblioteca; ele recebe apenas texturas usadas pelo tema e assets visíveis/referenciados.
 
+### Pipeline visual e Gift para Template
+
+A criação visual de templates não deve depender de editar `TemplatePage.canvas` manualmente em JSON. O fluxo preferencial é:
+
+1. admin cria ou escolhe um Gift de rascunho;
+2. admin monta visualmente esse Gift no editor normal, usando fotos temporárias se precisar compor a página;
+3. admin abre o `GiftResource` no Filament e executa a ação `Criar template`;
+4. o sistema cria `Template`, `TemplateVersion` e `TemplatePages` a partir das `GiftPages`;
+5. a `TemplateVersion` nasce como `draft` por padrão;
+6. após revisão, a versão pode ser publicada pelo fluxo administrativo atual e então aparece em `/criar`.
+
+Regras da conversão:
+
+- copiar artboard, páginas, nomes, ordem visual, posições, tamanhos, rotações, `z`, `locked`/`hidden` de elementos e textos default;
+- não copiar `user_id`, `MediaItem`, pedidos, pagamentos, `public_code`, destinatário/remetente reais nem dados operacionais do Gift;
+- elementos `image` com foto pessoal (`mediaItemId`, `media_item_id` ou `src`) viram placeholders com labels genéricos como `Foto principal`, `Sua foto aqui` ou `Memória especial`;
+- elementos `sticker` preservam `assetId` apenas quando o asset do sistema está ativo e é global ou está associado ao tema escolhido;
+- remover `src`, `url`, `previewUrl`, `storage_path`, aliases de mídia e qualquer URL manual do canvas criado para template;
+- validar o canvas convertido com `CanvasSecurity` antes de persistir `TemplatePage`;
+- gerar `editable_schema.fields` a partir de textos, imagens/placeholders e stickers textuais editáveis.
+
+`/admin/template-pages/{id}/edit` continua existindo para ajuste avançado de JSON, mas deve mostrar que esse é um caminho avançado. O uso normal para montar templates bonitos é editar um Gift visualmente e convertê-lo em template reutilizável.
+
 ### Upload/mídia básica
 
 - `GiftMediaController` lista, recebe upload, serve imagem/thumbnail autenticadas e desativa mídia.
@@ -1888,7 +1936,7 @@ Fallbacks continuam obrigatórios: se o asset estiver ausente, inativo, sem `pre
 
 ### Limites do Editor MVP
 
-Não entram no Editor MVP atual: marketplace de assets, upload avançado de assets pelo usuário final, edição visual de tema, histórico persistido no servidor, versionamento completo de Gift, agrupamento de elementos, multi-seleção complexa, crop/filtros, animação de virar página, gateway real, demo pública, integração musical externa e builder visual de templates no admin. QR Code e cartão compartilhável pertencem à camada de entrega do Gift publicado, não ao editor visual.
+Não entram no Editor MVP atual: marketplace de assets, upload avançado de assets pelo usuário final, edição visual de tema, histórico persistido no servidor, versionamento completo de Gift, agrupamento de elementos, multi-seleção complexa, crop/filtros, animação de virar página, gateway real, demo pública, integração musical externa e um builder visual separado de templates no admin. O caminho atual para criar template visual é Gift para Template, reutilizando o editor existente. QR Code e cartão compartilhável pertencem à camada de entrega do Gift publicado, não ao editor visual.
 
 ## 20. Autenticação real mínima do cliente
 
