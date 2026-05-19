@@ -43,6 +43,7 @@ final class UpdateGiftPageCanvas
         $canvas = $this->normalizePageBackground($giftPage, $canvas);
         $canvas = $this->normalizeStickerElements($giftPage, $canvas);
         $canvas = $this->normalizeImageElements($user, $giftPage, $canvas);
+        $canvas = $this->normalizeFlipPolaroidElements($user, $giftPage, $canvas);
         $this->validateMediaReferences($user, $giftPage, $canvas);
 
         $giftPage->forceFill([
@@ -264,6 +265,75 @@ final class UpdateGiftPageCanvas
         }
 
         return $canvas;
+    }
+
+    /**
+     * @param  array<string, mixed>  $canvas
+     * @return array<string, mixed>
+     */
+    private function normalizeFlipPolaroidElements(User $user, GiftPage $giftPage, array $canvas): array
+    {
+        if (! isset($canvas['elements']) || ! is_array($canvas['elements'])) {
+            return $canvas;
+        }
+
+        foreach ($canvas['elements'] as $index => $element) {
+            if (! is_array($element) || ($element['type'] ?? null) !== 'flip_polaroid') {
+                continue;
+            }
+
+            $front = is_array($element['front'] ?? null) ? $element['front'] : [];
+            $back = is_array($element['back'] ?? null) ? $element['back'] : [];
+            $this->rejectUnsafeNestedUrlFields($front, 'canvas.media');
+            $this->rejectUnsafeNestedUrlFields($back, 'canvas.media');
+
+            $mediaItemId = $front['mediaItemId'] ?? $front['media_item_id'] ?? null;
+            $src = $front['src'] ?? null;
+            $hasSrc = is_string($src) && trim($src) !== '';
+
+            if ($mediaItemId === null || $mediaItemId === '') {
+                if ($hasSrc) {
+                    throw ValidationException::withMessages([
+                        'canvas.media' => 'Polaroids precisam usar uma mídia enviada para este presente.',
+                    ]);
+                }
+
+                unset($front['mediaItemId'], $front['media_item_id'], $front['src'], $front['thumbnailSrc'], $front['thumbnail_url']);
+                $element['front'] = $front;
+                $element['back'] = $back;
+                $canvas['elements'][$index] = $element;
+
+                continue;
+            }
+
+            $mediaItem = $this->mediaItemForCanvas($mediaItemId);
+
+            Gate::forUser($user)->authorize('attachToGift', [$mediaItem, $giftPage->gift]);
+
+            $front['mediaItemId'] = $mediaItem->id;
+            $front['src'] = route('app.gifts.media.show', [$giftPage->gift, $mediaItem], false);
+            unset($front['media_item_id'], $front['thumbnailSrc'], $front['thumbnail_url']);
+
+            $element['front'] = $front;
+            $element['back'] = $back;
+            $canvas['elements'][$index] = $element;
+        }
+
+        return $canvas;
+    }
+
+    /**
+     * @param  array<string, mixed>  $value
+     */
+    private function rejectUnsafeNestedUrlFields(array $value, string $errorKey): void
+    {
+        foreach (['url', 'publicUrl', 'public_url', 'previewUrl', 'preview_url', 'assetUrl', 'asset_url', 'storage_path', 'storagePath'] as $key) {
+            if (filled($value[$key] ?? null)) {
+                throw ValidationException::withMessages([
+                    $errorKey => 'Elementos interativos não podem salvar URLs ou paths manuais.',
+                ]);
+            }
+        }
     }
 
     /**

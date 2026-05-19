@@ -22,6 +22,16 @@ final class CanvasSecurity
 
     private const MAX_ELEMENT_NAME_LENGTH = 80;
 
+    public const INTERACTIVE_ENVELOPE_TITLE_MAX_LENGTH = 120;
+
+    public const INTERACTIVE_ENVELOPE_CONTENT_MAX_LENGTH = 1000;
+
+    public const FLIP_POLAROID_CAPTION_MAX_LENGTH = 120;
+
+    public const FLIP_POLAROID_BACK_TEXT_MAX_LENGTH = 500;
+
+    private const FLIP_POLAROID_PLACEHOLDER_MAX_LENGTH = 120;
+
     public function __construct(private readonly CanvasNormalizer $normalizer) {}
 
     /**
@@ -129,6 +139,12 @@ final class CanvasSecurity
 
         if (! is_string($value)) {
             return;
+        }
+
+        if (in_array($key, ['storage_path', 'storagepath'], true) && trim($value) !== '') {
+            throw ValidationException::withMessages([
+                'canvas' => 'O canvas não pode conter paths internos de storage.',
+            ]);
         }
 
         if (preg_match('/(?:https?:)?\/\/[^\s]+/i', $value) === 1) {
@@ -310,6 +326,117 @@ final class CanvasSecurity
             $this->validateElementBoolean($element, $index, 'hidden');
 
             $this->validateElementStyle($element, $index);
+            $this->validateSpecialElement($element, $index);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateSpecialElement(array $element, int $index): void
+    {
+        $type = $element['type'] ?? null;
+
+        if ($type === 'interactive_envelope') {
+            $this->validateInteractiveEnvelopeElement($element, $index);
+
+            return;
+        }
+
+        if ($type === 'flip_polaroid') {
+            $this->validateFlipPolaroidElement($element, $index);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateInteractiveEnvelopeElement(array $element, int $index): void
+    {
+        $title = $element['title'] ?? '';
+        $content = $element['content'] ?? '';
+
+        if (! is_string($title) || Str::length($title) > self::INTERACTIVE_ENVELOPE_TITLE_MAX_LENGTH) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.title" => 'O título do envelope precisa ser um texto curto.',
+            ]);
+        }
+
+        if (! is_string($content) || Str::length($content) > self::INTERACTIVE_ENVELOPE_CONTENT_MAX_LENGTH) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.content" => 'A carta do envelope precisa ter no máximo 1000 caracteres.',
+            ]);
+        }
+
+        $state = $element['state'] ?? null;
+
+        if (is_array($state) && array_key_exists('defaultOpen', $state) && ! is_bool($state['defaultOpen'])) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.state.defaultOpen" => 'O estado inicial do envelope precisa ser boolean.',
+            ]);
+        }
+
+        $style = $element['style'] ?? null;
+
+        if (is_array($style) && array_key_exists('variant', $style) && ! in_array($style['variant'], ['kraft', 'cream', 'rose'], true)) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.style.variant" => 'O estilo do envelope é inválido.',
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $element
+     */
+    private function validateFlipPolaroidElement(array $element, int $index): void
+    {
+        $front = $element['front'] ?? [];
+        $back = $element['back'] ?? [];
+
+        if (! is_array($front)) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.front" => 'A frente da polaroid precisa ser um objeto válido.',
+            ]);
+        }
+
+        if (! is_array($back)) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.back" => 'O verso da polaroid precisa ser um objeto válido.',
+            ]);
+        }
+
+        $caption = $front['caption'] ?? '';
+        $placeholderLabel = $front['placeholderLabel'] ?? '';
+        $backText = $back['text'] ?? '';
+
+        if (! is_string($caption) || Str::length($caption) > self::FLIP_POLAROID_CAPTION_MAX_LENGTH) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.front.caption" => 'A legenda da polaroid precisa ser curta.',
+            ]);
+        }
+
+        if (! is_string($placeholderLabel) || Str::length($placeholderLabel) > self::FLIP_POLAROID_PLACEHOLDER_MAX_LENGTH) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.front.placeholderLabel" => 'O placeholder da polaroid precisa ser curto.',
+            ]);
+        }
+
+        if (! is_string($backText) || Str::length($backText) > self::FLIP_POLAROID_BACK_TEXT_MAX_LENGTH) {
+            throw ValidationException::withMessages([
+                "canvas.elements.{$index}.back.text" => 'O verso da polaroid precisa ter no máximo 500 caracteres.',
+            ]);
+        }
+
+        foreach (['mediaItemId', 'media_item_id'] as $key) {
+            if (! array_key_exists($key, $front) || $front[$key] === null || $front[$key] === '') {
+                continue;
+            }
+
+            if (! is_string($front[$key]) && ! is_int($front[$key])) {
+                throw ValidationException::withMessages([
+                    "canvas.elements.{$index}.front.mediaItemId" => 'A foto da polaroid precisa usar uma mídia válida.',
+                ]);
+            }
         }
     }
 
