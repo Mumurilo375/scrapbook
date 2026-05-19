@@ -1,167 +1,310 @@
+@php
+    use Filament\Support\Icons\Heroicon;
+@endphp
+
 <x-filament-panels::page>
-    @php($dashboard = $this->dashboard())
-    @php($overview = $dashboard['overview'])
-    @php($revenue = $dashboard['revenue'])
-    @php($viewer = $dashboard['viewer'])
+    @php($view = $this->viewModel())
+    @php($dashboard = $view['dashboard'])
+    @php($health = $dashboard['health'])
 
-    <div class="grid gap-6">
-        <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
-            <div class="grid gap-2">
-                <p class="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                    Produto
-                </p>
-                <h2 class="text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">
-                    Métricas internas seguras
-                </h2>
-                <p class="max-w-3xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-                    Painel operacional para acompanhar funil, receita, viewer, eventos recentes e erros sem expor IP,
-                    user-agent bruto, texto de presentes ou paths internos.
-                </p>
+    <div class="mx-auto grid w-full max-w-[92rem] gap-6">
+        <x-filament::section>
+            <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-filament::badge color="primary">Admin-only</x-filament::badge>
+                        <x-filament::badge :color="$this->statusColor($health['status'])">
+                            {{ $health['status_label'] }}
+                        </x-filament::badge>
+
+                        @if ($dashboard['comparison']['enabled'])
+                            <x-filament::badge color="info">
+                                Comparando {{ $dashboard['comparison']['period']['from'] }} até {{ $dashboard['comparison']['period']['to'] }}
+                            </x-filament::badge>
+                        @endif
+                    </div>
+
+                    <h2 class="mt-4 text-2xl font-semibold text-gray-950 dark:text-white sm:text-3xl">
+                        Analytics e Observabilidade
+                    </h2>
+                    <p class="mt-2 max-w-3xl text-sm leading-6 text-gray-600 dark:text-gray-300">
+                        Lucro, vendas, preferências de clientes e atividade operacional em uma visão única.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-2 xl:justify-end">
+                    <x-filament::button wire:click="$refresh" color="gray" outlined :icon="Heroicon::OutlinedArrowPath">
+                        Atualizar
+                    </x-filament::button>
+                    <x-filament::button wire:click="toggleComparison" :color="$this->compareEnabled ? 'info' : 'gray'" outlined :icon="Heroicon::OutlinedCalendarDays">
+                        Comparar
+                    </x-filament::button>
+                </div>
             </div>
-        </section>
 
-        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <x-analytics-card title="Receita total" :value="$this->money($overview['revenue_total_cents'])" />
-            <x-analytics-card title="Receita 7 dias" :value="$this->money($overview['revenue_7d_cents'])" />
-            <x-analytics-card title="Gifts criados" :value="$overview['gifts_created']" />
-            <x-analytics-card title="Gifts publicados" :value="$overview['gifts_published']" />
-            <x-analytics-card title="Visitas públicas" :value="$overview['public_visits']" />
-            <x-analytics-card title="Visitantes estimados" :value="$overview['unique_visitors']" />
-            <x-analytics-card title="Checkout → pago" :value="$overview['checkout_to_paid_rate'].'%'" />
-            <x-analytics-card title="Ticket médio" :value="$this->money($revenue['average_ticket_cents'])" />
-        </section>
+            <div class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+                <div class="grid gap-3">
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($this->periodOptions() as $value => $label)
+                            <button
+                                type="button"
+                                wire:click="setPeriod('{{ $value }}')"
+                                @class([
+                                    'rounded-lg px-3 py-2 text-sm font-medium transition ring-1',
+                                    'bg-primary-600 text-white shadow-sm ring-primary-600' => $this->period === $value,
+                                    'bg-white text-gray-700 ring-gray-950/10 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-white/10 dark:hover:bg-white/10' => $this->period !== $value,
+                                ])
+                            >
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
 
-        <div class="grid gap-6 xl:grid-cols-[1fr_1fr]">
-            <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gray-900">
-                <h3 class="text-lg font-semibold text-gray-950 dark:text-white">Funil principal</h3>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full min-w-[520px] text-left text-sm">
-                        <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
-                            <tr>
-                                <th class="py-2 pr-3">Etapa</th>
-                                <th class="py-2 pr-3">Contagem</th>
-                                <th class="py-2 pr-3">Conversão</th>
-                                <th class="py-2">Queda</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                            @foreach ($dashboard['funnel'] as $step)
-                                <tr>
-                                    <td class="py-2 pr-3 font-medium text-gray-950 dark:text-white">{{ $step['event'] }}</td>
-                                    <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ $step['count'] }}</td>
-                                    <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ $step['conversion_from_previous'] === null ? 'N/D' : $step['conversion_from_previous'].'%' }}</td>
-                                    <td class="py-2 text-gray-700 dark:text-gray-200">{{ $step['dropoff_from_previous'] === null ? 'N/D' : $step['dropoff_from_previous'].'%' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gray-900">
-                <h3 class="text-lg font-semibold text-gray-950 dark:text-white">Receita</h3>
-                <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                    <x-analytics-card title="Total aprovado" :value="$this->money($revenue['total_cents'])" compact />
-                    <x-analytics-card title="Taxa aprovação" :value="$revenue['approval_rate'].'%'" compact />
-                    <x-analytics-card title="Ticket médio" :value="$this->money($revenue['average_ticket_cents'])" compact />
+                    <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        <span class="font-medium text-gray-700 dark:text-gray-200">
+                            {{ $dashboard['period']['label'] }}
+                        </span>
+                        <span>{{ $dashboard['period']['from'] }} até {{ $dashboard['period']['to'] }}</span>
+                    </div>
                 </div>
 
-                <div class="mt-5 grid gap-4 md:grid-cols-2">
-                    <x-analytics-list title="Pedidos por status" :items="$revenue['orders_by_status']" />
-                    <x-analytics-list title="Pagamentos por status" :items="$revenue['payments_by_status']" />
+                @if ($this->period === 'custom')
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <label class="grid gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            Início
+                            <input type="date" wire:model.live="from" class="rounded-lg border-gray-300 text-sm shadow-sm transition focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-white" />
+                        </label>
+                        <label class="grid gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            Fim
+                            <input type="date" wire:model.live="to" class="rounded-lg border-gray-300 text-sm shadow-sm transition focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-white" />
+                        </label>
+                    </div>
+                @endif
+            </div>
+
+            @if ($this->compareEnabled)
+                <div class="mt-4 grid gap-3 rounded-lg bg-sky-50 p-4 ring-1 ring-sky-600/10 dark:bg-sky-400/10 dark:ring-sky-400/20 lg:grid-cols-[1fr_auto] lg:items-end">
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <label class="grid gap-1 text-xs font-medium text-sky-900 dark:text-sky-100">
+                            Comparar início
+                            <input type="date" wire:model.live="compareFrom" class="rounded-lg border-sky-200 text-sm shadow-sm transition focus:border-sky-500 focus:ring-sky-500 dark:border-sky-400/20 dark:bg-gray-900 dark:text-white" />
+                        </label>
+                        <label class="grid gap-1 text-xs font-medium text-sky-900 dark:text-sky-100">
+                            Comparar fim
+                            <input type="date" wire:model.live="compareTo" class="rounded-lg border-sky-200 text-sm shadow-sm transition focus:border-sky-500 focus:ring-sky-500 dark:border-sky-400/20 dark:bg-gray-900 dark:text-white" />
+                        </label>
+                    </div>
+
+                    <x-filament::button wire:click="clearComparison" color="gray" outlined>
+                        Limpar comparação
+                    </x-filament::button>
                 </div>
-            </section>
+            @endif
+        </x-filament::section>
+
+        <div class="rounded-lg bg-white p-2 shadow-sm ring-1 ring-gray-950/10 dark:bg-gray-900 dark:ring-white/10">
+            <div class="overflow-x-auto">
+                <x-filament::tabs contained label="Seções do analytics" class="min-w-max">
+                    @foreach ($view['tabs'] as $key => $tab)
+                        <x-filament::tabs.item
+                            wire:click="setActiveTab('{{ $key }}')"
+                            :active="$this->activeTab === $key"
+                            :icon="$tab['icon']"
+                            :badge="$tab['badge']"
+                            :badge-color="$tab['badge_color']"
+                        >
+                            {{ $tab['label'] }}
+                        </x-filament::tabs.item>
+                    @endforeach
+                </x-filament::tabs>
+            </div>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-[1fr_1fr]">
-            <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gray-900">
-                <h3 class="text-lg font-semibold text-gray-950 dark:text-white">Viewer e gifts</h3>
-                <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                    <x-analytics-card title="Conclusão" :value="$viewer['completion_rate'].'%'" compact />
-                    <x-analytics-card title="Média páginas" :value="$viewer['average_pages_viewed']" compact />
-                    <x-analytics-card title="Polaroids" :value="$viewer['polaroid_interactions']" compact />
-                </div>
-                <div class="mt-5 grid gap-4 md:grid-cols-2">
-                    <x-analytics-list title="Fontes" :items="$viewer['traffic_sources']" />
-                    <x-analytics-list title="Templates mais usados" :items="collect($overview['top_templates'])->mapWithKeys(fn ($item) => [$item['name'] => $item['gifts_count']])->all()" />
-                </div>
-            </section>
+        @if ($this->activeTab === 'dashboard')
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                @foreach ($view['kpiCards'] as $card)
+                    <x-analytics.metric-card
+                        compact
+                        :title="$card['title']"
+                        :value="$card['value']"
+                        :description="$card['description']"
+                        :icon="$card['icon']"
+                        :color="$card['color']"
+                        :delta="$card['delta']"
+                    />
+                @endforeach
+            </div>
 
-            <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gray-900">
-                <h3 class="text-lg font-semibold text-gray-950 dark:text-white">Receita por dimensão</h3>
-                <div class="mt-4 grid gap-4">
-                    @foreach (['revenue_by_plan' => 'Planos', 'revenue_by_template' => 'Templates', 'revenue_by_occasion' => 'Ocasiões', 'revenue_by_theme' => 'Temas'] as $key => $label)
-                        <div>
-                            <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ $label }}</p>
-                            <ul class="mt-2 grid gap-2">
-                                @forelse ($revenue[$key] as $row)
-                                    <li class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/5">
-                                        <span class="truncate text-gray-700 dark:text-gray-200">{{ $row['name'] }}</span>
-                                        <span class="font-semibold text-gray-950 dark:text-white">{{ $this->money($row['revenue_cents']) }}</span>
-                                    </li>
-                                @empty
-                                    <li class="text-sm text-gray-500 dark:text-gray-400">Sem dados.</li>
-                                @endforelse
-                            </ul>
+            <div class="grid gap-6 xl:grid-cols-3">
+                @foreach ($view['trendCards'] as $card)
+                    <x-analytics.trend-card
+                        :title="$card['title']"
+                        :description="$card['description']"
+                        :value="$card['value']"
+                        :series="$card['series']"
+                        :comparison="$card['comparison']"
+                        :color="$card['color']"
+                    />
+                @endforeach
+            </div>
+
+            <div class="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
+                <x-filament::section
+                    heading="Funil resumido"
+                    :description="$view['funnelSummary']['insight']"
+                    :icon="Heroicon::OutlinedChartBar"
+                    icon-color="primary"
+                >
+                    <div class="grid gap-3">
+                        @foreach ($view['funnelSummary']['rows'] as $row)
+                            <div class="rounded-lg bg-white p-4 ring-1 ring-gray-950/10 dark:bg-gray-900 dark:ring-white/10">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-semibold text-gray-950 dark:text-white">{{ $row['label'] }}</p>
+                                        <p class="mt-0.5 truncate font-mono text-xs text-gray-500 dark:text-gray-400">{{ $row['code'] }}</p>
+                                    </div>
+                                    <p class="shrink-0 text-xl font-semibold text-gray-950 dark:text-white">{{ $row['count_label'] }}</p>
+                                </div>
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <x-filament::badge :color="$row['conversion_color']">Conv. {{ $row['conversion_label'] }}</x-filament::badge>
+                                    <x-filament::badge color="gray">Queda {{ $row['dropoff_label'] }}</x-filament::badge>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </x-filament::section>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    @foreach ($view['preferenceSections'] as $section)
+                        <x-analytics.preference-card
+                            :title="$section['title']"
+                            :description="$section['description']"
+                            :items="$section['items']"
+                            :color="$section['color']"
+                        />
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        @if ($this->activeTab === 'operational')
+            <x-filament::section
+                heading="Eventos, ações e logs"
+                description="Feed operacional com eventos de produto e activity_log."
+                :icon="Heroicon::OutlinedClipboardDocumentList"
+                icon-color="gray"
+            >
+                <div class="grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_12rem_12rem]">
+                    <label class="grid gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        Busca
+                        <input
+                            type="search"
+                            wire:model.live.debounce.400ms="operationalSearch"
+                            placeholder="Evento, ação ou origem"
+                            class="rounded-lg border-gray-300 text-sm shadow-sm transition focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                        />
+                    </label>
+
+                    <label class="grid gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        Tipo
+                        <select wire:model.live="operationalType" class="rounded-lg border-gray-300 text-sm shadow-sm transition focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-white">
+                            @foreach ($view['operationalTypeOptions'] as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="grid gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        Origem
+                        <select wire:model.live="operationalSource" class="rounded-lg border-gray-300 text-sm shadow-sm transition focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-white">
+                            @foreach ($view['operationalSourceOptions'] as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+
+                <div class="mt-5 grid gap-3">
+                    @forelse ($view['operationalFeed'] as $row)
+                        <x-analytics.operational-row :row="$row" />
+                    @empty
+                        <x-analytics.empty-state
+                            title="Nenhum evento operacional encontrado."
+                            description="Ajuste os filtros ou selecione outro período para ampliar a busca."
+                            :icon="Heroicon::OutlinedClipboardDocumentList"
+                        />
+                    @endforelse
+                </div>
+
+                @if ($view['operationalFeed']->hasPages())
+                    <div class="mt-5">
+                        {{ $view['operationalFeed']->links() }}
+                    </div>
+                @endif
+            </x-filament::section>
+
+            <x-filament::section
+                heading="Resumo de saúde"
+                description="Estado operacional do analytics, agregação diária e retenção."
+                :icon="Heroicon::OutlinedBolt"
+                icon-color="success"
+            >
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    @foreach ($view['healthCards'] as $card)
+                        <x-analytics.metric-card
+                            compact
+                            :title="$card['title']"
+                            :value="$card['value']"
+                            :description="$card['description']"
+                            :icon="$card['icon']"
+                            :color="$card['color']"
+                        />
+                    @endforeach
+                </div>
+
+                <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    @foreach ($view['healthItems'] as $item)
+                        <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-950/10 dark:bg-gray-900 dark:ring-white/10">
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="truncate font-mono text-xs text-gray-500 dark:text-gray-400">{{ $item['label'] }}</p>
+                                <x-filament::badge :color="$item['color']">{{ $item['value'] }}</x-filament::badge>
+                            </div>
                         </div>
                     @endforeach
                 </div>
-            </section>
-        </div>
+            </x-filament::section>
 
-        <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gray-900">
-            <h3 class="text-lg font-semibold text-gray-950 dark:text-white">Eventos recentes</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="w-full min-w-[760px] text-left text-sm">
-                    <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
-                        <tr>
-                            <th class="py-2 pr-3">Hora</th>
-                            <th class="py-2 pr-3">Evento</th>
-                            <th class="py-2 pr-3">Grupo</th>
-                            <th class="py-2 pr-3">Usuário</th>
-                            <th class="py-2 pr-3">Gift</th>
-                            <th class="py-2 pr-3">Origem</th>
-                            <th class="py-2">Payload</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                        @forelse ($dashboard['recent_events'] as $event)
-                            <tr>
-                                <td class="py-2 pr-3 text-gray-600 dark:text-gray-300">{{ $event['time'] }}</td>
-                                <td class="py-2 pr-3 font-medium text-gray-950 dark:text-white">{{ $event['event_name'] }}</td>
-                                <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ $event['event_group'] }}</td>
-                                <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ $event['user'] ?? 'N/D' }}</td>
-                                <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ $event['gift'] ?? 'N/D' }}</td>
-                                <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ $event['source'] }}</td>
-                                <td class="py-2 text-gray-500 dark:text-gray-400">
-                                    <code>{{ json_encode($event['payload'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</code>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="py-4 text-sm text-gray-500 dark:text-gray-400" colspan="7">Nenhum evento registrado.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <x-filament::section
+                    heading="Retenção e prune"
+                    description="Estimativa de registros elegíveis por tabela."
+                    :icon="Heroicon::OutlinedCommandLine"
+                    icon-color="warning"
+                >
+                    <x-analytics.list-card
+                        title="Registros elegíveis"
+                        :items="$view['pruneRows']"
+                        empty-title="Nenhum registro elegível."
+                    />
+                </x-filament::section>
+
+                <x-filament::section
+                    heading="Comandos úteis"
+                    description="Referência operacional. A página não executa comandos destrutivos."
+                    :icon="Heroicon::OutlinedCommandLine"
+                    icon-color="warning"
+                >
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        @foreach ($view['commandCards'] as $command)
+                            <x-analytics.command-card
+                                :title="$command['title']"
+                                :command="$command['command']"
+                                :description="$command['description']"
+                            />
+                        @endforeach
+                    </div>
+                </x-filament::section>
             </div>
-        </section>
-
-        <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gray-900">
-            <h3 class="text-lg font-semibold text-gray-950 dark:text-white">Logs e erros operacionais</h3>
-            <ul class="mt-4 grid gap-3">
-                @forelse ($dashboard['error_events'] as $event)
-                    <li class="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm dark:border-red-400/20 dark:bg-red-400/10">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="font-semibold text-red-900 dark:text-red-100">{{ $event['event_name'] }}</span>
-                            <span class="text-xs text-red-700 dark:text-red-200">{{ $event['time'] }}</span>
-                        </div>
-                        <p class="mt-1 text-red-800 dark:text-red-100">Origem: {{ $event['source'] }}</p>
-                    </li>
-                @empty
-                    <li class="text-sm text-gray-500 dark:text-gray-400">Nenhum erro operacional registrado.</li>
-                @endforelse
-            </ul>
-        </section>
+        @endif
     </div>
 </x-filament-panels::page>
