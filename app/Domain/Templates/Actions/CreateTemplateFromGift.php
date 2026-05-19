@@ -208,6 +208,11 @@ final class CreateTemplateFromGift
                 $element = $this->sanitizeStickerElement($element, $themeVersion);
             }
 
+            if ($type === 'flip_polaroid') {
+                $element = $this->sanitizeFlipPolaroidElement($element, $imageIndex);
+                $imageIndex++;
+            }
+
             $elements[$index] = $element;
         }
 
@@ -265,6 +270,12 @@ final class CreateTemplateFromGift
      */
     private function removeUnsafeTemplateFields(array $element): array
     {
+        foreach ($element as $key => $value) {
+            if (is_array($value)) {
+                $element[$key] = $this->removeUnsafeTemplateFields($value);
+            }
+        }
+
         foreach ([
             'mediaItemId',
             'media_item_id',
@@ -366,6 +377,33 @@ final class CreateTemplateFromGift
         return $element;
     }
 
+    /**
+     * @param  array<string, mixed>  $element
+     * @return array<string, mixed>
+     */
+    private function sanitizeFlipPolaroidElement(array $element, int $imageIndex): array
+    {
+        $front = is_array($element['front'] ?? null) ? $element['front'] : [];
+        $back = is_array($element['back'] ?? null) ? $element['back'] : [];
+
+        if (blank($front['placeholderLabel'] ?? null)) {
+            $front['placeholderLabel'] = $this->placeholderLabel($imageIndex);
+        }
+
+        if (blank($front['caption'] ?? null)) {
+            $front['caption'] = 'Nosso momento';
+        }
+
+        if (blank($element['slotKey'] ?? null)) {
+            $element['slotKey'] = 'interactive_photo_'.($imageIndex + 1);
+        }
+
+        $element['front'] = $front;
+        $element['back'] = $back;
+
+        return $element;
+    }
+
     private function assetCanBeUsedByTheme(Asset $asset, ThemeVersion $themeVersion): bool
     {
         if (! $asset->themeVersions()->exists()) {
@@ -402,7 +440,7 @@ final class CreateTemplateFromGift
 
         return collect($elements)
             ->filter(fn (mixed $element): bool => is_array($element)
-                && (in_array($element['type'] ?? null, ['text', 'image'], true) || ($element['editableText'] ?? false) === true))
+                && (in_array($element['type'] ?? null, ['text', 'image', 'interactive_envelope', 'flip_polaroid'], true) || ($element['editableText'] ?? false) === true))
             ->map(fn (array $element): string => (string) ($element['slotKey'] ?? $element['id']))
             ->filter(fn (string $value): bool => trim($value) !== '')
             ->values()

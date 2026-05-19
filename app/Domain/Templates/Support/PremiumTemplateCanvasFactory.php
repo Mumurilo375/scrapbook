@@ -49,6 +49,18 @@ final class PremiumTemplateCanvasFactory
                 $this->asset('selo-vintage', 'Selo da carta', 738, 872, 150, 150, -6, 32),
                 $this->asset('coracao-recortado', 'Coração pequeno', 675, 106, 135, 120, 5, 30),
                 $this->label('Etiqueta de rodapé', 'com todo meu carinho', 486, 1016, 360, 116, 4, 34),
+                $this->interactiveEnvelope(
+                    'Envelope abra quando',
+                    'Abra quando sentir saudade',
+                    "Guardei aqui uma mensagem para quando a saudade apertar.\n\nVolte para esta carta sempre que quiser lembrar do quanto você é importante para mim.",
+                    462,
+                    842,
+                    470,
+                    315,
+                    -4,
+                    40,
+                    'cream',
+                ),
             ]),
             $this->page(PageType::Gallery, 'Galeria de polaroids', 30, [
                 $this->text('Título da galeria', 'Memórias que eu guardo no coração', 132, 98, 815, 108, 48, 'heading', 'center', -2, 28),
@@ -144,6 +156,18 @@ final class PremiumTemplateCanvasFactory
                 $this->image('Foto final de aniversário', 'Uma última memória', 366, 780, 350, 395, -4, 26),
                 $this->asset('confete-aniversario', 'Confete final', 692, 710, 235, 180, 6, 32),
                 $this->label('Etiqueta final aniversário', 'que venham histórias lindas', 225, 1088, 560, 106, 3, 36),
+                $this->interactiveEnvelope(
+                    'Envelope de desejos',
+                    'Abra para um desejo',
+                    'Que este novo ciclo te encontre com coragem, carinho e muitas histórias boas para contar.',
+                    112,
+                    740,
+                    430,
+                    285,
+                    5,
+                    38,
+                    'rose',
+                ),
             ]),
         ];
     }
@@ -182,6 +206,18 @@ final class PremiumTemplateCanvasFactory
                 ], 10),
                 $this->asset('flor-simples', 'Flor central', 452, 598, 160, 160, -5, 54),
                 $this->label('Legenda colagem', 'a gente sempre dá um jeito de virar história', 255, 1135, 585, 105, 2, 56),
+                $this->flipPolaroid(
+                    'Polaroid segredo da amizade',
+                    'Foto surpresa',
+                    'Nosso momento',
+                    'Essa lembrança tem a nossa cara: meio bagunçada, muito feliz e impossível de explicar para quem não estava lá.',
+                    670,
+                    790,
+                    285,
+                    365,
+                    7,
+                    62,
+                ),
             ]),
             $this->page(PageType::Generic, 'Piadas e frases internas', 40, [
                 $this->text('Título piadas internas', 'Piadas, códigos e frases internas', 125, 100, 830, 105, 48, 'heading', 'center', 2, 30),
@@ -399,6 +435,84 @@ final class PremiumTemplateCanvasFactory
     /**
      * @return array<string, mixed>
      */
+    private function interactiveEnvelope(
+        string $name,
+        string $title,
+        string $content,
+        int $x,
+        int $y,
+        int $w,
+        int $h,
+        int $rotation,
+        int $z,
+        string $variant = 'kraft',
+    ): array {
+        $id = $this->id($name);
+
+        return [
+            'id' => $id,
+            'type' => 'interactive_envelope',
+            'slotKey' => $id,
+            'name' => $name,
+            'title' => $title,
+            'content' => $content,
+            'x' => $x,
+            'y' => $y,
+            'w' => $w,
+            'h' => $h,
+            'rotation' => $rotation,
+            'z' => $z,
+            'state' => [
+                'defaultOpen' => false,
+            ],
+            'style' => [
+                'variant' => $variant,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function flipPolaroid(
+        string $name,
+        string $placeholderLabel,
+        string $caption,
+        string $backText,
+        int $x,
+        int $y,
+        int $w,
+        int $h,
+        int $rotation,
+        int $z,
+    ): array {
+        $id = $this->id($name);
+
+        return [
+            'id' => $id,
+            'type' => 'flip_polaroid',
+            'slotKey' => $id,
+            'name' => $name,
+            'x' => $x,
+            'y' => $y,
+            'w' => $w,
+            'h' => $h,
+            'rotation' => $rotation,
+            'z' => $z,
+            'front' => [
+                'mediaItemId' => null,
+                'placeholderLabel' => $placeholderLabel,
+                'caption' => $caption,
+            ],
+            'back' => [
+                'text' => $backText,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function asset(string $slug, string $name, int $x, int $y, int $w, int $h, int $rotation, int $z): array
     {
         $id = $this->id($name);
@@ -456,7 +570,7 @@ final class PremiumTemplateCanvasFactory
     private function editableFields(array $elements): array
     {
         return collect($elements)
-            ->filter(fn (array $element): bool => in_array($element['type'] ?? null, ['text', 'image'], true) || ($element['editableText'] ?? false) === true)
+            ->filter(fn (array $element): bool => in_array($element['type'] ?? null, ['text', 'image', 'interactive_envelope', 'flip_polaroid'], true) || ($element['editableText'] ?? false) === true)
             ->map(fn (array $element): string => (string) ($element['slotKey'] ?? $element['id']))
             ->values()
             ->all();
