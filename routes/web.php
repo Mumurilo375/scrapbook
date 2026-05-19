@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Assets\AssetPreviewController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Gifts\CreateGiftFlowController;
@@ -46,6 +47,7 @@ Route::get('/criar', [CreateGiftFlowController::class, 'index'])->name('create.i
 Route::get('/criar/{occasion:slug}', [CreateGiftFlowController::class, 'templates'])->name('create.occasion');
 Route::get('/criar/{occasion:slug}/{template:slug}', [CreateGiftFlowController::class, 'show'])->name('create.template.show');
 
+Route::get('/assets/{asset}/preview', AssetPreviewController::class)->name('assets.preview');
 Route::get('/p/{slugToken}/media/{mediaItem}/thumbnail', [PublicGiftMediaController::class, 'thumbnail'])->name('public.gifts.media.thumbnail');
 Route::get('/p/{slugToken}/media/{mediaItem}', [PublicGiftMediaController::class, 'show'])->name('public.gifts.media.show');
 Route::get('/p/{slugToken}', PublicGiftController::class)->name('public.gifts.show');
