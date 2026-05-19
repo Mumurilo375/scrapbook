@@ -327,10 +327,6 @@ final class PremiumTemplateCanvasFactory
                 'background' => ['type' => 'theme'],
                 'safeArea' => CanvasNormalizer::DEFAULT_SAFE_AREA,
             ],
-            'background' => [
-                'type' => 'themeToken',
-                'value' => 'paper',
-            ],
             'elements' => $elements,
         ];
     }

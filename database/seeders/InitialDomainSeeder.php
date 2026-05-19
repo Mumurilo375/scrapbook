@@ -629,7 +629,7 @@ class InitialDomainSeeder extends Seeder
             [
                 'name' => 'Papel Rasgado',
                 'slug' => 'papel-rasgado',
-                'type' => AssetType::Paper->value,
+                'type' => AssetType::Cutout->value,
                 'category_slug' => 'papeis',
                 'shape' => 'torn-paper',
                 'colors' => ['primary' => '#F7E2B6', 'secondary' => '#C99B63', 'ink' => '#7B5A43'],
@@ -725,7 +725,7 @@ class InitialDomainSeeder extends Seeder
             [
                 'name' => 'Calendário Especial',
                 'slug' => 'calendario-especial',
-                'type' => AssetType::Paper->value,
+                'type' => AssetType::Cutout->value,
                 'category_slug' => 'aniversario',
                 'shape' => 'calendar',
                 'colors' => ['primary' => '#FFF8EF', 'secondary' => '#F3B66D', 'ink' => '#6F3E2E'],
@@ -989,10 +989,6 @@ class InitialDomainSeeder extends Seeder
                     'type' => 'theme',
                 ],
                 'safeArea' => CanvasNormalizer::DEFAULT_SAFE_AREA,
-            ],
-            'background' => [
-                'type' => 'themeToken',
-                'value' => 'paper',
             ],
             'elements' => $elements,
         ];
