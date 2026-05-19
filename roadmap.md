@@ -43,6 +43,7 @@
 - Se o diretório já estiver root-owned, a correção recomendada é uma limpeza pontual de `public/build` ou `chown` apenas nesse diretório ignorado pelo Git, nunca uma mudança ampla de permissão no projeto.
 - A suíte PHPUnit não deve usar PostgreSQL local em `127.0.0.1:5432`. Por padrão, `phpunit.xml` aponta para `127.0.0.1:55432` e banco `scrapbook_testing`; `Tests\TestCase` bloqueia PostgreSQL na porta `5432` ou banco sem `test` no nome antes de `RefreshDatabase` rodar, para evitar apagar dados reais.
 - Para rodar testes com Docker, suba apenas o banco descartável com `docker compose --profile testing up -d postgres_test`. Esse serviço usa `tmpfs` e porta `55432`, separado do banco de desenvolvimento.
+- Uma tentativa de executar PHPUnit contra `DB_PORT=5432` deve falhar intencionalmente antes de migrations, mesmo para testes que não usem `RefreshDatabase`.
 
 ## Fase 0 — Branding, posicionamento e landing page
 
