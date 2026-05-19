@@ -12,6 +12,7 @@ use App\Models\User;
 use Database\Seeders\InitialDomainSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -260,22 +261,19 @@ class GiftAssetLibraryTest extends TestCase
         $asset = $this->asset();
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([
-                    [
-                        'id' => 'sticker_heart',
-                        'type' => 'sticker',
-                        'assetId' => $asset->id,
-                        'x' => 430,
-                        'y' => 520,
-                        'w' => 220,
-                        'h' => 220,
-                        'rotation' => 0,
-                        'z' => 50,
-                    ],
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([
+                [
+                    'id' => 'sticker_heart',
+                    'type' => 'sticker',
+                    'assetId' => $asset->id,
+                    'x' => 430,
+                    'y' => 520,
+                    'w' => 220,
+                    'h' => 220,
+                    'rotation' => 0,
+                    'z' => 50,
+                ],
+            ]))
             ->assertOk()
             ->assertJsonPath('data.page.canvas.elements.0.assetId', $asset->id)
             ->assertJsonMissingPath('data.page.canvas.elements.0.src');
@@ -303,32 +301,23 @@ class GiftAssetLibraryTest extends TestCase
         ]);
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([
-                    $this->stickerWithAsset('missing_asset_id'),
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([
+                $this->stickerWithAsset('missing_asset_id'),
+            ]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canvas.assets');
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([
-                    $this->stickerWithAsset($inactiveAsset->id),
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([
+                $this->stickerWithAsset($inactiveAsset->id),
+            ]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canvas.assets');
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([
-                    $this->stickerWithAsset($otherThemeAsset->id),
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([
+                $this->stickerWithAsset($otherThemeAsset->id),
+            ]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canvas.assets');
     }
@@ -340,21 +329,18 @@ class GiftAssetLibraryTest extends TestCase
         $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([
-                    [
-                        'id' => 'manual_sticker',
-                        'type' => 'sticker',
-                        'src' => '/storage/system-assets/manual.svg',
-                        'x' => 10,
-                        'y' => 10,
-                        'w' => 100,
-                        'h' => 100,
-                        'z' => 10,
-                    ],
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([
+                [
+                    'id' => 'manual_sticker',
+                    'type' => 'sticker',
+                    'src' => '/storage/system-assets/manual.svg',
+                    'x' => 10,
+                    'y' => 10,
+                    'w' => 100,
+                    'h' => 100,
+                    'z' => 10,
+                ],
+            ]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canvas.assets');
     }
@@ -366,10 +352,7 @@ class GiftAssetLibraryTest extends TestCase
         $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([], ['type' => 'theme']),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], ['type' => 'theme']))
             ->assertOk()
             ->assertJsonPath('data.page.canvas.artboard.background.type', 'theme');
 
@@ -384,20 +367,70 @@ class GiftAssetLibraryTest extends TestCase
         $paper = $this->asset(['type' => AssetType::Paper->value]);
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([], [
-                    'type' => 'asset',
-                    'assetId' => $paper->id,
-                    'fit' => 'cover',
-                    'opacity' => 1,
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], [
+                'type' => 'asset',
+                'assetId' => $paper->id,
+                'fit' => 'cover',
+                'opacity' => 1,
+            ]))
             ->assertOk()
             ->assertJsonPath('data.page.canvas.artboard.background.type', 'asset')
             ->assertJsonPath('data.page.canvas.artboard.background.assetId', $paper->id)
             ->assertJsonMissingPath('data.page.canvas.artboard.background.previewUrl')
             ->assertJsonMissingPath('data.page.canvas.artboard.background.storage_path');
+
+        $background = $page->refresh()->canvas['artboard']['background'];
+
+        $this->assertSame('asset', $background['type']);
+        $this->assertSame($paper->id, $background['assetId']);
+        $this->assertArrayNotHasKey('previewUrl', $background);
+        $this->assertArrayNotHasKey('storage_path', $background);
+    }
+
+    public function test_page_canvas_accepts_page_background_asset_when_asset_has_multiple_theme_roles(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
+        $background = $this->asset([
+            'type' => AssetType::Background->value,
+            'metadata' => [
+                'schemaVersion' => 1,
+                'renderStyle' => 'background',
+                'editor' => ['renderMode' => 'image'],
+            ],
+        ]);
+
+        $gift->themeVersion->assets()->attach($background->id, [
+            'id' => (string) Str::ulid(),
+            'role' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+            'sort_order' => 1,
+            'config' => null,
+        ]);
+        $gift->themeVersion->assets()->attach($background->id, [
+            'id' => (string) Str::ulid(),
+            'role' => ThemeAssetRoles::PAGE_BACKGROUND,
+            'sort_order' => 2,
+            'config' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.page-backgrounds.index', $gift))
+            ->assertOk()
+            ->assertJsonPath('data.pageBackgrounds.0.id', $background->id)
+            ->assertJsonPath('data.pageBackgrounds.0.role', ThemeAssetRoles::PAGE_BACKGROUND);
+
+        $this
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], [
+                'type' => 'asset',
+                'assetId' => $background->id,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.artboard.background.type', 'asset')
+            ->assertJsonPath('data.page.canvas.artboard.background.assetId', $background->id);
+
+        $this->assertSame($background->id, $page->refresh()->canvas['artboard']['background']['assetId']);
     }
 
     public function test_page_canvas_rejects_missing_sticker_or_url_background_asset(): void
@@ -406,33 +439,47 @@ class GiftAssetLibraryTest extends TestCase
         $gift = Gift::factory()->create(['user_id' => $user->id]);
         $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
         $sticker = $this->asset(['type' => AssetType::Sticker->value]);
+        $inactivePaper = $this->asset(['type' => AssetType::Paper->value, 'is_active' => false]);
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([], ['type' => 'asset', 'assetId' => 'missing_asset_id']),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], ['type' => 'asset', 'assetId' => 'missing_asset_id']))
             ->assertUnprocessable();
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([], ['type' => 'asset', 'assetId' => $sticker->id]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], ['type' => 'asset', 'assetId' => $sticker->id]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canvas.artboard.background.assetId');
 
         $this
-            ->actingAs($user)
-            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
-                'canvas' => $this->canvas([], [
-                    'type' => 'asset',
-                    'assetId' => $sticker->id,
-                    'previewUrl' => 'https://example.test/paper.png',
-                ]),
-            ])
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], [
+                'type' => 'asset',
+                'assetId' => $sticker->id,
+                'previewUrl' => 'https://example.test/paper.png',
+            ]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canvas.artboard.background');
+
+        $this
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([], ['type' => 'asset', 'assetId' => $inactivePaper->id]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.artboard.background.assetId');
+
+        $this->assertSame(['type' => 'theme'], $page->refresh()->canvas['artboard']['background']);
+    }
+
+    public function test_canvas_rejects_paper_asset_used_as_sticker_element(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
+        $paper = $this->asset(['type' => AssetType::Paper->value]);
+
+        $this
+            ->patchPageCanvas($user, $gift, $page, $this->canvas([
+                $this->stickerWithAsset($paper->id),
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.assets');
     }
 
     public function test_preview_and_public_viewer_resolve_assets_without_exposing_storage_path(): void
@@ -538,6 +585,22 @@ class GiftAssetLibraryTest extends TestCase
             ],
             'is_active' => true,
         ], $overrides));
+    }
+
+    /**
+     * @param  array<string, mixed>  $canvas
+     */
+    private function patchPageCanvas(User $user, Gift $gift, GiftPage $page, array $canvas): TestResponse
+    {
+        $csrfToken = 'test-token';
+
+        return $this
+            ->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => $canvas,
+            ]);
     }
 
     /**
