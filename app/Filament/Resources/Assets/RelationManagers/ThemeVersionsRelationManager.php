@@ -33,13 +33,16 @@ class ThemeVersionsRelationManager extends RelationManager
                 TextColumn::make('name')->label('Versão')->searchable()->sortable(),
                 TextColumn::make('version_number')->label('Número')->sortable(),
                 TextColumn::make('status')->badge(),
-                TextColumn::make('pivot.role')->label('Role')->badge(),
-                TextColumn::make('pivot.sort_order')->label('Ordem')->sortable(),
+                TextColumn::make('pivot.role')
+                    ->label('Uso no tema')
+                    ->badge()
+                    ->formatStateUsing(fn (mixed $state): string => ThemeAssetRoles::label((string) ($state ?: ThemeAssetRoles::STICKER))),
+                TextColumn::make('pivot.sort_order')->label('Prioridade')->sortable(),
                 IconColumn::make('theme.is_active')->label('Tema ativo')->boolean(),
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Associar tema')
+                    ->label('Associar versão de tema')
                     ->preloadRecordSelect()
                     ->schema(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
@@ -64,7 +67,35 @@ class ThemeVersionsRelationManager extends RelationManager
                             'config' => self::jsonForDatabase($data['config'] ?? null),
                         ]);
                     }),
-                DetachAction::make(),
+                Action::make('useAsPaperTexture')
+                    ->label('Usar como papel')
+                    ->icon('heroicon-o-document')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('Este asset passará a ser usado como textura de papel nesta versão de tema.')
+                    ->action(function (ThemeVersion $record): void {
+                        $this->setPivotRole($record, ThemeAssetRoles::PAPER_TEXTURE);
+                    }),
+                Action::make('useAsBackgroundTexture')
+                    ->label('Usar como fundo')
+                    ->icon('heroicon-o-photo')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('Este asset passará a ser usado como fundo externo nesta versão de tema.')
+                    ->action(function (ThemeVersion $record): void {
+                        $this->setPivotRole($record, ThemeAssetRoles::BACKGROUND_TEXTURE);
+                    }),
+                Action::make('useAsBookTexture')
+                    ->label('Usar como livro')
+                    ->icon('heroicon-o-book-open')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('Este asset passará a ser usado como textura da superfície do livro/capa.')
+                    ->action(function (ThemeVersion $record): void {
+                        $this->setPivotRole($record, ThemeAssetRoles::BOOK_TEXTURE);
+                    }),
+                DetachAction::make()
+                    ->label('Remover vínculo'),
             ]);
     }
 
@@ -75,18 +106,21 @@ class ThemeVersionsRelationManager extends RelationManager
     {
         return [
             Select::make('role')
-                ->label('Role')
+                ->label('Como o tema usa este asset')
                 ->options(self::roleOptions())
                 ->default('sticker')
+                ->helperText(self::roleHelperText())
                 ->required(),
             TextInput::make('sort_order')
-                ->label('Ordem')
+                ->label('Prioridade')
+                ->helperText('Menor número aparece primeiro. Assets associados ao tema são priorizados antes dos globais no editor.')
                 ->integer()
                 ->default(0)
                 ->minValue(0),
             CodeEditor::make('config')
-                ->label('Config JSON')
+                ->label('Config avançado do vínculo')
                 ->language(Language::Json)
+                ->helperText('Opcional. Use apenas para ajustar este vínculo; na maioria dos casos role e prioridade bastam.')
                 ->rules(['nullable', 'json'])
                 ->default(self::jsonForEditing(['schemaVersion' => 1]))
                 ->dehydrateStateUsing(fn (?string $state): ?string => self::jsonForDatabase($state))
@@ -100,6 +134,33 @@ class ThemeVersionsRelationManager extends RelationManager
     private static function roleOptions(): array
     {
         return ThemeAssetRoles::options();
+    }
+
+    private static function roleHelperText(): string
+    {
+        return collect(ThemeAssetRoles::descriptions())
+            ->only([
+                ThemeAssetRoles::PAPER_TEXTURE,
+                ThemeAssetRoles::PAGE_BACKGROUND,
+                ThemeAssetRoles::BACKGROUND_TEXTURE,
+                ThemeAssetRoles::BOOK_TEXTURE,
+                ThemeAssetRoles::AGING_OVERLAY,
+                ThemeAssetRoles::STICKER,
+                ThemeAssetRoles::TAPE,
+                ThemeAssetRoles::FRAME,
+                ThemeAssetRoles::DECORATION,
+            ])
+            ->map(fn (string $description, string $role): string => ThemeAssetRoles::label($role).': '.$description)
+            ->implode(' ');
+    }
+
+    private function setPivotRole(ThemeVersion $record, string $role): void
+    {
+        $this->getOwnerRecord()->themeVersions()->updateExistingPivot($record->id, [
+            'role' => $role,
+            'sort_order' => (int) ($record->pivot?->sort_order ?? 0),
+            'config' => $record->pivot?->config,
+        ]);
     }
 
     private static function jsonForEditing(mixed $state): ?string

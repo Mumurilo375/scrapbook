@@ -7,6 +7,7 @@ use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\AssetUrlResolver;
 use App\Domain\Assets\Support\AssetMetadata;
+use App\Domain\Assets\Support\ThemeAssetRoles;
 use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Enums\GiftVisibility;
@@ -18,8 +19,10 @@ use App\Domain\Payments\Enums\OrderStatus;
 use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Models\Order;
 use App\Domain\Payments\Models\Payment;
+use App\Domain\Templates\Actions\CreateTemplateFromGift;
 use App\Domain\Templates\Enums\PageType;
 use App\Domain\Templates\Enums\TemplateVersionStatus;
+use App\Domain\Templates\Models\Occasion;
 use App\Domain\Templates\Models\TemplatePage;
 use App\Domain\Templates\Models\TemplateVersion;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
@@ -50,10 +53,10 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\CodeEntry;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -203,6 +206,13 @@ class AdminResourceRegistry
                 self::enumSelect('status', ThemeVersionStatus::class)->required()->default(ThemeVersionStatus::Draft->value),
                 self::nameField(),
                 DateTimePicker::make('published_at'),
+                Textarea::make('texture_help')
+                    ->label('Como testar texturas reais')
+                    ->default('Suba um asset do tipo paper/texture/background, salve, associe nesta versão de tema pela aba Assets e escolha o uso: textura de papel, fundo externo ou textura do livro. O editor, preview e viewer resolvem essas imagens por asset seguro.')
+                    ->rows(3)
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->columnSpanFull(),
                 self::jsonField('config', required: true, default: ThemeConfig::defaults()),
             ],
             'AssetCategory' => [
@@ -215,20 +225,34 @@ class AdminResourceRegistry
                 self::jsonField('metadata'),
             ],
             'Asset' => [
+                Textarea::make('asset_pipeline_help')
+                    ->label('Pipeline visual')
+                    ->default('Assets ativos sem vínculo com tema são globais e aparecem em todos os temas. Papel/textura/background de página deve ser usado pela aba Página/Fundo do editor, não como adesivo. Para definir papel padrão do tema, salve o asset e associe a uma ThemeVersion com uso "Textura de papel", "Superfície kraft" ou "Papel/fundo de página".')
+                    ->rows(3)
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->columnSpanFull(),
                 FileUpload::make('asset_file')
                     ->label('Arquivo do asset')
                     ->image()
                     ->acceptedFileTypes(['image/png', 'image/webp', 'image/jpeg'])
-                    ->helperText('Envie PNG, WebP ou JPG/JPEG. SVG fica bloqueado nesta etapa; o nome final é gerado pelo sistema.')
+                    ->helperText('Envie PNG, WebP ou JPG/JPEG. O upload temporário é local; ao salvar, o arquivo vai para o storage de assets configurado. Se houver erro, ele aparece neste campo.')
                     ->imagePreviewHeight('150')
                     ->maxSize((int) config('scrapbook.assets.max_upload_kb', 8192))
+                    ->rules([
+                        'mimetypes:image/png,image/jpeg,image/webp',
+                        'max:'.((int) config('scrapbook.assets.max_upload_kb', 8192)),
+                    ])
+                    ->uploadingMessage('Enviando asset...')
                     ->storeFiles(false)
                     ->required(fn (?Asset $record): bool => ! $record instanceof Asset || blank($record->storage_path))
                     ->columnSpanFull(),
                 Select::make('asset_category_id')->relationship('category', 'name')->searchable()->preload(),
                 self::nameField(),
                 self::slugField(required: false),
-                self::enumSelect('type', AssetType::class)->required(),
+                self::enumSelect('type', AssetType::class)
+                    ->required()
+                    ->helperText('Use paper/texture/background para fundos de página. Stickers, fitas, selos, flores e molduras posicionáveis devem usar tipos decorativos.'),
                 TextInput::make('storage_disk')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(255),
                 TextInput::make('storage_path')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(255)->columnSpanFull(),
                 TextInput::make('public_url')->label('URL pública interna')->disabled()->dehydrated(false)->visible(fn (?Asset $record): bool => $record instanceof Asset)->maxLength(2048)->columnSpanFull(),
@@ -260,6 +284,13 @@ class AdminResourceRegistry
                 self::jsonField('default_config'),
             ],
             'TemplatePage' => [
+                Textarea::make('template_page_help')
+                    ->label('Edição avançada')
+                    ->default('JSON de TemplatePage é avançado. O fluxo recomendado para montar templates bonitos é criar/editar um Gift no editor visual e usar a ação administrativa "Criar template" no Gift. Edite o JSON manualmente apenas com cuidado e sempre mantenha artboard válido.')
+                    ->rows(3)
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->columnSpanFull(),
                 Select::make('template_version_id')->relationship('templateVersion', 'name')->searchable()->preload()->required(),
                 self::enumSelect('page_type', PageType::class)->required()->default(PageType::Generic->value),
                 self::nameField(),
@@ -355,6 +386,7 @@ class AdminResourceRegistry
                 ImageEntry::make('preview')->label('Preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(140),
                 TextEntry::make('category.name'), TextEntry::make('name'), TextEntry::make('slug')->copyable(), self::statusEntry('type'), IconEntry::make('is_active')->boolean(),
                 TextEntry::make('scope')->label('Escopo')->getStateUsing(fn (Asset $record): string => $record->themeVersions()->exists() ? 'Tema' : 'Global')->badge(),
+                TextEntry::make('theme_usage')->label('Uso em temas')->getStateUsing(fn (Asset $record): string => self::assetThemeUsageLabel($record))->columnSpanFull(),
                 TextEntry::make('sort_order'),
                 TextEntry::make('storage_disk'), TextEntry::make('storage_path')->copyable(), TextEntry::make('public_url')->copyable(),
                 TextEntry::make('mime_type'), TextEntry::make('size_bytes')->numeric(), TextEntry::make('width'), TextEntry::make('height'), self::jsonEntry('metadata'), ...self::timestamps(),
@@ -369,7 +401,9 @@ class AdminResourceRegistry
                 self::jsonEntry('preview_config'), self::jsonEntry('default_config'), ...self::timestamps(),
             ],
             'TemplatePage' => [
-                TextEntry::make('templateVersion.name'), self::statusEntry('page_type'), TextEntry::make('name'), TextEntry::make('sort_order'), self::jsonEntry('canvas'), self::jsonEntry('editable_schema'), self::jsonEntry('constraints'), self::jsonEntry('metadata'), ...self::timestamps(),
+                TextEntry::make('templateVersion.name'), self::statusEntry('page_type'), TextEntry::make('name'), TextEntry::make('sort_order'),
+                TextEntry::make('canvas_summary')->label('Resumo visual')->getStateUsing(fn (TemplatePage $record): string => self::canvasSummary($record->canvas))->columnSpanFull(),
+                self::jsonEntry('canvas'), self::jsonEntry('editable_schema'), self::jsonEntry('constraints'), self::jsonEntry('metadata'), ...self::timestamps(),
             ],
             'Gift' => [
                 TextEntry::make('id')->copyable(), TextEntry::make('user.email'), TextEntry::make('title'), TextEntry::make('recipient_name'), TextEntry::make('sender_name'),
@@ -433,7 +467,7 @@ class AdminResourceRegistry
                 ->defaultSort('sort_order')
                 ->reorderable('sort_order'),
             'Asset' => $table
-                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('category.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), TextColumn::make('scope')->label('Escopo')->getStateUsing(fn (Asset $record): string => $record->themeVersions()->exists() ? 'Tema' : 'Global')->badge(), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable(), TextColumn::make('dimensions')->label('Dimensões')->getStateUsing(fn (Asset $record): string => $record->width && $record->height ? "{$record->width}x{$record->height}" : 'N/D'), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()])
+                ->columns([ImageColumn::make('preview')->getStateUsing(fn (Asset $record): ?string => self::storageUrl($record))->imageHeight(48), TextColumn::make('category.name')->searchable()->sortable(), TextColumn::make('name')->searchable()->sortable(), TextColumn::make('slug')->searchable()->copyable(), self::statusColumn('type'), TextColumn::make('scope')->label('Escopo')->getStateUsing(fn (Asset $record): string => $record->themeVersions()->exists() ? 'Tema' : 'Global')->badge(), TextColumn::make('theme_usage')->label('Uso em temas')->getStateUsing(fn (Asset $record): string => self::assetThemeUsageLabel($record))->limit(48)->toggleable(), IconColumn::make('is_active')->boolean(), TextColumn::make('sort_order')->sortable(), TextColumn::make('dimensions')->label('Dimensões')->getStateUsing(fn (Asset $record): string => $record->width && $record->height ? "{$record->width}x{$record->height}" : 'N/D'), TextColumn::make('mime_type'), TextColumn::make('size_bytes')->numeric()->sortable(), TextColumn::make('created_at')->dateTime()->sortable()])
                 ->filters([SelectFilter::make('asset_category_id')->relationship('category', 'name')->searchable()->preload(), SelectFilter::make('type')->options(self::enumOptions(AssetType::class)), TernaryFilter::make('is_active')])
                 ->defaultSort('sort_order')
                 ->reorderable('sort_order'),
@@ -508,7 +542,7 @@ class AdminResourceRegistry
         }
 
         if ($key === 'Gift') {
-            array_push($actions, self::disableGiftAction(), self::reactivateGiftAction(), self::expireGiftAction());
+            array_push($actions, self::createTemplateFromGiftAction(), self::disableGiftAction(), self::reactivateGiftAction(), self::expireGiftAction());
         }
 
         if (self::resourceOptions($key)['delete'] ?? false) {
@@ -626,6 +660,82 @@ class AdminResourceRegistry
                         $pageCopy->save();
                     });
                 });
+            });
+    }
+
+    protected static function createTemplateFromGiftAction(): Action
+    {
+        return Action::make('createTemplateFromGift')
+            ->label('Criar template')
+            ->icon(Heroicon::OutlinedDocumentDuplicate)
+            ->color('success')
+            ->visible(fn (): bool => AdminAccess::isAdmin())
+            ->modalHeading('Criar template a partir deste gift')
+            ->modalDescription('Use esta ação depois de montar o Gift no editor visual. Fotos pessoais viram placeholders e mídias do usuário não são copiadas.')
+            ->modalSubmitActionLabel('Criar template')
+            ->fillForm(fn (Gift $record): array => [
+                'name' => trim((string) $record->title) !== '' ? $record->title : 'Novo template visual',
+                'slug' => Str::slug(trim((string) $record->title) !== '' ? $record->title : 'novo-template-visual'),
+                'description' => null,
+                'occasion_id' => $record->occasion_id,
+                'theme_version_id' => $record->theme_version_id,
+                'status' => TemplateVersionStatus::Draft->value,
+                'sort_order' => 0,
+            ])
+            ->schema([
+                TextInput::make('name')
+                    ->label('Nome do template')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('slug')
+                    ->label('Slug')
+                    ->required()
+                    ->maxLength(255)
+                    ->rules(['regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', 'unique:templates,slug'])
+                    ->helperText('Use letras minúsculas, números e hífens. Exemplo: amor-polaroid-delicado.'),
+                Textarea::make('description')
+                    ->label('Descrição')
+                    ->rows(3)
+                    ->columnSpanFull(),
+                Select::make('occasion_id')
+                    ->label('Ocasião')
+                    ->options(fn (): array => Occasion::query()->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->all())
+                    ->searchable()
+                    ->required(),
+                Select::make('theme_version_id')
+                    ->label('Tema usado pelo template')
+                    ->options(fn (): array => ThemeVersion::query()->with('theme')->orderByDesc('published_at')->orderByDesc('version_number')->get()->mapWithKeys(fn (ThemeVersion $themeVersion): array => [
+                        $themeVersion->id => trim(($themeVersion->theme?->name ? $themeVersion->theme->name.' - ' : '')."v{$themeVersion->version_number} {$themeVersion->name}"),
+                    ])->all())
+                    ->searchable()
+                    ->required()
+                    ->helperText('O template nasce com este tema. Se publicar depois, prefira uma ThemeVersion publicada e ativa.'),
+                Select::make('status')
+                    ->label('Status inicial da versão')
+                    ->options([
+                        TemplateVersionStatus::Draft->value => 'Draft (recomendado)',
+                        TemplateVersionStatus::Published->value => 'Publicado',
+                    ])
+                    ->default(TemplateVersionStatus::Draft->value)
+                    ->required()
+                    ->helperText('Draft é mais seguro: revise o template antes de liberar no fluxo /criar.'),
+                self::integerField('sort_order')
+                    ->label('Ordem na listagem')
+                    ->default(0)
+                    ->minValue(0),
+            ])
+            ->action(function (Gift $record, array $data): void {
+                $template = app(CreateTemplateFromGift::class)->handle(
+                    AdminAccess::user(),
+                    $record,
+                    $data,
+                );
+
+                Notification::make()
+                    ->title('Template criado')
+                    ->body("{$template->name} foi criado com uma versão ".Str::of((string) $data['status'])->replace('_', ' ')->lower().'.')
+                    ->success()
+                    ->send();
             });
     }
 
@@ -767,9 +877,10 @@ class AdminResourceRegistry
             ->formatStateUsing(fn (mixed $state): string => self::formatEnumState($state));
     }
 
-    protected static function jsonEntry(string $name): CodeEntry
+    protected static function jsonEntry(string $name): TextEntry
     {
-        return CodeEntry::make($name)
+        return TextEntry::make($name)
+            ->formatStateUsing(fn (mixed $state): ?string => self::jsonForEditing($state))
             ->copyable()
             ->columnSpanFull()
             ->placeholder('Sem dados');
@@ -867,6 +978,44 @@ class AdminResourceRegistry
         }
 
         return "v{$published->version_number} - {$published->name}";
+    }
+
+    protected static function assetThemeUsageLabel(Asset $asset): string
+    {
+        $themeVersions = $asset->themeVersions()
+            ->with('theme')
+            ->orderBy('theme_versions.version_number')
+            ->get();
+
+        if ($themeVersions->isEmpty()) {
+            return 'Global: aparece em todos os temas ativos no editor.';
+        }
+
+        return $themeVersions
+            ->map(function (ThemeVersion $themeVersion): string {
+                $role = (string) ($themeVersion->pivot?->role ?: ThemeAssetRoles::STICKER);
+                $themeName = $themeVersion->theme?->name ?: 'Tema sem nome';
+
+                return "{$themeName} v{$themeVersion->version_number}: ".ThemeAssetRoles::label($role);
+            })
+            ->implode('; ');
+    }
+
+    protected static function canvasSummary(mixed $canvas): string
+    {
+        if (! is_array($canvas)) {
+            return 'Canvas vazio ou inválido.';
+        }
+
+        $artboard = is_array($canvas['artboard'] ?? null) ? $canvas['artboard'] : [];
+        $elements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
+        $width = $artboard['width'] ?? '?';
+        $height = $artboard['height'] ?? '?';
+        $textCount = collect($elements)->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'text')->count();
+        $imageCount = collect($elements)->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'image')->count();
+        $stickerCount = collect($elements)->filter(fn (mixed $element): bool => is_array($element) && ($element['type'] ?? null) === 'sticker')->count();
+
+        return "Artboard {$width}x{$height}; ".count($elements)." elementos; {$textCount} textos; {$imageCount} imagens/placeholders; {$stickerCount} adesivos.";
     }
 
     protected static function storageUrl(Model $record): ?string
