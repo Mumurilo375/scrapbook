@@ -45,8 +45,34 @@ class GiftAssetLibraryTest extends TestCase
             ->assertJsonPath('data.assets.0.id', $activeAsset->id)
             ->assertJsonPath('data.assets.0.category.slug', 'coracoes')
             ->assertJsonPath('data.assets.0.renderMode', 'shape')
+            ->assertJsonPath('data.assets.0.renderStyle', 'sticker')
             ->assertJsonMissing(['id' => $inactiveAsset->id])
             ->assertJsonMissing(['storage_path' => $activeAsset->storage_path]);
+    }
+
+    public function test_editor_asset_payload_falls_back_to_render_style_from_asset_type(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $asset = $this->asset([
+            'type' => AssetType::Tape->value,
+            'metadata' => [
+                'schemaVersion' => 1,
+                'editor' => [
+                    'renderMode' => 'shape',
+                    'shape' => 'tape',
+                    'defaultSize' => ['w' => 260, 'h' => 80],
+                ],
+            ],
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.assets.index', $gift))
+            ->assertOk()
+            ->assertJsonPath('data.assets.0.id', $asset->id)
+            ->assertJsonPath('data.assets.0.renderStyle', 'tape')
+            ->assertJsonMissing(['storage_path' => $asset->storage_path]);
     }
 
     public function test_theme_assets_are_listed_before_global_assets_for_current_theme(): void
@@ -72,6 +98,70 @@ class GiftAssetLibraryTest extends TestCase
             ->assertJsonPath('data.assets.0.isThemeAsset', true)
             ->assertJsonPath('data.assets.1.id', $globalAsset->id)
             ->assertJsonPath('data.assets.1.source', 'global');
+    }
+
+    public function test_global_assets_are_available_for_gifts_using_any_theme(): void
+    {
+        $user = User::factory()->create();
+        $firstGift = Gift::factory()->create(['user_id' => $user->id]);
+        $secondGift = Gift::factory()->create(['user_id' => $user->id]);
+        $globalAsset = $this->asset(['name' => 'Asset global compartilhado']);
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.assets.index', $firstGift))
+            ->assertOk()
+            ->assertJsonPath('data.assets.0.id', $globalAsset->id)
+            ->assertJsonPath('data.assets.0.source', 'global');
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.assets.index', $secondGift))
+            ->assertOk()
+            ->assertJsonPath('data.assets.0.id', $globalAsset->id)
+            ->assertJsonPath('data.assets.0.source', 'global');
+    }
+
+    public function test_editor_asset_payload_exposes_visual_metadata_without_storage_path(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $asset = $this->asset([
+            'name' => 'Sticker físico',
+            'storage_path' => 'system/assets/sticker-fisico/asset.png',
+            'metadata' => [
+                'schemaVersion' => 1,
+                'renderStyle' => 'sticker',
+                'physical' => [
+                    'whiteBorder' => true,
+                    'borderWidth' => 8,
+                    'dropShadow' => true,
+                    'shadowIntensity' => 'medium',
+                    'lift' => 8,
+                    'paperTexture' => true,
+                    'slightRotation' => true,
+                    'edgeHighlight' => true,
+                ],
+                'defaultTransform' => ['w' => 220, 'h' => 220, 'rotation' => -4],
+                'editor' => [
+                    'renderMode' => 'image',
+                    'defaultSize' => ['w' => 220, 'h' => 220],
+                    'keywords' => ['fisico'],
+                ],
+            ],
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.assets.index', $gift))
+            ->assertOk()
+            ->assertJsonPath('data.assets.0.id', $asset->id)
+            ->assertJsonPath('data.assets.0.previewUrl', route('assets.preview', $asset, false))
+            ->assertJsonPath('data.assets.0.renderStyle', 'sticker')
+            ->assertJsonPath('data.assets.0.physical.whiteBorder', true)
+            ->assertJsonPath('data.assets.0.defaultTransform.rotation', -4)
+            ->assertJsonPath('data.assets.0.config.physical.lift', 8)
+            ->assertJsonMissing(['storage_path' => $asset->storage_path]);
     }
 
     public function test_user_cannot_list_assets_for_another_users_gift(): void
