@@ -17,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: transições leves do Book Mode
+## Prioridade atual: componentes especiais de scrapbook
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -25,20 +25,19 @@ O domínio, banco real e admin inicial em Filament já foram implementados. O pr
 
 Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro, revisão/publicação técnica MVP e checkout interno/manual-dev já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, seleciona elementos existentes, move/redimensiona/rotaciona elementos suportados, edita textos, salva canvas e metadados por autosave, envia fotos reais, aplica fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review`, passa por checkout interno e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`.
 
-A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais e sistema correto de papel/fundo da página em `canvas.artboard.background`.
+A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais, sistema correto de papel/fundo da página em `canvas.artboard.background`, Book Mode com duas páginas e transições leves no preview/viewer.
 
-Neste momento, a prioridade principal é **polir a leitura do Book Mode com transições leves**. O viewer público e o preview privado devem ganhar entrada suave, troca de página/par com direção `next`/`previous`, microinterações discretas e respeito a `prefers-reduced-motion`, sem implementar page flip 3D pesado nem adicionar biblioteca externa de virar página.
+Neste momento, a prioridade principal é **componentes especiais de scrapbook**. A primeira versão deve começar pequena e segura, com `interactive_envelope` e `flip_polaroid` como elementos do canvas, integrados ao editor atual, ao renderer compartilhado, ao autosave, às camadas, ao undo/redo, ao preview privado, ao viewer público, ao Book Mode e ao fluxo Gift para Template.
 
-### Prioridade atual: transições leves do Book Mode
+### Prioridade atual: componentes especiais de scrapbook
 
-- A abertura do presente deve entrar suavemente e o livro deve aparecer com transição curta ao clicar em "Abrir presente".
-- Navegação por botões, teclado e swipe deve atualizar `direction: next | previous | none`.
-- Desktop/tablet largo em Book Mode usa transição leve de spread com fade, deslocamento horizontal, scale sutil e sombra de dobra temporária.
-- Mobile continua uma página por vez, com slide/fade curto e swipe preservado.
-- Tela final entra com fade/slide leve e CTA discreto.
-- `prefers-reduced-motion: reduce` deve remover ou reduzir movimento, evitando translate/scale fortes.
-- `theme_versions.config.book` pode controlar motion com valores sanitizados como `transition`, `transitionIntensity` e `motion`, sempre com fallback seguro.
-- Esta fase não implementa page flip 3D pesado, gateway real, landing, marketplace, template builder, editor novo ou mudanças de segurança.
+- `interactive_envelope` representa um envelope físico com carta. No editor ele é selecionável, móvel, redimensionável e editável pelo painel; no preview/viewer ele abre/fecha com animação leve e respeita `prefers-reduced-motion`.
+- `flip_polaroid` representa uma polaroid com foto/legenda na frente e texto no verso. No editor ele é selecionável, móvel, redimensionável, rotacionável e usa o fluxo atual de mídia para trocar foto; no preview/viewer ele vira com flip leve e respeita `prefers-reduced-motion`.
+- Os dois tipos ficam em `canvas.elements[]`, com `x`, `y`, `w`, `h`, `rotation`, `z`, `name`, `locked` e `hidden` iguais aos outros elementos.
+- Validação backend precisa manter texto puro, sem HTML/script, sem `dangerouslySetInnerHTML`, sem URL externa, sem `storage_path`, e autorizar `mediaItemId` de polaroid por Gift e status `processed`.
+- Limites atuais: título/legenda/placeholder até 120 caracteres, conteúdo de envelope até 1000 caracteres e verso da polaroid até 500 caracteres.
+- Gift para Template deve preservar envelope como default editável e remover mídia pessoal da polaroid, mantendo placeholder/legenda/texto do verso.
+- Esta fase não avança gateway real, landing, marketplace, template builder novo, editor novo, mini game, puzzle ou animação pesada.
 
 O sistema de papel/fundo da página está estabilizado. Papel da página não é sticker, não entra em `canvas.elements[]` e não deve ser redimensionado manualmente. Tema define o papel padrão; cada página pode sobrescrever esse papel em `canvas.artboard.background` com um asset seguro; editor, preview privado e viewer público devem renderizar a mesma folha.
 
@@ -56,14 +55,14 @@ O sistema de papel/fundo da página está estabilizado. Papel da página não é
 - Não reintroduzir papel como sticker, nem permitir papel em `canvas.elements[]`.
 - Checkerboard/quadriculado de transparência só é aceitável em preview técnico/admin de asset transparente, nunca no fundo geral do editor.
 
-Depois deste polimento de leitura, a próxima fase recomendada é avançar para componentes especiais de scrapbook e depois QA visual/templates reais, landing final e gateway real em etapas separadas.
+Depois desta primeira leva de interativos, a próxima fase recomendada é QA visual com assets reais/templates finais ou ampliar componentes especiais com outro item simples, mantendo landing final e gateway real em etapas separadas.
 
 ### Base atual: pipeline visual e Gift para Template
 
 - O admin real de assets visuais já existe. Seeds e assets placeholder continuam como exemplo, não como fonte final de estética.
 - `Asset` é decoração do sistema/admin; `MediaItem` continua sendo foto/imagem enviada pelo usuário final dentro de um Gift.
 - Adesivos, papéis, texturas, fitas, molduras, envelopes, selos, flores e recortes devem ser cadastrados pelo admin/support, não hardcoded no frontend.
-- Código novo nesta fase deve focar polimento do viewer/preview e Book Mode, mantendo checkout, gateway, publicação, landing, editor pesado e page flip 3D fora do escopo.
+- Código novo nesta fase deve focar componentes especiais de scrapbook, mantendo checkout, gateway, publicação, landing, editor pesado, page flip 3D e mini games fora do escopo.
 - Template define estrutura: páginas, elementos iniciais, posições, tamanhos, rotações, placeholders, textos editáveis, ordem de camadas, composição e ritmo visual.
 - Theme define aparência: texturas, paleta, papel, fundo, sombras, profundidade e atmosfera visual.
 - Book Mode desktop/tablet largo já mostra livro aberto com página esquerda, página direita, lombada central, sombra na dobra e navegação por pares.

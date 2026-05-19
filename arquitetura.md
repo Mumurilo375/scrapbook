@@ -2413,7 +2413,7 @@ Template e Theme continuam separados:
 - Template define estrutura, páginas, elementos iniciais, posições, tamanhos, rotações, textos, placeholders, ordem de camadas e composição;
 - Theme define aparência, paleta, texturas, papel, fundo, sombra, profundidade e atmosfera.
 
-Templates podem referenciar assets por `assetId` seguro quando o asset seedado/admin existir. Se um asset opcional não existir, a factory cria fallback de sticker textual seguro, sem URL externa. O canvas nunca salva `previewUrl`, `storage_path`, `src` manual em sticker, HTML ou script. Fotos do usuário continuam entrando depois por `mediaItemId` real do Gift.
+Templates podem referenciar assets por `assetId` seguro quando o asset seedado/admin existir. Se um asset opcional não existir, a factory cria fallback de sticker textual seguro, sem URL externa. O canvas nunca salva `previewUrl`, `storage_path`, `src` manual em sticker, HTML ou script. Fotos do usuário continuam entrando depois por `mediaItemId` real do Gift. Templates premium também podem conter componentes especiais seguros, como envelope/carta e polaroid virável, desde que não carreguem mídia pessoal nem URLs.
 
 Cada `TemplatePage.canvas` seedado tem `schemaVersion = 1`, `version = 1`, `artboard` `1080x1350`, `unit = px`, `safeArea` padrão e `elements` como array. `CreateGiftFromTemplate` copia esses canvases para `GiftPage` já normalizados, então gifts novos não devem falhar com erro de artboard da capa.
 
@@ -2475,6 +2475,37 @@ O viewer público e o preview privado têm uma camada de movimento leve para dei
 - A camada renderiza somente a página ou par atual; não pré-renderiza todas as páginas e usa apenas `transform`/`opacity`.
 
 Essa camada não muda regras de segurança, não altera publicação/checkout, não muda o sistema de papel/fundo e não substitui o Book Mode por page flip 3D.
+
+### Componentes especiais de scrapbook
+
+Componentes especiais são elementos do canvas com aparência de objeto físico/interativo. Eles vivem em `canvas.elements[]`, usam o mesmo contrato de transformação (`x`, `y`, `w`, `h`, `rotation`, `z`) e respeitam `name`, `locked` e `hidden`.
+
+Tipos iniciais:
+
+- `interactive_envelope`: envelope com carta. Campos principais: `title`, `content`, `state.defaultOpen` e `style.variant` (`kraft`, `cream`, `rose`).
+- `flip_polaroid`: polaroid virável. Campos principais: `front.mediaItemId`, `front.placeholderLabel`, `front.caption` e `back.text`.
+
+No editor:
+
+- aparecem na aba `Elementos`;
+- entram no centro da página atual;
+- podem ser selecionados, movidos, redimensionados, rotacionados, duplicados, ocultados, bloqueados, deletados e reorganizados em camadas pelo fluxo existente;
+- o painel de propriedades edita título/conteúdo do envelope, variante visual, legenda da polaroid, placeholder, texto do verso e troca de foto pelo fluxo atual de mídia;
+- não usam interação pública para atrapalhar seleção.
+
+No preview privado e viewer público:
+
+- `interactive_envelope` abre/fecha ao clicar/tocar, mostra carta e usa movimento leve;
+- `flip_polaroid` vira frente/verso ao clicar/tocar, com flip 3D simples;
+- ambos respeitam `prefers-reduced-motion` e param a propagação de toque para não acionar swipe/navegação do Book Mode acidentalmente.
+
+Segurança:
+
+- texto é sempre puro; não há HTML, rich text, `dangerouslySetInnerHTML`, URL externa ou `storage_path`;
+- limites atuais: `title`, `front.caption` e `front.placeholderLabel` até 120 caracteres, `interactive_envelope.content` até 1000 caracteres e `flip_polaroid.back.text` até 500 caracteres;
+- `front.mediaItemId`, quando existir, precisa pertencer ao mesmo Gift, ser `image`, estar `processed` e não deletado;
+- preview/viewer resolvem `src` por rotas controladas e removem `storage_path`, URLs manuais e mídia inválida do payload;
+- Gift para Template preserva envelope como default editável e transforma polaroid com mídia pessoal em placeholder, removendo `mediaItemId`, `src` e aliases de mídia.
 
 ### Estado visual mínimo esperado
 
