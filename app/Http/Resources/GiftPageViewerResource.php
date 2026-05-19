@@ -60,9 +60,7 @@ class GiftPageViewerResource extends JsonResource
                 'width' => $this->positiveNumber($artboard['width'] ?? null, CanvasNormalizer::DEFAULT_WIDTH),
                 'height' => $this->positiveNumber($artboard['height'] ?? null, CanvasNormalizer::DEFAULT_HEIGHT),
                 'unit' => 'px',
-                'background' => is_array($artboard['background'] ?? null)
-                    ? $this->sanitizeValue($artboard['background'])
-                    : ['type' => 'theme'],
+                'background' => $this->pageBackgroundForViewer($artboard['background'] ?? null),
                 'safeArea' => [
                     'top' => $this->nonNegativeNumber($safeArea['top'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['top']),
                     'right' => $this->nonNegativeNumber($safeArea['right'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['right']),
@@ -70,7 +68,7 @@ class GiftPageViewerResource extends JsonResource
                     'left' => $this->nonNegativeNumber($safeArea['left'] ?? null, CanvasNormalizer::DEFAULT_SAFE_AREA['left']),
                 ],
             ],
-            'background' => is_array($canvas['background'] ?? null) ? $this->sanitizeValue($canvas['background']) : null,
+            'background' => $this->legacyBackgroundForViewer($canvas['background'] ?? null),
             'elements' => collect($elements)
                 ->filter(fn (mixed $element): bool => is_array($element) && ($element['hidden'] ?? false) !== true)
                 ->map(fn (array $element, int $index): array => $this->elementForViewer($element, $index))
@@ -186,6 +184,62 @@ class GiftPageViewerResource extends JsonResource
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function pageBackgroundForViewer(mixed $background): array
+    {
+        if (! is_array($background) || ($background['type'] ?? null) !== 'asset') {
+            return ['type' => 'theme'];
+        }
+
+        $assetId = $background['assetId'] ?? $background['asset_id'] ?? null;
+
+        if (! is_string($assetId) && ! is_int($assetId)) {
+            return ['type' => 'theme'];
+        }
+
+        $assetId = trim((string) $assetId);
+
+        if ($assetId === '') {
+            return ['type' => 'theme'];
+        }
+
+        return [
+            'type' => 'asset',
+            'assetId' => $assetId,
+            'fit' => in_array($background['fit'] ?? null, ['cover', 'contain'], true) ? $background['fit'] : 'cover',
+            'opacity' => $this->opacity($background['opacity'] ?? null),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function legacyBackgroundForViewer(mixed $background): ?array
+    {
+        if (! is_array($background)) {
+            return null;
+        }
+
+        $type = $background['type'] ?? null;
+
+        if ($type === 'themeToken' && is_string($background['value'] ?? null)) {
+            return [
+                'type' => 'themeToken',
+                'value' => preg_replace('/[^A-Za-z0-9_-]/', '', $background['value']) ?: 'paper',
+            ];
+        }
+
+        if (is_string($background['color'] ?? null) && preg_match('/^#[0-9a-f]{3,8}$/i', $background['color']) === 1) {
+            return [
+                'color' => $background['color'],
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * @return Collection<string, MediaItem>
      */
     private function mediaItems(): Collection
@@ -266,6 +320,13 @@ class GiftPageViewerResource extends JsonResource
         $number = $this->number($value, $fallback);
 
         return $number >= 0 ? $number : $fallback;
+    }
+
+    private function opacity(mixed $value): int|float
+    {
+        $number = $this->number($value, 1);
+
+        return max(0, min(1, $number));
     }
 
     private function enumValue(mixed $value): string

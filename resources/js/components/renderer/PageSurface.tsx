@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Canvas } from '../../domain/canvas/schema';
-import type { RendererAssetMap } from './assetTypes';
+import { assetFromMap, type RendererAssetMap } from './assetTypes';
 import { resolveThemeColor, type NormalizedThemeConfig, type RendererContext } from './theme';
 import { buildTextureLayerStyle, firstTextureLayerStyle } from './themeTextureUtils';
 
@@ -14,22 +14,26 @@ type PageSurfaceProps = {
 };
 
 export function PageSurface({ assets, canvas, children, context = 'preview', theme }: PageSurfaceProps) {
-    const background = pageBackground(canvas, theme);
+    const background = pageBackground(canvas, theme, assets);
     const radius = Math.max(0, theme.page.borderRadius);
     const safeArea = canvas.artboard.safeArea;
     const showSafeArea = context === 'editor';
-    const pagePaperTextureStyle = firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']);
+    const pagePaperTextureStyle =
+        background.kind === 'theme' ? firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']) : null;
     const pageOverlayTextureStyle = firstTextureLayerStyle(theme, assets, ['agingOverlay', 'pageOverlay']);
     const stainTextureStyle = buildTextureLayerStyle(theme, assets, 'stainOverlay');
     const edgeTextureStyle = buildTextureLayerStyle(theme, assets, 'edgeOverlay');
     const style = {
-        backgroundColor: background,
-        backgroundImage: surfaceTexture(theme),
+        backgroundColor: background.color,
+        backgroundImage: background.kind === 'theme' ? surfaceTexture(theme) : undefined,
+        backgroundPosition: background.kind === 'theme' ? undefined : 'center',
+        backgroundRepeat: background.kind === 'theme' ? undefined : 'no-repeat',
+        backgroundSize: background.kind === 'theme' ? undefined : 'cover',
         borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 42%, transparent)`,
         borderRadius: radiusFor(radius, theme.page.edge),
         boxShadow: shadowFor(theme.page.shadow, theme.tokens.colors.shadow),
         containerType: 'inline-size',
-        '--scrap-paper': background,
+        '--scrap-paper': background.color,
         '--scrap-paper-alt': theme.tokens.colors.paperAlt,
         '--scrap-ink': theme.tokens.colors.ink,
         '--scrap-accent': theme.tokens.colors.accent,
@@ -42,6 +46,13 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
 
     return (
         <div className="relative h-full w-full overflow-hidden border" style={style}>
+            {background.assetStyle ? (
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0"
+                    style={background.assetStyle}
+                />
+            ) : null}
             <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0"
@@ -122,22 +133,59 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
     );
 }
 
-function pageBackground(canvas: Canvas, theme: NormalizedThemeConfig): string {
+type ResolvedPageBackground = {
+    assetStyle?: CSSProperties;
+    color: string;
+    kind: 'asset' | 'theme';
+};
+
+function pageBackground(
+    canvas: Canvas,
+    theme: NormalizedThemeConfig,
+    assets?: RendererAssetMap,
+): ResolvedPageBackground {
     const artboardBackground = canvas.artboard.background;
 
     if (artboardBackground?.type === 'theme') {
-        return theme.page.backgroundColor;
+        return {
+            color: theme.page.backgroundColor,
+            kind: 'theme',
+        };
+    }
+
+    if (artboardBackground?.type === 'asset') {
+        const asset = assetFromMap(assets, artboardBackground.assetId);
+
+        if (asset?.previewUrl && isSafeResolvedAssetUrl(asset.previewUrl)) {
+            return {
+                assetStyle: {
+                    backgroundImage: cssUrl(asset.previewUrl),
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: artboardBackground.fit === 'contain' ? 'contain' : 'cover',
+                    opacity: typeof artboardBackground.opacity === 'number' ? artboardBackground.opacity : 1,
+                },
+                color: theme.page.backgroundColor,
+                kind: 'asset',
+            };
+        }
     }
 
     if (canvas.background?.color || canvas.background?.value) {
-        return resolveThemeColor(
-            theme,
-            canvas.background.color ?? `var(--${canvas.background.value})`,
-            theme.page.backgroundColor,
-        );
+        return {
+            color: resolveThemeColor(
+                theme,
+                canvas.background.color ?? `var(--${canvas.background.value})`,
+                theme.page.backgroundColor,
+            ),
+            kind: 'theme',
+        };
     }
 
-    return theme.page.backgroundColor;
+    return {
+        color: theme.page.backgroundColor,
+        kind: 'theme',
+    };
 }
 
 function shadowFor(shadow: string, color: string): string {
@@ -217,4 +265,12 @@ function toPercent(value: number, total: number): number {
     }
 
     return (value / total) * 100;
+}
+
+function isSafeResolvedAssetUrl(value: unknown): value is string {
+    return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && !/[\n\r"\\]/.test(value);
+}
+
+function cssUrl(value: string): string {
+    return `url("${value.replace(/"/g, '%22')}")`;
 }
