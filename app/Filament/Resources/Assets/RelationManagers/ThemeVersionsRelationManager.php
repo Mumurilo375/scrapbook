@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Assets\RelationManagers;
 
+use App\Domain\Assets\Support\ThemeAssetRoles;
 use App\Domain\Themes\Models\ThemeVersion;
 use App\Filament\Resources\ThemeVersions\ThemeVersionResource;
 use Filament\Actions\Action;
@@ -98,16 +99,7 @@ class ThemeVersionsRelationManager extends RelationManager
      */
     private static function roleOptions(): array
     {
-        return [
-            'sticker' => 'Sticker',
-            'paper_texture' => 'Textura de papel',
-            'background_texture' => 'Textura de fundo',
-            'tape' => 'Fita',
-            'frame' => 'Moldura',
-            'decoration' => 'Decoração',
-            'overlay' => 'Overlay',
-            'border' => 'Borda',
-        ];
+        return ThemeAssetRoles::options();
     }
 
     private static function jsonForEditing(mixed $state): ?string

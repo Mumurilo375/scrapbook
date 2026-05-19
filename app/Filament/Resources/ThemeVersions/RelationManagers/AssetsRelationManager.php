@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ThemeVersions\RelationManagers;
 
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\AssetUrlResolver;
+use App\Domain\Assets\Support\ThemeAssetRoles;
 use App\Filament\Resources\Assets\AssetResource;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -100,16 +101,7 @@ class AssetsRelationManager extends RelationManager
      */
     private static function roleOptions(): array
     {
-        return [
-            'sticker' => 'Sticker',
-            'paper_texture' => 'Textura de papel',
-            'background_texture' => 'Textura de fundo',
-            'tape' => 'Fita',
-            'frame' => 'Moldura',
-            'decoration' => 'Decoração',
-            'overlay' => 'Overlay',
-            'border' => 'Borda',
-        ];
+        return ThemeAssetRoles::options();
     }
 
     private static function jsonForEditing(mixed $state): ?string
