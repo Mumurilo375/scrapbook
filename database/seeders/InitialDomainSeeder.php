@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Models\AssetCategory;
+use App\Domain\Assets\Support\AssetMetadata;
 use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Enums\PageType;
@@ -339,8 +340,7 @@ class InitialDomainSeeder extends Seeder
                     'size_bytes' => null,
                     'width' => $definition['default_size']['w'],
                     'height' => $definition['default_size']['h'],
-                    'metadata' => [
-                        'schemaVersion' => 1,
+                    'metadata' => AssetMetadata::normalizeForVisualAsset([
                         'seed' => true,
                         'editor' => [
                             'renderMode' => 'shape',
@@ -349,7 +349,7 @@ class InitialDomainSeeder extends Seeder
                             'defaultSize' => $definition['default_size'],
                             'keywords' => $definition['keywords'] ?? [],
                         ],
-                    ],
+                    ], $definition['type'], $definition['default_size']['w'], $definition['default_size']['h']),
                     'is_active' => true,
                     'sort_order' => $definition['sort_order'],
                 ],
@@ -387,12 +387,19 @@ class InitialDomainSeeder extends Seeder
             ['name' => 'Fitas', 'slug' => 'fitas', 'icon' => 'tape', 'sort_order' => 20],
             ['name' => 'Flores', 'slug' => 'flores', 'icon' => 'flower', 'sort_order' => 30],
             ['name' => 'Papéis', 'slug' => 'papeis', 'icon' => 'file-text', 'sort_order' => 40],
-            ['name' => 'Molduras', 'slug' => 'molduras', 'icon' => 'frame', 'sort_order' => 50],
-            ['name' => 'Rabiscos', 'slug' => 'rabiscos', 'icon' => 'pencil-line', 'sort_order' => 60],
-            ['name' => 'Aniversário', 'slug' => 'aniversario', 'icon' => 'cake', 'sort_order' => 70],
-            ['name' => 'Romance', 'slug' => 'romance', 'icon' => 'sparkles', 'sort_order' => 80],
-            ['name' => 'Amizade', 'slug' => 'amizade', 'icon' => 'smile', 'sort_order' => 90],
-            ['name' => 'Vintage', 'slug' => 'vintage', 'icon' => 'stamp', 'sort_order' => 100],
+            ['name' => 'Texturas', 'slug' => 'texturas', 'icon' => 'scan-text', 'sort_order' => 50],
+            ['name' => 'Molduras', 'slug' => 'molduras', 'icon' => 'frame', 'sort_order' => 60],
+            ['name' => 'Envelopes', 'slug' => 'envelopes', 'icon' => 'mail', 'sort_order' => 70],
+            ['name' => 'Selos', 'slug' => 'selos', 'icon' => 'stamp', 'sort_order' => 80],
+            ['name' => 'Etiquetas', 'slug' => 'etiquetas', 'icon' => 'tag', 'sort_order' => 90],
+            ['name' => 'Rabiscos', 'slug' => 'rabiscos', 'icon' => 'pencil-line', 'sort_order' => 100],
+            ['name' => 'Aniversário', 'slug' => 'aniversario', 'icon' => 'cake', 'sort_order' => 110],
+            ['name' => 'Romance', 'slug' => 'romance', 'icon' => 'sparkles', 'sort_order' => 120],
+            ['name' => 'Amizade', 'slug' => 'amizade', 'icon' => 'smile', 'sort_order' => 130],
+            ['name' => 'Vintage', 'slug' => 'vintage', 'icon' => 'stamp', 'sort_order' => 140],
+            ['name' => 'Kraft', 'slug' => 'kraft', 'icon' => 'package', 'sort_order' => 150],
+            ['name' => 'Jornal', 'slug' => 'jornal', 'icon' => 'newspaper', 'sort_order' => 160],
+            ['name' => 'Polaroids', 'slug' => 'polaroids', 'icon' => 'image', 'sort_order' => 170],
         ];
     }
 
@@ -429,7 +436,7 @@ class InitialDomainSeeder extends Seeder
             [
                 'name' => 'Flor Simples',
                 'slug' => 'flor-simples',
-                'type' => AssetType::Sticker->value,
+                'type' => AssetType::Flower->value,
                 'category_slug' => 'flores',
                 'shape' => 'flower',
                 'colors' => ['primary' => '#E8899E', 'secondary' => '#F7D879', 'ink' => '#7A5D2E'],
@@ -453,8 +460,8 @@ class InitialDomainSeeder extends Seeder
             [
                 'name' => 'Etiqueta Manuscrita',
                 'slug' => 'etiqueta-manuscrita',
-                'type' => AssetType::Sticker->value,
-                'category_slug' => 'papeis',
+                'type' => AssetType::Label->value,
+                'category_slug' => 'etiquetas',
                 'shape' => 'label',
                 'colors' => ['primary' => '#FFF2C7', 'secondary' => '#C79E67', 'ink' => '#5B3926'],
                 'default_size' => ['w' => 280, 'h' => 130],
@@ -477,8 +484,8 @@ class InitialDomainSeeder extends Seeder
             [
                 'name' => 'Selo Vintage',
                 'slug' => 'selo-vintage',
-                'type' => AssetType::Sticker->value,
-                'category_slug' => 'vintage',
+                'type' => AssetType::Stamp->value,
+                'category_slug' => 'selos',
                 'shape' => 'stamp',
                 'colors' => ['primary' => '#A84D35', 'secondary' => '#F2D6A5', 'ink' => '#6E321F'],
                 'default_size' => ['w' => 170, 'h' => 170],
@@ -489,7 +496,7 @@ class InitialDomainSeeder extends Seeder
             [
                 'name' => 'Confete de Aniversário',
                 'slug' => 'confete-aniversario',
-                'type' => AssetType::Sticker->value,
+                'type' => AssetType::Decoration->value,
                 'category_slug' => 'aniversario',
                 'shape' => 'confetti',
                 'colors' => ['primary' => '#E8696A', 'secondary' => '#F2C84B', 'ink' => '#4B8D89'],

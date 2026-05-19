@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
+use App\Domain\Assets\Support\AssetMetadata;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -30,7 +31,7 @@ class AssetFactory extends Factory
             'size_bytes' => fake()->numberBetween(5000, 500000),
             'width' => fake()->numberBetween(64, 1024),
             'height' => fake()->numberBetween(64, 1024),
-            'metadata' => null,
+            'metadata' => AssetMetadata::normalizeForVisualAsset(null, AssetType::Sticker, 220, 220),
             'is_active' => true,
             'sort_order' => 0,
         ];
