@@ -44,6 +44,9 @@ final class ThemeConfig
                 'spreadGap' => 0,
                 'pageCurl' => 'subtle',
                 'foldShadow' => true,
+                'transition' => 'soft-slide',
+                'transitionIntensity' => 'medium',
+                'motion' => true,
             ],
             'page' => [
                 'surface' => 'kraft',
@@ -328,6 +331,9 @@ final class ThemeConfig
             'spreadGap' => self::clampedNumber($book['spreadGap'] ?? null, 0, 0, 32),
             'pageCurl' => ($book['pageCurl'] ?? null) === 'none' ? 'none' : 'subtle',
             'foldShadow' => is_bool($book['foldShadow'] ?? null) ? $book['foldShadow'] : true,
+            'transition' => self::safeBookTransition($book['transition'] ?? null),
+            'transitionIntensity' => self::safeBookTransitionIntensity($book['transitionIntensity'] ?? null),
+            'motion' => is_bool($book['motion'] ?? null) ? $book['motion'] : true,
         ];
     }
 
@@ -521,5 +527,19 @@ final class ThemeConfig
         }
 
         return in_array($value, ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'], true) ? $value : 'no-repeat';
+    }
+
+    private static function safeBookTransition(mixed $value): string
+    {
+        return is_string($value) && in_array($value, ['soft-slide', 'fade', 'none'], true)
+            ? $value
+            : 'soft-slide';
+    }
+
+    private static function safeBookTransitionIntensity(mixed $value): string
+    {
+        return is_string($value) && in_array($value, ['low', 'medium', 'high'], true)
+            ? $value
+            : 'medium';
     }
 }

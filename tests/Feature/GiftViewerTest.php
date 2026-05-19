@@ -309,6 +309,9 @@ class GiftViewerTest extends TestCase
                     'spreadGap' => 6,
                     'pageCurl' => 'subtle',
                     'foldShadow' => true,
+                    'transition' => 'fade',
+                    'transitionIntensity' => 'high',
+                    'motion' => false,
                     'spineColor' => '#7B4F32',
                     'storage_path' => 'system/private/spine.png',
                     'unsafeUrl' => 'https://example.test/book.png',
@@ -357,6 +360,9 @@ class GiftViewerTest extends TestCase
                 ->where('gift.theme.config.book.spreadGap', 6)
                 ->where('gift.theme.config.book.pageCurl', 'subtle')
                 ->where('gift.theme.config.book.foldShadow', true)
+                ->where('gift.theme.config.book.transition', 'fade')
+                ->where('gift.theme.config.book.transitionIntensity', 'high')
+                ->where('gift.theme.config.book.motion', false)
                 ->where('gift.theme.config.book.spineColor', '#7B4F32')
                 ->where('gift.theme.config.page.backgroundColor', '#FFF1DD')
                 ->where('gift.theme.config.page.texture', 'vintage-stains')

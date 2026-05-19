@@ -281,6 +281,9 @@ class DomainFoundationTest extends TestCase
             $this->assertArrayHasKey('mutedInk', $config['tokens']['colors']);
             $this->assertArrayHasKey('accentSoft', $config['tokens']['colors']);
             $this->assertArrayHasKey('spineColor', $config['book']);
+            $this->assertArrayHasKey('transition', $config['book']);
+            $this->assertArrayHasKey('transitionIntensity', $config['book']);
+            $this->assertTrue($config['book']['motion']);
             $this->assertArrayHasKey('texture', $config['page']);
             $this->assertArrayHasKey('edge', $config['page']);
             $this->assertTrue($config['page']['decorations']['paperGrain']);
@@ -475,6 +478,9 @@ class DomainFoundationTest extends TestCase
         $this->assertSame('#F3E7D3', $config['tokens']['colors']['appBackground']);
         $this->assertSame('#D8BE96', $config['tokens']['colors']['bookBackground']);
         $this->assertSame('#7B4F32', $config['book']['spineColor']);
+        $this->assertSame('soft-slide', $config['book']['transition']);
+        $this->assertSame('medium', $config['book']['transitionIntensity']);
+        $this->assertTrue($config['book']['motion']);
         $this->assertSame('soft-confetti', $config['page']['texture']);
         $this->assertSame('#FFF8EC', $config['page']['backgroundColor']);
         $this->assertTrue($config['page']['decorations']['paperGrain']);

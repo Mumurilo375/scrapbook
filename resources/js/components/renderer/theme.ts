@@ -44,6 +44,9 @@ export type NormalizedThemeConfig = {
         spreadGap: number;
         pageCurl: 'none' | 'subtle';
         foldShadow: boolean;
+        transition: 'soft-slide' | 'fade' | 'none';
+        transitionIntensity: 'low' | 'medium' | 'high';
+        motion: boolean;
     };
     page: {
         surface: string;
@@ -121,6 +124,9 @@ export const DEFAULT_THEME_CONFIG: NormalizedThemeConfig = {
         spreadGap: 0,
         pageCurl: 'subtle',
         foldShadow: true,
+        transition: 'soft-slide',
+        transitionIntensity: 'medium',
+        motion: true,
     },
     page: {
         surface: 'kraft',
@@ -289,6 +295,15 @@ export function normalizeThemeConfig(config: ThemeConfigInput): NormalizedThemeC
             spreadGap: clampedNumberValue(book.spreadGap, DEFAULT_THEME_CONFIG.book.spreadGap, 0, 32),
             pageCurl: book.pageCurl === 'none' ? 'none' : 'subtle',
             foldShadow: booleanValue(book.foldShadow, DEFAULT_THEME_CONFIG.book.foldShadow),
+            transition:
+                book.transition === 'fade' || book.transition === 'none'
+                    ? book.transition
+                    : DEFAULT_THEME_CONFIG.book.transition,
+            transitionIntensity:
+                book.transitionIntensity === 'low' || book.transitionIntensity === 'high'
+                    ? book.transitionIntensity
+                    : DEFAULT_THEME_CONFIG.book.transitionIntensity,
+            motion: booleanValue(book.motion, DEFAULT_THEME_CONFIG.book.motion),
         },
         page: {
             surface: stringValue(page.surface, DEFAULT_THEME_CONFIG.page.surface),
