@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useMemo } from 'react';
 
 import type { RendererAssetMap } from './assetTypes';
 import { normalizeThemeConfig, type RendererContext, type ThemeConfigInput } from './theme';
@@ -13,10 +14,16 @@ type ScrapbookStageProps = {
 };
 
 export function ScrapbookStage({ assets, children, className = '', context = 'preview', theme }: ScrapbookStageProps) {
-    const normalizedTheme = normalizeThemeConfig(theme);
+    const normalizedTheme = useMemo(() => normalizeThemeConfig(theme), [theme]);
     const isEditor = context === 'editor';
-    const appTextureStyle = firstTextureLayerStyle(normalizedTheme, assets, ['fabricBackground', 'appBackground']);
-    const bookTextureStyle = firstTextureLayerStyle(normalizedTheme, assets, ['bookSurface', 'kraftSurface']);
+    const appTextureStyle = useMemo(
+        () => (isEditor ? null : firstTextureLayerStyle(normalizedTheme, assets, ['fabricBackground', 'appBackground'])),
+        [assets, isEditor, normalizedTheme],
+    );
+    const bookTextureStyle = useMemo(
+        () => firstTextureLayerStyle(normalizedTheme, assets, ['bookSurface', 'kraftSurface']),
+        [assets, normalizedTheme],
+    );
     const style = {
         '--scrap-app-bg': normalizedTheme.tokens.colors.appBackground,
         '--scrap-book-bg': normalizedTheme.tokens.colors.bookBackground,

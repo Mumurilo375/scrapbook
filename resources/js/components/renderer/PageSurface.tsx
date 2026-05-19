@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useMemo } from 'react';
 
 import type { Canvas } from '../../domain/canvas/schema';
 import { assetFromMap, type RendererAssetMap } from './assetTypes';
@@ -14,16 +15,21 @@ type PageSurfaceProps = {
 };
 
 export function PageSurface({ assets, canvas, children, context = 'preview', theme }: PageSurfaceProps) {
-    const background = pageBackground(canvas, theme, assets);
+    const background = useMemo(() => pageBackground(canvas, theme, assets), [assets, canvas, theme]);
     const radius = Math.max(0, theme.page.borderRadius);
     const safeArea = canvas.artboard.safeArea;
     const showSafeArea = context === 'editor';
-    const pagePaperTextureStyle =
-        background.kind === 'theme' ? firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']) : null;
-    const pageOverlayTextureStyle = firstTextureLayerStyle(theme, assets, ['agingOverlay', 'pageOverlay']);
-    const stainTextureStyle = buildTextureLayerStyle(theme, assets, 'stainOverlay');
-    const edgeTextureStyle = buildTextureLayerStyle(theme, assets, 'edgeOverlay');
-    const style = {
+    const pagePaperTextureStyle = useMemo(
+        () => (background.kind === 'theme' ? firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']) : null),
+        [assets, background.kind, theme],
+    );
+    const pageOverlayTextureStyle = useMemo(
+        () => firstTextureLayerStyle(theme, assets, ['agingOverlay', 'pageOverlay']),
+        [assets, theme],
+    );
+    const stainTextureStyle = useMemo(() => buildTextureLayerStyle(theme, assets, 'stainOverlay'), [assets, theme]);
+    const edgeTextureStyle = useMemo(() => buildTextureLayerStyle(theme, assets, 'edgeOverlay'), [assets, theme]);
+    const style = useMemo(() => ({
         backgroundColor: background.color,
         backgroundImage: background.kind === 'theme' ? surfaceTexture(theme) : undefined,
         backgroundPosition: background.kind === 'theme' ? undefined : 'center',
@@ -42,7 +48,7 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
         '--scrap-muted-ink': theme.tokens.colors.mutedInk,
         '--scrap-leaf': theme.tokens.colors.leaf,
         '--scrap-shadow': theme.tokens.colors.shadow,
-    } as CSSProperties;
+    }) as CSSProperties, [background.color, background.kind, radius, theme]);
 
     return (
         <div className="relative h-full w-full overflow-hidden border" style={style}>

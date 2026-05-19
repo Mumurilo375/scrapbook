@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { normalizeThemeConfig, ScrapbookStage } from '../../../../components/renderer';
 import type { RendererAssetMap } from '../../../../components/renderer';
@@ -55,7 +56,7 @@ export function GiftPagePreview({
     selectedElementId = null,
     theme,
 }: GiftPagePreviewProps) {
-    const rendererTheme = normalizeThemeConfig(theme);
+    const rendererTheme = useMemo(() => normalizeThemeConfig(theme), [theme]);
 
     return (
         <div
