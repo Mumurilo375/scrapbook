@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Analytics\Models\GiftVisit;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\RendererAssetCatalog;
 use App\Domain\Gifts\Models\Gift;
@@ -50,6 +51,14 @@ class GiftViewerResource extends JsonResource
                 'published_at' => $this->published_at?->toIso8601String(),
                 'expires_at' => $this->expires_at?->toIso8601String(),
                 ...$payload,
+            ];
+        } else {
+            $visit = $request->attributes->get('public_gift_visit');
+
+            $payload['analytics'] = [
+                'enabled' => (bool) config('scrapbook.analytics.enabled', true),
+                'event_url' => route('analytics.events', [], false),
+                'visit_uuid' => $visit instanceof GiftVisit ? $visit->visit_uuid : null,
             ];
         }
 
