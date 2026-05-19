@@ -2,6 +2,8 @@
 
 namespace App\Domain\Payments\Actions;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Services\GiftPublicationChecklist;
@@ -19,6 +21,7 @@ final class CreateCheckoutOrder
     public function __construct(
         private readonly GiftPublicationChecklist $checklist,
         private readonly PaymentProviderManager $providers,
+        private readonly AnalyticsTracker $tracker,
     ) {}
 
     /**
@@ -111,6 +114,34 @@ final class CreateCheckoutOrder
                 'status' => GiftStatus::PendingPayment,
                 'limits_snapshot' => $plan->limitsSnapshot(),
             ])->save();
+
+            $this->tracker->track(AnalyticsEventName::GiftSentToCheckout, [
+                'source' => 'server',
+                'user' => $user,
+                'gift' => $gift,
+                'order' => $order,
+                'plan' => $plan,
+            ]);
+
+            $this->tracker->track(AnalyticsEventName::OrderCreated, [
+                'source' => 'server',
+                'user' => $user,
+                'gift' => $gift,
+                'order' => $order,
+                'plan' => $plan,
+            ], [
+                'amount_cents' => $order->amount_cents,
+                'currency' => $order->currency,
+                'provider' => $order->provider,
+            ]);
+
+            $this->tracker->track(AnalyticsEventName::PaymentPending, [
+                'source' => 'server',
+                'user' => $user,
+                'gift' => $gift,
+                'order' => $order,
+                'plan' => $plan,
+            ]);
 
             return $order->load(['user', 'gift', 'plan', 'payments']);
         });

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Gifts\Actions;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Enums\GiftVisibility;
 use App\Domain\Gifts\Models\Gift;
@@ -14,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 final class PublishGift
 {
-    public function __construct(private readonly GiftPublicationChecklist $checklist) {}
+    public function __construct(
+        private readonly GiftPublicationChecklist $checklist,
+        private readonly AnalyticsTracker $tracker,
+    ) {}
 
     public function handle(User $user, Gift $gift, bool $paymentApproved = false): Gift
     {
@@ -51,6 +56,14 @@ final class PublishGift
             'published_at' => now(),
             'expires_at' => now()->addDays($giftLifetimeDays),
         ])->save();
+
+        $this->tracker->track(AnalyticsEventName::GiftPublished, [
+            'source' => 'server',
+            'user' => $user,
+            'gift' => $gift->refresh(),
+        ], [
+            'gift_lifetime_days' => $giftLifetimeDays,
+        ]);
 
         return $gift->refresh();
     }

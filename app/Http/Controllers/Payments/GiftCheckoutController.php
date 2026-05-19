@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Payments;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
@@ -21,7 +23,7 @@ use Inertia\Response;
 
 class GiftCheckoutController extends Controller
 {
-    public function show(Request $request, Gift $gift, GiftPublicationChecklist $checklist): Response
+    public function show(Request $request, Gift $gift, GiftPublicationChecklist $checklist, AnalyticsTracker $tracker): Response
     {
         Gate::forUser($request->user())->authorize('view', $gift);
 
@@ -34,6 +36,20 @@ class GiftCheckoutController extends Controller
             allowPublished: $gift->statusEnum() === GiftStatus::Published,
             allowPendingPayment: $gift->statusEnum() === GiftStatus::PendingPayment,
         );
+
+        $tracker->track(AnalyticsEventName::CheckoutOpened, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
+            'plan' => $plan,
+        ], [
+            'can_checkout' => $gift->statusEnum() === GiftStatus::Draft
+                && $plan instanceof Plan
+                && $checklist->canPublish($checks),
+            'amount_cents' => $plan?->price_cents,
+            'currency' => $plan?->currency,
+        ]);
 
         return Inertia::render('payments/Checkout/CheckoutShow', [
             'gift' => $this->giftPayload($gift),

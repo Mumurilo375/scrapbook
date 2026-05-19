@@ -2,6 +2,8 @@
 
 namespace App\Domain\Payments\Actions;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Actions\PublishGift;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Payments\Enums\OrderStatus;
@@ -13,7 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 final class ProcessApprovedPayment
 {
-    public function __construct(private readonly PublishGift $publishGift) {}
+    public function __construct(
+        private readonly PublishGift $publishGift,
+        private readonly AnalyticsTracker $tracker,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload
@@ -30,6 +35,8 @@ final class ProcessApprovedPayment
 
             $approvedPayment = $lockedOrder->payments
                 ->first(fn (Payment $payment): bool => $payment->status === PaymentStatus::Approved);
+            $paymentWasAlreadyApproved = $approvedPayment instanceof Payment;
+            $orderWasAlreadyPaid = $lockedOrder->status === OrderStatus::Paid;
 
             if (in_array($lockedOrder->status, [OrderStatus::Canceled, OrderStatus::Expired, OrderStatus::Refunded], true)) {
                 throw ValidationException::withMessages([
@@ -68,6 +75,35 @@ final class ProcessApprovedPayment
                     'status' => OrderStatus::Paid,
                     'paid_at' => now(),
                 ])->save();
+            }
+
+            if (! $paymentWasAlreadyApproved) {
+                $this->tracker->track(AnalyticsEventName::PaymentApproved, [
+                    'source' => 'server',
+                    'user' => $lockedOrder->user,
+                    'gift' => $lockedOrder->gift,
+                    'order' => $lockedOrder,
+                    'payment' => $approvedPayment,
+                    'plan' => $lockedOrder->plan,
+                ], [
+                    'amount_cents' => $approvedPayment->amount_cents,
+                    'currency' => $approvedPayment->currency,
+                    'provider' => $approvedPayment->provider,
+                ]);
+            }
+
+            if (! $orderWasAlreadyPaid) {
+                $this->tracker->track(AnalyticsEventName::OrderPaid, [
+                    'source' => 'server',
+                    'user' => $lockedOrder->user,
+                    'gift' => $lockedOrder->gift,
+                    'order' => $lockedOrder,
+                    'payment' => $approvedPayment,
+                    'plan' => $lockedOrder->plan,
+                ], [
+                    'amount_cents' => $lockedOrder->amount_cents,
+                    'currency' => $lockedOrder->currency,
+                ]);
             }
 
             $gift = $lockedOrder->gift;
