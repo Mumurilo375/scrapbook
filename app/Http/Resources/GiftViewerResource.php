@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Domain\Assets\Models\Asset;
-use App\Domain\Assets\Services\EditorAssetCatalog;
+use App\Domain\Assets\Services\RendererAssetCatalog;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Services\PublicGiftResolver;
 use App\Domain\Gifts\Services\ViewerMediaUrlResolver;
@@ -61,47 +61,7 @@ class GiftViewerResource extends JsonResource
      */
     private function viewerAssets(): Collection
     {
-        $assetIds = $this->referencedAssetIds();
-
-        if ($assetIds === []) {
-            return collect();
-        }
-
-        return app(EditorAssetCatalog::class)
-            ->availableForGift($this->resource)
-            ->filter(fn ($asset): bool => in_array($asset->id, $assetIds, true))
-            ->values();
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function referencedAssetIds(): array
-    {
-        $assetIds = [];
-
-        foreach ($this->pages as $page) {
-            $canvas = is_array($page->canvas) ? $page->canvas : [];
-            $elements = is_array($canvas['elements'] ?? null) ? $canvas['elements'] : [];
-
-            foreach ($elements as $element) {
-                if (! is_array($element) || ($element['hidden'] ?? false) === true || ($element['type'] ?? null) !== 'sticker') {
-                    continue;
-                }
-
-                $assetId = $element['assetId'] ?? $element['asset_id'] ?? null;
-
-                if (is_string($assetId) || is_int($assetId)) {
-                    $assetId = trim((string) $assetId);
-
-                    if ($assetId !== '') {
-                        $assetIds[] = $assetId;
-                    }
-                }
-            }
-        }
-
-        return array_values(array_unique($assetIds));
+        return app(RendererAssetCatalog::class)->assetsForGift($this->resource);
     }
 
     /**

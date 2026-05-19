@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Assets\Services\RendererAssetCatalog;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
 use App\Domain\Gifts\Models\Gift;
@@ -18,6 +19,7 @@ use App\Domain\Themes\ThemeConfig;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Gifts\StoreGiftFromTemplateRequest;
 use App\Http\Requests\Gifts\UpdateGiftRequest;
+use App\Http\Resources\EditorAssetResource;
 use App\Http\Resources\EditorMediaItemResource;
 use BackedEnum;
 use Illuminate\Http\JsonResponse;
@@ -70,6 +72,7 @@ class GiftController extends Controller
         return Inertia::render('gifts/Edit/GiftEdit', [
             'gift' => $this->giftPayload($gift),
             'debugEnabled' => app()->environment(['local', 'development', 'testing']),
+            'assets' => EditorAssetResource::collection(app(RendererAssetCatalog::class)->assetsForGift($gift, includeHiddenElements: true))->resolve($request),
             'media' => EditorMediaItemResource::collection($gift->mediaItems)->resolve(),
             'pages' => $gift->pages->map(fn ($page): array => [
                 'id' => $page->id,
