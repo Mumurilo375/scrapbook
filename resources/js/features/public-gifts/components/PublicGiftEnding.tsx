@@ -2,6 +2,7 @@ import { Copy, RotateCcw, Share2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { NormalizedThemeConfig } from '../../../components/renderer';
+import { useAnalytics } from '../../../lib/analytics';
 import type { ViewerGift } from '../../gifts/components/viewer/viewerTypes';
 import { PublicGiftCta } from './PublicGiftCta';
 
@@ -25,6 +26,7 @@ export function PublicGiftEnding({
     theme,
 }: PublicGiftEndingProps) {
     const [feedback, setFeedback] = useState<string | null>(null);
+    const { trackEvent } = useAnalytics();
 
     async function copyLink() {
         if (!isPublic || typeof window === 'undefined' || !navigator.clipboard) {
@@ -32,6 +34,7 @@ export function PublicGiftEnding({
         }
 
         await navigator.clipboard.writeText(window.location.href);
+        trackEvent('public_link_copied');
         setFeedback('Link copiado');
         window.setTimeout(() => setFeedback(null), 1800);
     }
@@ -47,11 +50,21 @@ export function PublicGiftEnding({
                 text: 'Olha este scrapbook que fizeram para você.',
                 url: window.location.href,
             });
+            trackEvent('share_clicked', {
+                payload: {
+                    method: 'native_share',
+                },
+            });
 
             return;
         }
 
         await copyLink();
+        trackEvent('share_clicked', {
+            payload: {
+                method: 'copy_fallback',
+            },
+        });
     }
 
     return (

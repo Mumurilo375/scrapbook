@@ -8,6 +8,7 @@ import {
     type TouchEvent,
 } from 'react';
 import type { CanvasElement } from '../../domain/canvas/schema';
+import { useAnalytics } from '../../lib/analytics';
 import { isRecord, type NormalizedThemeConfig, type RendererContext } from './theme';
 
 type InteractiveElementProps = {
@@ -49,6 +50,7 @@ export function InteractiveElement({ context = 'preview', element, style, theme 
 
 function InteractiveEnvelopeElement({ context, element, style, theme }: InteractiveElementProps & { context: RendererContext }) {
     const reducedMotion = usePrefersReducedMotion();
+    const { trackEvent } = useAnalytics();
     const record = element as CanvasElement & Record<string, unknown>;
     const state = isRecord(record.state) ? record.state : {};
     const elementStyle = isRecord(record.style) ? record.style : {};
@@ -185,7 +187,16 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
             data-scrapbook-interactive="true"
             onClick={(event) => {
                 stopCanvasInteraction(event);
-                setOpen((current) => !current);
+                setOpen((current) => {
+                    const nextOpen = !current;
+
+                    trackEvent(nextOpen ? 'envelope_opened' : 'envelope_closed', {
+                        elementId: String(element.id ?? ''),
+                        elementType: 'interactive_envelope',
+                    });
+
+                    return nextOpen;
+                });
             }}
             onPointerDown={stopCanvasInteraction}
             onTouchEnd={stopCanvasInteraction}
@@ -200,6 +211,7 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
 
 function FlipPolaroidElement({ context, element, style, theme }: InteractiveElementProps & { context: RendererContext }) {
     const reducedMotion = usePrefersReducedMotion();
+    const { trackEvent } = useAnalytics();
     const record = element as CanvasElement & Record<string, unknown>;
     const front = isRecord(record.front) ? record.front : {};
     const back = isRecord(record.back) ? record.back : {};
@@ -335,7 +347,19 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
             data-scrapbook-interactive="true"
             onClick={(event) => {
                 stopCanvasInteraction(event);
-                setFlipped((current) => !current);
+                setFlipped((current) => {
+                    const nextFlipped = !current;
+
+                    trackEvent('polaroid_flipped', {
+                        elementId: String(element.id ?? ''),
+                        elementType: 'flip_polaroid',
+                        payload: {
+                            side: nextFlipped ? 'back' : 'front',
+                        },
+                    });
+
+                    return nextFlipped;
+                });
             }}
             onPointerDown={stopCanvasInteraction}
             onTouchEnd={stopCanvasInteraction}

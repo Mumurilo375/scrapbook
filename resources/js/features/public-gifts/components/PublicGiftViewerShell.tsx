@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink, Eye, PenLine, Share2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 
 import { assetMapFromList, normalizeThemeConfig, type RendererContext } from '../../../components/renderer';
+import { useAnalytics } from '../../../lib/analytics';
 import { GiftViewerLayout } from '../../gifts/components/viewer/GiftViewerLayout';
 import type { ViewerGift } from '../../gifts/components/viewer/viewerTypes';
 import { normalizeViewerPages } from '../../gifts/components/viewer/viewerUtils';
@@ -38,6 +39,8 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     const isWideViewport = useMediaQuery('(min-width: 768px)');
     const prefersReducedMotion = useReducedMotion();
     const touchStart = useRef<TouchPoint | null>(null);
+    const viewedPages = useRef<Set<string>>(new Set());
+    const completedTracked = useRef(false);
     const pageCount = pages.length;
     const bookMode: BookViewMode = isWideViewport && theme.book.mode !== 'single' ? 'spread' : 'single';
     const motionEnabled = isBookMotionEnabled(theme, prefersReducedMotion);
@@ -51,6 +54,7 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     );
     const context: RendererContext = mode === 'public' ? 'public' : 'preview';
     const isPublic = mode === 'public';
+    const { trackEvent } = useAnalytics();
 
     const goToPage = useCallback(
         (index: number, nextDirection: BookMotionDirection = 'none') => {
@@ -70,8 +74,13 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     );
 
     const openGift = useCallback(() => {
+        if (isPublic) {
+            trackEvent('gift_opening_started');
+            trackEvent('gift_opening_completed');
+        }
+
         goToPage(0, 'next');
-    }, [goToPage]);
+    }, [goToPage, isPublic, trackEvent]);
 
     const goNext = useCallback(() => {
         if (phase === 'opening') {
@@ -123,6 +132,41 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
             window.scrollTo({ behavior: prefersReducedMotion ? 'auto' : 'smooth', top: 0 });
         }
     }, [prefersReducedMotion]);
+
+    useEffect(() => {
+        if (!isPublic || phase !== 'pages' || pageCount <= 0) {
+            return;
+        }
+
+        const indexes = [pageRange.startIndex, pageRange.rightIndex].filter((index): index is number => index !== null);
+
+        indexes.forEach((index) => {
+            const page = pages[index];
+            const key = page?.id ?? `index-${index}`;
+
+            if (!page || viewedPages.current.has(key)) {
+                return;
+            }
+
+            viewedPages.current.add(key);
+            trackEvent('gift_page_viewed', {
+                pageId: page.id,
+                pageIndex: index,
+                payload: {
+                    book_mode: bookMode,
+                },
+            });
+        });
+    }, [bookMode, isPublic, pageCount, pageRange.rightIndex, pageRange.startIndex, pages, phase, trackEvent]);
+
+    useEffect(() => {
+        if (!isPublic || phase !== 'ending' || completedTracked.current) {
+            return;
+        }
+
+        completedTracked.current = true;
+        trackEvent('gift_completed');
+    }, [isPublic, phase, trackEvent]);
 
     useEffect(() => {
         function handleKeyDown(event: KeyboardEvent) {
