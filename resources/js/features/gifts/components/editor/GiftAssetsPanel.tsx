@@ -221,11 +221,19 @@ function emptyMessage(assetCount: number, query: string, categorySlug: string | 
 
 function assetTypeLabel(type: string): string {
     const labels: Record<string, string> = {
+        background: 'Fundo',
+        border: 'Borda',
+        decoration: 'Decoração',
         doodle: 'Rabisco',
         envelope: 'Envelope',
+        flower: 'Flor',
         frame: 'Moldura',
         icon: 'Ícone',
+        label: 'Etiqueta',
+        overlay: 'Overlay',
         paper: 'Papel',
+        shape: 'Forma',
+        stamp: 'Selo',
         sticker: 'Adesivo',
         tape: 'Fita',
         texture: 'Textura',

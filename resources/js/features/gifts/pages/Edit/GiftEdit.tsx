@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { assetMapFromList, normalizeThemeConfig } from '../../../../components/renderer';
+import { assetMapFromList, normalizeThemeConfig, resolveAssetDefaultTransform } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import { ElementPropertiesPanel } from '../../components/editor/ElementPropertiesPanel';
 import { EditorTabs } from '../../components/editor/EditorTabs';
@@ -858,7 +858,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
             y: Math.max(0, Math.round((selectedCanvas.artboard.height - size.h) / 2)),
             w: size.w,
             h: size.h,
-            rotation: 0,
+            rotation: defaultAssetRotation(asset),
             z: Math.max(0, ...selectedCanvas.elements.map((element) => element.z)) + 10,
             locked: false,
             hidden: false,
@@ -1557,23 +1557,19 @@ function generatedStickerId(asset: EditorAsset): string {
 }
 
 function defaultAssetSize(asset: EditorAsset, canvas: Canvas): { h: number; w: number } {
-    const defaultSize = isRecord(asset.config?.defaultSize) ? asset.config.defaultSize : {};
-    const fallback = asset.type === 'tape' ? { w: 240, h: 86 } : { w: 220, h: 220 };
-    const w = positiveConfigNumber(defaultSize.w, fallback.w);
-    const h = positiveConfigNumber(defaultSize.h, fallback.h);
+    const transform = resolveAssetDefaultTransform(asset, {
+        artboardHeight: canvas.artboard.height,
+        artboardWidth: canvas.artboard.width,
+    });
 
     return {
-        w: Math.min(w, Math.round(canvas.artboard.width * 0.8)),
-        h: Math.min(h, Math.round(canvas.artboard.height * 0.8)),
+        w: Math.min(transform.w, Math.round(canvas.artboard.width * 0.96)),
+        h: Math.min(transform.h, Math.round(canvas.artboard.height * 0.96)),
     };
 }
 
-function positiveConfigNumber(value: unknown, fallback: number): number {
-    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+function defaultAssetRotation(asset: EditorAsset): number {
+    return resolveAssetDefaultTransform(asset).rotation;
 }
 
 function canModifyElement(element: CanvasElement | null | undefined): element is CanvasElement {
