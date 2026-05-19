@@ -2,7 +2,10 @@
 
 namespace App\Filament\Support;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
 use App\Domain\Analytics\Models\GiftEvent;
+use App\Domain\Analytics\Models\GiftVisit;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Services\AssetUrlResolver;
@@ -430,10 +433,16 @@ class AdminResourceRegistry
                 TextEntry::make('currency'), TextEntry::make('processed_at')->dateTime(), self::jsonEntry('raw_payload'), ...self::timestamps(),
             ],
             'GiftVisit' => [
-                TextEntry::make('gift.title'), TextEntry::make('session_hash')->copyable(), TextEntry::make('ip_hash')->copyable(), TextEntry::make('user_agent_hash')->copyable(), TextEntry::make('referrer')->columnSpanFull(), TextEntry::make('opened_at')->dateTime(), self::jsonEntry('metadata'), ...self::timestamps(),
+                TextEntry::make('gift.title'), TextEntry::make('visit_uuid')->copyable(), TextEntry::make('public_source')->badge(), TextEntry::make('analyticsSession.session_uuid')->copyable(),
+                TextEntry::make('session_hash')->copyable(), TextEntry::make('ip_hash')->copyable(), TextEntry::make('user_agent_hash')->copyable(),
+                TextEntry::make('device_type'), TextEntry::make('browser'), TextEntry::make('os'), TextEntry::make('referrer')->columnSpanFull(),
+                TextEntry::make('opened_at')->dateTime(), TextEntry::make('completed_at')->dateTime(), TextEntry::make('page_views_count'), TextEntry::make('interactions_count'), self::jsonEntry('metadata'), ...self::timestamps(),
             ],
             'GiftEvent' => [
-                TextEntry::make('gift.title'), TextEntry::make('user.email'), TextEntry::make('event_type'), TextEntry::make('occurred_at')->dateTime(), self::jsonEntry('payload'), ...self::timestamps(),
+                TextEntry::make('gift.title'), TextEntry::make('giftVisit.visit_uuid')->copyable(), TextEntry::make('analyticsSession.session_uuid')->copyable(), TextEntry::make('user.email'),
+                TextEntry::make('event_name')->badge(), TextEntry::make('event_type'), TextEntry::make('occurred_at')->dateTime(),
+                TextEntry::make('page_index'), TextEntry::make('page_id'), TextEntry::make('element_id'), TextEntry::make('element_type'),
+                self::jsonEntry('payload'), self::jsonEntry('metadata'), ...self::timestamps(),
             ],
             default => [],
         };
@@ -507,12 +516,12 @@ class AdminResourceRegistry
                 ->filters([SelectFilter::make('status')->options(self::enumOptions(PaymentStatus::class)), SelectFilter::make('provider')->options(fn (): array => Payment::query()->whereNotNull('provider')->distinct()->pluck('provider', 'provider')->all())])
                 ->defaultSort('created_at', 'desc'),
             'GiftVisit' => $table
-                ->columns([TextColumn::make('gift.title')->searchable(), TextColumn::make('session_hash')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('ip_hash')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('referrer')->searchable()->limit(40), TextColumn::make('opened_at')->dateTime()->sortable()])
-                ->filters([SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload(), self::dateRangeFilter('opened_at')])
+                ->columns([TextColumn::make('gift.title')->searchable(), TextColumn::make('public_source')->badge()->sortable(), TextColumn::make('device_type')->badge()->toggleable(), TextColumn::make('page_views_count')->numeric()->sortable(), TextColumn::make('interactions_count')->numeric()->sortable(), TextColumn::make('session_hash')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('ip_hash')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('referrer')->searchable()->limit(40), TextColumn::make('opened_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload(), SelectFilter::make('public_source')->options(fn (): array => GiftVisit::query()->whereNotNull('public_source')->distinct()->pluck('public_source', 'public_source')->all()), self::dateRangeFilter('opened_at')])
                 ->defaultSort('opened_at', 'desc'),
             'GiftEvent' => $table
-                ->columns([TextColumn::make('gift.title')->searchable(), TextColumn::make('user.email')->searchable(), TextColumn::make('event_type')->searchable()->badge(), TextColumn::make('occurred_at')->dateTime()->sortable()])
-                ->filters([SelectFilter::make('event_type')->options(fn (): array => GiftEvent::query()->distinct()->pluck('event_type', 'event_type')->all()), SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload(), self::dateRangeFilter('occurred_at')])
+                ->columns([TextColumn::make('gift.title')->searchable(), TextColumn::make('giftVisit.visit_uuid')->copyable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('user.email')->searchable(), TextColumn::make('event_name')->searchable()->badge(), TextColumn::make('page_index')->numeric()->sortable()->toggleable(), TextColumn::make('element_type')->badge()->toggleable(), TextColumn::make('occurred_at')->dateTime()->sortable()])
+                ->filters([SelectFilter::make('event_name')->options(fn (): array => GiftEvent::query()->whereNotNull('event_name')->distinct()->pluck('event_name', 'event_name')->all()), SelectFilter::make('gift_id')->relationship('gift', 'title')->searchable()->preload(), self::dateRangeFilter('occurred_at')])
                 ->defaultSort('occurred_at', 'desc'),
             default => $table,
         };
@@ -589,6 +598,12 @@ class AdminResourceRegistry
                         'published_at' => now(),
                     ])->save();
                 });
+
+                self::trackAdminEvent(AnalyticsEventName::AdminThemeUpdated, [
+                    'theme_version_id' => $record->id,
+                    'theme_id' => $record->theme_id,
+                    'status' => ThemeVersionStatus::Published->value,
+                ]);
             });
     }
 
@@ -624,6 +639,12 @@ class AdminResourceRegistry
                         'published_at' => now(),
                     ])->save();
                 });
+
+                self::trackAdminEvent(AnalyticsEventName::AdminTemplatePublished, [
+                    'template_version_id' => $record->id,
+                    'template_id' => $record->template_id,
+                    'status' => TemplateVersionStatus::Published->value,
+                ]);
             });
     }
 
@@ -736,7 +757,30 @@ class AdminResourceRegistry
                     ->body("{$template->name} foi criado com uma versão ".Str::of((string) $data['status'])->replace('_', ' ')->lower().'.')
                     ->success()
                     ->send();
+
+                self::trackAdminEvent(AnalyticsEventName::AdminGiftConvertedToTemplate, [
+                    'gift_id' => $record->id,
+                    'template_id' => $template->id,
+                    'status' => $data['status'] ?? null,
+                ]);
             });
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected static function trackAdminEvent(AnalyticsEventName $event, array $payload): void
+    {
+        app(AnalyticsTracker::class)->track($event, [
+            'source' => 'admin',
+            'user' => AdminAccess::user(),
+        ], $payload);
+
+        activity('admin')
+            ->causedBy(AdminAccess::user())
+            ->event($event->value)
+            ->withProperties($payload)
+            ->log($event->value);
     }
 
     protected static function disableGiftAction(): Action

@@ -23,7 +23,7 @@ class GiftEventResource extends AdminResource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'event_type';
+    protected static ?string $recordTitleAttribute = 'event_name';
 
     public static function form(Schema $schema): Schema
     {

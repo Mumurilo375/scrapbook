@@ -23,7 +23,7 @@ class GiftVisitResource extends AdminResource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'session_hash';
+    protected static ?string $recordTitleAttribute = 'visit_uuid';
 
     public static function form(Schema $schema): Schema
     {
