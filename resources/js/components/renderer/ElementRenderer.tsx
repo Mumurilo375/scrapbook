@@ -65,8 +65,8 @@ export function ElementRenderer({
         return <MusicElement element={element} style={style} theme={theme} />;
     }
 
-    if (element.type === 'interactive') {
-        return <InteractiveElement element={element} style={style} theme={theme} />;
+    if (element.type === 'interactive' || element.type === 'interactive_envelope' || element.type === 'flip_polaroid') {
+        return <InteractiveElement context={context} element={element} style={style} theme={theme} />;
     }
 
     return (
