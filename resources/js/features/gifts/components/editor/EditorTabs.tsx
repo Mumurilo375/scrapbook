@@ -23,7 +23,7 @@ export function EditorTabs({ activeTab, onChange, showDebug }: EditorTabsProps) 
     return (
         <div
             aria-label="Painéis do editor"
-            className="flex flex-wrap gap-1 rounded-[8px] border border-[#D8B991] bg-[#F6E7D6] p-1 text-xs font-semibold text-[#42291D] sm:text-sm"
+            className="flex flex-nowrap gap-1 overflow-x-auto rounded-[8px] border border-[#D8B991] bg-[#F6E7D6] p-1 text-xs font-semibold text-[#42291D] sm:flex-wrap sm:overflow-visible sm:text-sm"
             role="tablist"
         >
             {TABS.filter((tab) => showDebug || tab.id !== 'debug').map((tab) => {
@@ -33,7 +33,7 @@ export function EditorTabs({ activeTab, onChange, showDebug }: EditorTabsProps) 
                 return (
                     <button
                         aria-selected={selected}
-                        className={`inline-flex min-h-9 flex-1 basis-[6.75rem] items-center justify-center gap-1.5 rounded-[6px] px-2 transition sm:min-h-10 sm:basis-[8.5rem] sm:gap-2 ${
+                        className={`inline-flex min-h-10 min-w-[7.25rem] shrink-0 items-center justify-center gap-1.5 rounded-[6px] px-2 transition sm:min-h-10 sm:min-w-0 sm:flex-1 sm:basis-[8.5rem] sm:gap-2 ${
                             selected ? 'bg-[#FFF8EF] text-[#7A2634] shadow-sm' : 'text-[#6F5A4A] hover:bg-[#FFF8EF]/65'
                         }`}
                         key={tab.id}

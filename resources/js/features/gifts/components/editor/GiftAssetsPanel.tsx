@@ -6,6 +6,8 @@ import type { EditorAsset, EditorAssetCategory, SaveStatus } from './editorTypes
 
 type AssetLibraryStatus = 'loading' | 'ready' | 'error';
 
+const ASSET_PREVIEW_BATCH_SIZE = 36;
+
 type GiftAssetsPanelProps = {
     assets: EditorAsset[];
     categories: EditorAssetCategory[];
@@ -32,6 +34,7 @@ export function GiftAssetsPanel({
     const normalizedTheme = useMemo(() => normalizeThemeConfig(theme), [theme]);
     const [query, setQuery] = useState('');
     const [categorySlug, setCategorySlug] = useState<string | null>(null);
+    const [visibleLimit, setVisibleLimit] = useState(ASSET_PREVIEW_BATCH_SIZE);
     const filteredAssets = useMemo(() => {
         const needle = query.trim().toLowerCase();
 
@@ -47,6 +50,8 @@ export function GiftAssetsPanel({
             return searchableText(asset).includes(needle);
         });
     }, [assets, categorySlug, query]);
+    const visibleAssets = filteredAssets.slice(0, visibleLimit);
+    const hasMoreAssets = visibleLimit < filteredAssets.length;
 
     return (
         <section className="grid min-w-0 gap-4">
@@ -65,7 +70,10 @@ export function GiftAssetsPanel({
                 <input
                     className="h-10 w-full rounded-[6px] border border-[#CBA980] bg-white pr-3 pl-9 text-sm font-semibold text-[#1F150A] outline-none transition placeholder:text-[#8E735F] focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226]"
                     disabled={status === 'loading'}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => {
+                        setQuery(event.target.value);
+                        setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
+                    }}
                     placeholder="Buscar adesivo"
                     type="search"
                     value={query}
@@ -73,13 +81,23 @@ export function GiftAssetsPanel({
             </label>
 
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                <CategoryButton active={categorySlug === null} label="Todos" onClick={() => setCategorySlug(null)} />
+                <CategoryButton
+                    active={categorySlug === null}
+                    label="Todos"
+                    onClick={() => {
+                        setCategorySlug(null);
+                        setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
+                    }}
+                />
                 {categories.map((category) => (
                     <CategoryButton
                         active={categorySlug === category.slug}
                         key={category.id}
                         label={category.name}
-                        onClick={() => setCategorySlug(category.slug)}
+                        onClick={() => {
+                            setCategorySlug(category.slug);
+                            setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
+                        }}
                     />
                 ))}
             </div>
@@ -119,6 +137,7 @@ export function GiftAssetsPanel({
                             onClick={() => {
                                 setQuery('');
                                 setCategorySlug(null);
+                                setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
                             }}
                             type="button"
                         >
@@ -129,28 +148,39 @@ export function GiftAssetsPanel({
             ) : null}
 
             {status === 'ready' && filteredAssets.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {filteredAssets.map((asset) => (
+                <>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {visibleAssets.map((asset) => (
+                            <button
+                                aria-label={`Adicionar adesivo ${asset.name}`}
+                                className="group grid min-h-[122px] gap-2 rounded-[8px] border border-[#D8B991] bg-[#FFFBF6] p-2 text-left transition hover:border-[#B87358] hover:bg-white disabled:cursor-not-allowed disabled:opacity-55"
+                                disabled={disabled}
+                                key={asset.id}
+                                onClick={() => onAddAsset(asset)}
+                                type="button"
+                            >
+                                <span className="flex aspect-square items-center justify-center rounded-[6px] bg-[#FFF8EF] p-2">
+                                    <AssetVisual asset={asset} theme={normalizedTheme} />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block truncate text-xs font-semibold text-[#1F150A]">{asset.name}</span>
+                                    <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase text-[#7A5A43]">
+                                        {asset.isThemeAsset ? 'Do tema' : asset.category?.name ?? assetTypeLabel(asset.type)}
+                                    </span>
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    {hasMoreAssets ? (
                         <button
-                            aria-label={`Adicionar adesivo ${asset.name}`}
-                            className="group grid min-h-[122px] gap-2 rounded-[8px] border border-[#D8B991] bg-[#FFFBF6] p-2 text-left transition hover:border-[#B87358] hover:bg-white disabled:cursor-not-allowed disabled:opacity-55"
-                            disabled={disabled}
-                            key={asset.id}
-                            onClick={() => onAddAsset(asset)}
+                            className="min-h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] transition hover:bg-[#F6E4CF]"
+                            onClick={() => setVisibleLimit((current) => current + ASSET_PREVIEW_BATCH_SIZE)}
                             type="button"
                         >
-                            <span className="flex aspect-square items-center justify-center rounded-[6px] bg-[#FFF8EF] p-2">
-                                <AssetVisual asset={asset} theme={normalizedTheme} />
-                            </span>
-                            <span className="min-w-0">
-                                <span className="block truncate text-xs font-semibold text-[#1F150A]">{asset.name}</span>
-                                <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase text-[#7A5A43]">
-                                    {asset.isThemeAsset ? 'Do tema' : asset.category?.name ?? assetTypeLabel(asset.type)}
-                                </span>
-                            </span>
+                            Mostrar mais adesivos
                         </button>
-                    ))}
-                </div>
+                    ) : null}
+                </>
             ) : null}
         </section>
     );
