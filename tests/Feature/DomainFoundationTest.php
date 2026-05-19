@@ -368,6 +368,7 @@ class DomainFoundationTest extends TestCase
             ->get()
             ->keyBy('id');
         $canvasSecurity = app(CanvasSecurity::class);
+        $interactiveTypes = [];
 
         foreach ($versions as $version) {
             $this->assertTrue((bool) data_get($version->default_config, 'premium'));
@@ -393,6 +394,10 @@ class DomainFoundationTest extends TestCase
                 }
 
                 foreach ($canvas['elements'] as $element) {
+                    if (in_array($element['type'] ?? null, ['interactive_envelope', 'flip_polaroid'], true)) {
+                        $interactiveTypes[] = $element['type'];
+                    }
+
                     if (isset($element['assetId'])) {
                         $asset = $assets->get($element['assetId']);
 
@@ -417,6 +422,9 @@ class DomainFoundationTest extends TestCase
                 }
             }
         }
+
+        $this->assertContains('interactive_envelope', $interactiveTypes);
+        $this->assertContains('flip_polaroid', $interactiveTypes);
     }
 
     public function test_premium_template_can_create_gift_with_copied_elements(): void

@@ -142,6 +142,7 @@ class GiftViewerTest extends TestCase
             'canvas' => $this->canvas([
                 ['id' => 'visible_text', 'type' => 'text', 'text' => 'Visível', 'x' => 0, 'y' => 0, 'w' => 120, 'h' => 80, 'z' => 10],
                 ['id' => 'hidden_text', 'type' => 'text', 'text' => 'Oculto', 'x' => 0, 'y' => 100, 'w' => 120, 'h' => 80, 'z' => 20, 'hidden' => true],
+                ['id' => 'hidden_envelope', 'type' => 'interactive_envelope', 'title' => 'Oculto', 'content' => 'Não renderizar', 'x' => 20, 'y' => 200, 'w' => 300, 'h' => 180, 'z' => 30, 'hidden' => true],
             ]),
         ]);
 
@@ -160,6 +161,7 @@ class GiftViewerTest extends TestCase
             'canvas' => $this->canvas([
                 ['id' => 'visible_text', 'type' => 'text', 'text' => 'Visível', 'x' => 0, 'y' => 0, 'w' => 120, 'h' => 80, 'z' => 10],
                 ['id' => 'hidden_text', 'type' => 'text', 'text' => 'Oculto', 'x' => 0, 'y' => 100, 'w' => 120, 'h' => 80, 'z' => 20, 'hidden' => true],
+                ['id' => 'hidden_envelope', 'type' => 'interactive_envelope', 'title' => 'Oculto', 'content' => 'Não renderizar', 'x' => 20, 'y' => 200, 'w' => 300, 'h' => 180, 'z' => 30, 'hidden' => true],
             ]),
         ]);
 
@@ -564,6 +566,49 @@ class GiftViewerTest extends TestCase
                 ->where('gift.pages.0.canvas.elements.0.src', route('public.gifts.media.show', [$this->slugToken($gift), $mediaItem], false))
                 ->where('gift.pages.0.canvas.elements.0.mediaItemId', $mediaItem->id)
                 ->missing('gift.pages.0.canvas.elements.0.storage_path'));
+    }
+
+    public function test_flip_polaroid_media_generates_safe_public_viewer_url_without_storage_path(): void
+    {
+        $gift = Gift::factory()->published()->create();
+        $mediaItem = MediaItem::factory()->processed()->create([
+            'gift_id' => $gift->id,
+            'user_id' => $gift->user_id,
+            'storage_path' => 'secret/storage/path.webp',
+        ]);
+
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+            'canvas' => $this->canvas([
+                [
+                    'id' => 'polaroid',
+                    'type' => 'flip_polaroid',
+                    'x' => 0,
+                    'y' => 0,
+                    'w' => 220,
+                    'h' => 280,
+                    'z' => 1,
+                    'front' => [
+                        'mediaItemId' => $mediaItem->id,
+                        'src' => '/app/private/media/'.$mediaItem->id,
+                        'storage_path' => 'secret/storage/path.webp',
+                        'caption' => 'Nosso momento',
+                    ],
+                    'back' => [
+                        'text' => 'Mensagem segura',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->get($this->publicUrl($gift))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('gift.pages.0.canvas.elements.0.front.src', route('public.gifts.media.show', [$this->slugToken($gift), $mediaItem], false))
+                ->where('gift.pages.0.canvas.elements.0.front.mediaItemId', $mediaItem->id)
+                ->missing('gift.pages.0.canvas.elements.0.front.storage_path'));
     }
 
     public function test_invalid_media_item_id_does_not_generate_external_or_unsafe_canvas_url(): void

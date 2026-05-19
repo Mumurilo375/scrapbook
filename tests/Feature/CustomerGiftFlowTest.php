@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Models\GiftPage;
+use App\Domain\Media\Models\MediaItem;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Enums\PageType;
 use App\Domain\Templates\Models\Occasion;
@@ -519,6 +520,219 @@ class CustomerGiftFlowTest extends TestCase
         $this->assertFalse($elements[0]['hidden']);
         $this->assertFalse($elements[1]['locked']);
         $this->assertTrue($elements[1]['hidden']);
+    }
+
+    public function test_page_canvas_accepts_interactive_envelope_element(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'letter_1',
+                            'type' => 'interactive_envelope',
+                            'title' => 'Abra quando sentir saudade',
+                            'content' => 'Escrevi essa cartinha só para você.',
+                            'x' => 180,
+                            'y' => 260,
+                            'w' => 720,
+                            'h' => 420,
+                            'rotation' => -3,
+                            'z' => 40,
+                            'state' => ['defaultOpen' => false],
+                            'style' => ['variant' => 'kraft'],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.elements.0.type', 'interactive_envelope')
+            ->assertJsonPath('data.page.canvas.elements.0.title', 'Abra quando sentir saudade')
+            ->assertJsonPath('data.page.canvas.elements.0.style.variant', 'kraft');
+    }
+
+    public function test_page_canvas_accepts_flip_polaroid_element_with_processed_gift_media(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+        $mediaItem = MediaItem::factory()->processed()->create([
+            'user_id' => $user->id,
+            'gift_id' => $gift->id,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'polaroid_1',
+                            'type' => 'flip_polaroid',
+                            'x' => 240,
+                            'y' => 220,
+                            'w' => 420,
+                            'h' => 540,
+                            'rotation' => 5,
+                            'z' => 35,
+                            'front' => [
+                                'mediaItemId' => $mediaItem->id,
+                                'placeholderLabel' => 'Sua foto aqui',
+                                'caption' => 'Nosso momento',
+                            ],
+                            'back' => [
+                                'text' => 'Eu amo essa lembrança.',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.elements.0.type', 'flip_polaroid')
+            ->assertJsonPath('data.page.canvas.elements.0.front.mediaItemId', $mediaItem->id)
+            ->assertJsonPath('data.page.canvas.elements.0.front.src', route('app.gifts.media.show', [$gift, $mediaItem], false))
+            ->assertJsonPath('data.page.canvas.elements.0.back.text', 'Eu amo essa lembrança.');
+    }
+
+    public function test_page_canvas_rejects_html_in_interactive_envelope_content(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'letter_1',
+                            'type' => 'interactive_envelope',
+                            'title' => 'Abra',
+                            'content' => '<script>alert(1)</script>',
+                            'x' => 180,
+                            'y' => 260,
+                            'w' => 720,
+                            'h' => 420,
+                            'rotation' => 0,
+                            'z' => 40,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas');
+    }
+
+    public function test_page_canvas_rejects_html_in_flip_polaroid_back_text(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'polaroid_1',
+                            'type' => 'flip_polaroid',
+                            'x' => 240,
+                            'y' => 220,
+                            'w' => 420,
+                            'h' => 540,
+                            'rotation' => 5,
+                            'z' => 35,
+                            'front' => [
+                                'mediaItemId' => null,
+                                'placeholderLabel' => 'Sua foto aqui',
+                                'caption' => 'Nosso momento',
+                            ],
+                            'back' => [
+                                'text' => '<strong>Eu amo essa lembrança.</strong>',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas');
+    }
+
+    public function test_flip_polaroid_rejects_media_item_from_another_gift(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $otherGift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+        ]);
+        $mediaItem = MediaItem::factory()->processed()->create([
+            'user_id' => $user->id,
+            'gift_id' => $otherGift->id,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => [
+                    'schemaVersion' => 1,
+                    'version' => 1,
+                    'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+                    'elements' => [
+                        [
+                            'id' => 'polaroid_1',
+                            'type' => 'flip_polaroid',
+                            'x' => 240,
+                            'y' => 220,
+                            'w' => 420,
+                            'h' => 540,
+                            'rotation' => 5,
+                            'z' => 35,
+                            'front' => [
+                                'mediaItemId' => $mediaItem->id,
+                                'placeholderLabel' => 'Sua foto aqui',
+                                'caption' => 'Nosso momento',
+                            ],
+                            'back' => [
+                                'text' => 'Eu amo essa lembrança.',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertForbidden();
     }
 
     public function test_page_canvas_rejects_html_in_layer_name(): void

@@ -140,6 +140,91 @@ class GiftToTemplateTest extends TestCase
         ]);
     }
 
+    public function test_gift_to_template_preserves_envelope_and_removes_personal_polaroid_media(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $owner = $this->userWithRole('customer');
+        $occasion = Occasion::factory()->create(['name' => 'Amor', 'slug' => 'amor', 'is_active' => true]);
+        $themeVersion = ThemeVersion::factory()->published()->create();
+        $gift = Gift::factory()->create([
+            'user_id' => $owner->id,
+            'occasion_id' => $occasion->id,
+            'theme_version_id' => $themeVersion->id,
+        ]);
+        $mediaItem = MediaItem::factory()->processed()->create([
+            'user_id' => $owner->id,
+            'gift_id' => $gift->id,
+        ]);
+
+        GiftPage::factory()->create([
+            'gift_id' => $gift->id,
+            'source_template_page_id' => null,
+            'page_type' => PageType::Letter->value,
+            'name' => 'Interativos',
+            'sort_order' => 10,
+            'canvas' => $this->canvas([
+                [
+                    'id' => 'letter',
+                    'type' => 'interactive_envelope',
+                    'title' => 'Abra quando sentir saudade',
+                    'content' => 'Cartinha default editável.',
+                    'x' => 100,
+                    'y' => 160,
+                    'w' => 520,
+                    'h' => 320,
+                    'rotation' => -3,
+                    'z' => 10,
+                    'style' => ['variant' => 'kraft'],
+                    'state' => ['defaultOpen' => false],
+                ],
+                [
+                    'id' => 'polaroid',
+                    'type' => 'flip_polaroid',
+                    'x' => 420,
+                    'y' => 540,
+                    'w' => 320,
+                    'h' => 430,
+                    'rotation' => 5,
+                    'z' => 20,
+                    'front' => [
+                        'mediaItemId' => $mediaItem->id,
+                        'src' => '/app/gifts/'.$gift->id.'/media/'.$mediaItem->id,
+                        'placeholderLabel' => 'Foto pessoal',
+                        'caption' => 'Nosso momento',
+                    ],
+                    'back' => [
+                        'text' => 'Mensagem do verso.',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $template = app(CreateTemplateFromGift::class)->handle($admin, $gift, [
+            'name' => 'Template com interativos',
+            'slug' => 'template-com-interativos',
+            'occasion_id' => $occasion->id,
+            'theme_version_id' => $themeVersion->id,
+            'status' => TemplateVersionStatus::Draft->value,
+        ]);
+
+        $page = $template->versions()->firstOrFail()->pages()->firstOrFail();
+        $envelope = $page->canvas['elements'][0];
+        $polaroid = $page->canvas['elements'][1];
+
+        $this->assertSame('interactive_envelope', $envelope['type']);
+        $this->assertSame('Abra quando sentir saudade', $envelope['title']);
+        $this->assertSame('Cartinha default editável.', $envelope['content']);
+        $this->assertSame('flip_polaroid', $polaroid['type']);
+        $this->assertSame('Nosso momento', $polaroid['front']['caption']);
+        $this->assertSame('Mensagem do verso.', $polaroid['back']['text']);
+        $this->assertArrayNotHasKey('mediaItemId', $polaroid['front']);
+        $this->assertArrayNotHasKey('src', $polaroid['front']);
+        $this->assertContains('letter', $page->editable_schema['fields']);
+        $this->assertContains('interactive_photo_1', $page->editable_schema['fields']);
+
+        app(CanvasSecurity::class)->validate($page->canvas);
+    }
+
     public function test_published_template_created_from_gift_appears_in_creation_flow(): void
     {
         $admin = $this->userWithRole('admin');
