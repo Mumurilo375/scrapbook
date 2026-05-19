@@ -3,10 +3,11 @@ import { ArrowLeft, ExternalLink, Eye, PenLine, Share2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 
 import { assetMapFromList, normalizeThemeConfig, type RendererContext } from '../../../components/renderer';
-import { GiftViewerFrame } from '../../gifts/components/viewer/GiftViewerFrame';
 import { GiftViewerLayout } from '../../gifts/components/viewer/GiftViewerLayout';
 import type { ViewerGift } from '../../gifts/components/viewer/viewerTypes';
 import { normalizeViewerPages } from '../../gifts/components/viewer/viewerUtils';
+import { BookViewerShell } from './BookViewerShell';
+import { lastBookStartIndex, resolveBookPageRange, type BookViewMode } from './bookModeUtils';
 import { PublicGiftCta } from './PublicGiftCta';
 import { PublicGiftEnding } from './PublicGiftEnding';
 import { PublicGiftNavigation } from './PublicGiftNavigation';
@@ -31,24 +32,31 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     const assetMap = useMemo(() => assetMapFromList(gift.assets), [gift.assets]);
     const [phase, setPhase] = useState<ViewerPhase>('opening');
     const [activePageIndex, setActivePageIndex] = useState(0);
+    const isWideViewport = useMediaQuery('(min-width: 768px)');
     const touchStart = useRef<TouchPoint | null>(null);
     const pageCount = pages.length;
-    const visiblePageIndex = pageCount > 0 ? Math.min(activePageIndex, pageCount - 1) : 0;
-    const activePage = phase === 'pages' ? pages[visiblePageIndex] ?? null : null;
+    const bookMode: BookViewMode = isWideViewport && theme.book.mode !== 'single' ? 'spread' : 'single';
+    const pageRange = useMemo(
+        () => resolveBookPageRange(activePageIndex, pageCount, bookMode),
+        [activePageIndex, bookMode, pageCount],
+    );
     const context: RendererContext = mode === 'public' ? 'public' : 'preview';
     const isPublic = mode === 'public';
 
-    const goToPage = useCallback((index: number) => {
-        if (pageCount <= 0) {
-            setActivePageIndex(0);
+    const goToPage = useCallback(
+        (index: number) => {
+            if (pageCount <= 0) {
+                setActivePageIndex(0);
+                setPhase('pages');
+
+                return;
+            }
+
+            setActivePageIndex(Math.max(0, Math.min(index, pageCount - 1)));
             setPhase('pages');
-
-            return;
-        }
-
-        setActivePageIndex(Math.max(0, Math.min(index, pageCount - 1)));
-        setPhase('pages');
-    }, [pageCount]);
+        },
+        [pageCount],
+    );
 
     const openGift = useCallback(() => {
         goToPage(0);
@@ -65,18 +73,18 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
             return;
         }
 
-        if (visiblePageIndex >= pageCount - 1) {
+        if (pageRange.nextIndex === null) {
             setPhase('ending');
 
             return;
         }
 
-        setActivePageIndex((current) => Math.min(current + 1, pageCount - 1));
-    }, [openGift, pageCount, phase, visiblePageIndex]);
+        setActivePageIndex(pageRange.nextIndex);
+    }, [openGift, pageCount, pageRange.nextIndex, phase]);
 
     const goPrevious = useCallback(() => {
         if (phase === 'ending') {
-            goToPage(Math.max(0, pageCount - 1));
+            goToPage(lastBookStartIndex(pageCount, bookMode));
 
             return;
         }
@@ -85,8 +93,8 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
             return;
         }
 
-        setActivePageIndex((current) => Math.max(0, current - 1));
-    }, [goToPage, pageCount, phase]);
+        setActivePageIndex(pageRange.previousIndex ?? 0);
+    }, [bookMode, goToPage, pageCount, pageRange.previousIndex, phase]);
 
     const restart = useCallback(() => {
         setActivePageIndex(0);
@@ -158,7 +166,7 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     }
 
     return (
-        <GiftViewerLayout theme={gift.theme?.config}>
+        <GiftViewerLayout assets={assetMap} theme={gift.theme?.config}>
             {mode === 'preview' ? <PrivatePreviewBar gift={gift} theme={theme} /> : null}
 
             <section
@@ -173,18 +181,40 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
                 {phase === 'pages' ? (
                     <div className="grid gap-5">
                         <ViewerPageHeader gift={gift} mode={mode} theme={theme} />
-                        <div className="gift-viewer-page-transition" key={activePage?.id ?? 'empty-page'}>
-                            <GiftViewerFrame assets={assetMap} context={context} page={activePage} theme={gift.theme?.config} />
+                        <div
+                            className="gift-viewer-page-transition"
+                            key={`${bookMode}-${pageRange.startIndex}-${pageRange.rightIndex ?? 'blank'}`}
+                        >
+                            <BookViewerShell
+                                assets={assetMap}
+                                context={context}
+                                isSpread={bookMode === 'spread'}
+                                pages={pages}
+                                range={pageRange}
+                                theme={theme}
+                            />
                         </div>
                         <PublicGiftProgress
-                            activePageIndex={visiblePageIndex}
+                            activePageIndex={pageRange.endIndex}
+                            displayLabel={pageRange.label}
                             isEnding={false}
                             pageCount={pageCount}
+                            progress={pageRange.progress}
                             theme={theme}
                         />
                         <PublicGiftNavigation
-                            activePageIndex={visiblePageIndex}
+                            activePageIndex={pageRange.endIndex}
+                            canGoNext={pageCount > 0}
+                            canGoPrevious={pageRange.canGoPrevious}
+                            displayLabel={pageRange.label}
                             isEnding={false}
+                            nextLabel={
+                                pageRange.nextIndex === null
+                                    ? 'Final'
+                                    : bookMode === 'spread'
+                                      ? 'Próximas páginas'
+                                      : 'Próxima'
+                            }
                             onNext={goNext}
                             onPrevious={goPrevious}
                             pageCount={pageCount}
@@ -217,6 +247,26 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     );
 }
 
+function useMediaQuery(query: string): boolean {
+    const [matches, setMatches] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            return;
+        }
+
+        const media = window.matchMedia(query);
+        const updateMatches = () => setMatches(media.matches);
+
+        updateMatches();
+        media.addEventListener('change', updateMatches);
+
+        return () => media.removeEventListener('change', updateMatches);
+    }, [query]);
+
+    return matches;
+}
+
 type ViewerPageHeaderProps = {
     gift: ViewerGift;
     mode: 'preview' | 'public';
@@ -229,7 +279,10 @@ function ViewerPageHeader({ gift, mode, theme }: ViewerPageHeaderProps) {
             <p className="text-xs font-semibold uppercase" style={{ color: theme.tokens.colors.accent }}>
                 {mode === 'preview' ? 'Prévia do presente' : 'Scrapbook aberto'}
             </p>
-            <h1 className="mt-2 truncate font-editorial text-2xl font-semibold sm:text-3xl" style={{ color: theme.elements.text.headingColor }}>
+            <h1
+                className="mt-2 truncate font-editorial text-2xl font-semibold sm:text-3xl"
+                style={{ color: theme.elements.text.headingColor }}
+            >
                 {gift.title}
             </h1>
             <p className="mt-1 text-sm font-semibold" style={{ color: theme.tokens.colors.mutedInk }}>
@@ -277,7 +330,10 @@ function PrivatePreviewBar({ gift, theme }: PrivatePreviewBarProps) {
                     ) : null}
                     <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{gift.title}</p>
-                        <p className="mt-1 text-xs font-semibold uppercase" style={{ color: theme.tokens.colors.accent }}>
+                        <p
+                            className="mt-1 text-xs font-semibold uppercase"
+                            style={{ color: theme.tokens.colors.accent }}
+                        >
                             Preview privado{gift.status ? ` - ${statusLabel(gift.status)}` : ''}
                         </p>
                     </div>

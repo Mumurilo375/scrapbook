@@ -19,7 +19,7 @@ export function GiftViewerFrame({ assets, context = 'preview', page, theme }: Gi
     const normalizedTheme = normalizeThemeConfig(theme);
 
     return (
-        <ScrapbookStage context={context} theme={theme}>
+        <ScrapbookStage assets={assets} context={context} theme={theme}>
             {page ? (
                 <PageRenderer assets={assets} canvas={page.canvas} context={context} theme={theme} />
             ) : (
