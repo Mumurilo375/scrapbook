@@ -37,7 +37,9 @@ function AssetVisualContent({ asset, renderStyle, theme }: AssetVisualContentPro
         return (
             <img
                 alt=""
+                decoding="async"
                 draggable={false}
+                loading="lazy"
                 src={asset.previewUrl}
                 style={{
                     display: 'block',

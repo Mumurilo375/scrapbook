@@ -152,7 +152,9 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                                 <img
                                     alt={mediaItem.originalFilename ?? 'Imagem enviada'}
                                     className="h-full w-full object-cover"
+                                    decoding="async"
                                     draggable={false}
+                                    loading="lazy"
                                     src={mediaItem.thumbnailUrl ?? mediaItem.url}
                                 />
                             ) : (

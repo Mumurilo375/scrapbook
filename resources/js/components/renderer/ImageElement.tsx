@@ -109,7 +109,9 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
                 <img
                     alt={alt}
                     className="h-full w-full rounded-[4px] object-cover"
+                    decoding="async"
                     draggable={false}
+                    loading="lazy"
                     onError={() => setFailedSrc(src)}
                     src={src}
                 />
@@ -129,7 +131,9 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
             <img
                 alt={alt}
                 className="h-full w-full rounded-[4px] object-cover"
+                decoding="async"
                 draggable={false}
+                loading="lazy"
                 onError={() => setFailedSrc(src)}
                 src={src}
             />
