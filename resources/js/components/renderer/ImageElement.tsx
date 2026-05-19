@@ -17,12 +17,21 @@ type ImageElementProps = {
 export function ImageElement({ element, onClick, onDropMedia, selected = false, style, theme }: ImageElementProps) {
     const src = typeof element.src === 'string' ? safeImageSrc(element.src) : undefined;
     const alt = typeof element.alt === 'string' ? element.alt : '';
+    const placeholderLabel =
+        typeof element.placeholderLabel === 'string' && element.placeholderLabel.trim() !== ''
+            ? element.placeholderLabel.trim()
+            : 'Foto';
+    const placeholderFontSize = placeholderLabel.length > 24 ? '2.1cqw' : '2.7cqw';
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const failed = Boolean(src && failedSrc === src);
     const interactiveClass = onClick ? 'cursor-pointer' : '';
-    const selectedClass = selected ? 'ring-2 ring-[var(--scrap-accent)] ring-offset-2 ring-offset-[var(--scrap-paper)]' : '';
-    const dragOverClass = dragOver ? 'border-[var(--scrap-leaf)] bg-[#E8F6F1] ring-2 ring-[var(--scrap-leaf)] ring-offset-2 ring-offset-[var(--scrap-paper)]' : '';
+    const selectedClass = selected
+        ? 'ring-2 ring-[var(--scrap-accent)] ring-offset-2 ring-offset-[var(--scrap-paper)]'
+        : '';
+    const dragOverClass = dragOver
+        ? 'border-[var(--scrap-leaf)] bg-[#E8F6F1] ring-2 ring-[var(--scrap-leaf)] ring-offset-2 ring-offset-[var(--scrap-paper)]'
+        : '';
     const elementStyle = isRecord(element.style) ? element.style : {};
     const frame = typeof elementStyle.frame === 'string' ? elementStyle.frame : theme.elements.image.defaultFrame;
     const framed = frame === 'polaroid';
@@ -48,22 +57,24 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         const placeholderStyle = {
             ...style,
             ...frameStyle,
-            backgroundColor: framed ? theme.tokens.colors.paper : `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 74%, white)`,
+            backgroundColor: framed
+                ? theme.tokens.colors.paper
+                : `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 74%, white)`,
             backgroundImage:
                 'linear-gradient(135deg, rgba(255,255,255,0.34), transparent 32%), radial-gradient(circle at 50% 42%, rgba(58,36,24,0.08), transparent 28%)',
             borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 56%, transparent)`,
             color: theme.tokens.colors.mutedInk,
-            fontSize: '2.7cqw',
+            fontSize: placeholderFontSize,
         };
 
         if (!onClick) {
             return (
                 <div
-                    className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center font-semibold uppercase ${selectedClass} ${dragOverClass}`}
+                    className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center leading-tight font-semibold break-words uppercase ${selectedClass} ${dragOverClass}`}
                     style={placeholderStyle}
                     {...dropHandlers}
                 >
-                    Foto
+                    {placeholderLabel}
                 </div>
             );
         }
@@ -71,13 +82,13 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         return (
             <button
                 aria-label="Selecionar espaço de imagem"
-                className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center font-semibold uppercase ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+                className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center leading-tight font-semibold break-words uppercase ${interactiveClass} ${selectedClass} ${dragOverClass}`}
                 onClick={onClick}
                 style={placeholderStyle}
                 type="button"
                 {...dropHandlers}
             >
-                Foto
+                {placeholderLabel}
             </button>
         );
     }
@@ -90,8 +101,18 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
 
     if (!onClick) {
         return (
-            <div className={`absolute overflow-hidden rounded-[8px] border ${selectedClass} ${dragOverClass}`} style={imageFrameStyle} {...dropHandlers}>
-                <img alt={alt} className="h-full w-full rounded-[4px] object-cover" draggable={false} onError={() => setFailedSrc(src)} src={src} />
+            <div
+                className={`absolute overflow-hidden rounded-[8px] border ${selectedClass} ${dragOverClass}`}
+                style={imageFrameStyle}
+                {...dropHandlers}
+            >
+                <img
+                    alt={alt}
+                    className="h-full w-full rounded-[4px] object-cover"
+                    draggable={false}
+                    onError={() => setFailedSrc(src)}
+                    src={src}
+                />
             </div>
         );
     }
@@ -105,7 +126,13 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
             type="button"
             {...dropHandlers}
         >
-            <img alt={alt} className="h-full w-full rounded-[4px] object-cover" draggable={false} onError={() => setFailedSrc(src)} src={src} />
+            <img
+                alt={alt}
+                className="h-full w-full rounded-[4px] object-cover"
+                draggable={false}
+                onError={() => setFailedSrc(src)}
+                src={src}
+            />
         </button>
     );
 

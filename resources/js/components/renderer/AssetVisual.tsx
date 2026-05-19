@@ -91,7 +91,14 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
                     strokeLinejoin="round"
                     strokeWidth="3"
                 />
-                <path d="M28 37 C31 28 39 27 45 34" fill="none" opacity="0.45" stroke={secondary} strokeLinecap="round" strokeWidth="5" />
+                <path
+                    d="M28 37 C31 28 39 27 45 34"
+                    fill="none"
+                    opacity="0.45"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="5"
+                />
             </>
         );
     }
@@ -99,8 +106,21 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
     if (name === 'tape') {
         return (
             <>
-                <path d="M8 28 L92 19 L96 72 L12 81 Z" fill={primary} opacity="0.86" stroke={ink} strokeLinejoin="round" strokeWidth="2" />
-                <path d="M18 31 L14 78 M32 27 L28 76 M84 21 L88 70" opacity="0.28" stroke={secondary} strokeLinecap="round" strokeWidth="5" />
+                <path
+                    d="M8 28 L92 19 L96 72 L12 81 Z"
+                    fill={primary}
+                    opacity="0.86"
+                    stroke={ink}
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                />
+                <path
+                    d="M18 31 L14 78 M32 27 L28 76 M84 21 L88 70"
+                    opacity="0.28"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="5"
+                />
             </>
         );
     }
@@ -148,7 +168,13 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
                     strokeLinejoin="round"
                     strokeWidth="2"
                 />
-                <path d="M23 39 H74 M20 54 H82 M30 68 H68" opacity="0.35" stroke={secondary} strokeLinecap="round" strokeWidth="4" />
+                <path
+                    d="M23 39 H74 M20 54 H82 M30 68 H68"
+                    opacity="0.35"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="4"
+                />
             </>
         );
     }
@@ -156,9 +182,25 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
     if (name === 'stamp') {
         return (
             <>
-                <rect fill={secondary} height="72" rx="9" stroke={primary} strokeDasharray="6 4" strokeWidth="6" width="72" x="14" y="14" />
+                <rect
+                    fill={secondary}
+                    height="72"
+                    rx="9"
+                    stroke={primary}
+                    strokeDasharray="6 4"
+                    strokeWidth="6"
+                    width="72"
+                    x="14"
+                    y="14"
+                />
                 <circle cx="50" cy="50" fill="none" r="23" stroke={ink} strokeWidth="3" />
-                <path d="M36 52 C43 42 58 42 65 52 M35 62 H66" fill="none" stroke={ink} strokeLinecap="round" strokeWidth="3" />
+                <path
+                    d="M36 52 C43 42 58 42 65 52 M35 62 H66"
+                    fill="none"
+                    stroke={ink}
+                    strokeLinecap="round"
+                    strokeWidth="3"
+                />
             </>
         );
     }
@@ -170,8 +212,19 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
                 <circle cx="80" cy="35" fill={secondary} r="6" />
                 <circle cx="62" cy="75" fill={ink} r="5" opacity="0.8" />
                 <path d="M34 18 L43 32 L28 35 Z" fill={secondary} stroke={ink} strokeLinejoin="round" strokeWidth="2" />
-                <path d="M20 73 C35 58 46 80 58 58 C64 48 73 53 80 45" fill="none" stroke={primary} strokeLinecap="round" strokeWidth="6" />
-                <path d="M58 18 L72 14 M78 66 L90 76 M10 48 L24 50" stroke={ink} strokeLinecap="round" strokeWidth="4" />
+                <path
+                    d="M20 73 C35 58 46 80 58 58 C64 48 73 53 80 45"
+                    fill="none"
+                    stroke={primary}
+                    strokeLinecap="round"
+                    strokeWidth="6"
+                />
+                <path
+                    d="M58 18 L72 14 M78 66 L90 76 M10 48 L24 50"
+                    stroke={ink}
+                    strokeLinecap="round"
+                    strokeWidth="4"
+                />
             </>
         );
     }
@@ -194,7 +247,13 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
             <>
                 <ellipse cx="50" cy="38" fill={primary} rx="26" ry="32" stroke={ink} strokeWidth="3" />
                 <path d="M44 68 L56 68 L50 79 Z" fill={primary} stroke={ink} strokeLinejoin="round" strokeWidth="3" />
-                <path d="M50 79 C40 90 62 91 50 101" fill="none" stroke={secondary} strokeLinecap="round" strokeWidth="4" />
+                <path
+                    d="M50 79 C40 90 62 91 50 101"
+                    fill="none"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="4"
+                />
                 <ellipse cx="41" cy="27" fill={secondary} opacity="0.5" rx="7" ry="11" />
             </>
         );
@@ -206,6 +265,77 @@ function Shape({ ink, name, primary, secondary }: ShapeProps) {
                 <rect fill={primary} height="88" rx="6" stroke={ink} strokeWidth="2" width="74" x="13" y="6" />
                 <rect fill="none" height="54" stroke={secondary} strokeWidth="7" width="54" x="23" y="16" />
                 <rect fill={secondary} height="9" opacity="0.65" rx="4" width="42" x="29" y="78" />
+            </>
+        );
+    }
+
+    if (name === 'envelope') {
+        return (
+            <>
+                <path d="M8 27 H92 V78 H8 Z" fill={primary} stroke={ink} strokeLinejoin="round" strokeWidth="2.5" />
+                <path
+                    d="M9 28 L50 58 L91 28"
+                    fill="none"
+                    stroke={ink}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2.5"
+                />
+                <path
+                    d="M8 78 L39 50 M92 78 L61 50"
+                    fill="none"
+                    opacity="0.55"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="5"
+                />
+                <path
+                    d="M22 37 H43 M22 46 H36"
+                    opacity="0.42"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="4"
+                />
+            </>
+        );
+    }
+
+    if (name === 'calendar') {
+        return (
+            <>
+                <rect fill={primary} height="80" rx="8" stroke={ink} strokeWidth="2.5" width="76" x="12" y="12" />
+                <path d="M12 30 H88" stroke={ink} strokeWidth="2.5" />
+                <path d="M28 8 V22 M72 8 V22" stroke={ink} strokeLinecap="round" strokeWidth="5" />
+                <path
+                    d="M24 46 H76 M24 60 H76 M24 74 H62"
+                    opacity="0.42"
+                    stroke={secondary}
+                    strokeLinecap="round"
+                    strokeWidth="5"
+                />
+                <circle cx="72" cy="72" fill={secondary} r="9" stroke={ink} strokeWidth="2" />
+            </>
+        );
+    }
+
+    if (name === 'newspaper') {
+        return (
+            <>
+                <path
+                    d="M9 15 L25 12 L38 16 L52 13 L67 16 L82 12 L91 18 L87 85 L70 82 L56 86 L40 82 L24 86 L11 81 Z"
+                    fill={primary}
+                    stroke={ink}
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                />
+                <path
+                    d="M21 28 H78 M21 39 H54 M21 53 H80 M20 65 H72 M22 76 H58"
+                    opacity="0.52"
+                    stroke={ink}
+                    strokeLinecap="round"
+                    strokeWidth="3"
+                />
+                <rect fill={secondary} height="22" opacity="0.45" rx="3" width="23" x="57" y="34" />
             </>
         );
     }

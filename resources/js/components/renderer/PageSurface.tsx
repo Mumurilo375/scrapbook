@@ -1,20 +1,27 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Canvas } from '../../domain/canvas/schema';
+import type { RendererAssetMap } from './assetTypes';
 import { resolveThemeColor, type NormalizedThemeConfig, type RendererContext } from './theme';
+import { buildTextureLayerStyle, firstTextureLayerStyle } from './themeTextureUtils';
 
 type PageSurfaceProps = {
+    assets?: RendererAssetMap;
     canvas: Canvas;
     children: ReactNode;
     context?: RendererContext;
     theme: NormalizedThemeConfig;
 };
 
-export function PageSurface({ canvas, children, context = 'preview', theme }: PageSurfaceProps) {
+export function PageSurface({ assets, canvas, children, context = 'preview', theme }: PageSurfaceProps) {
     const background = pageBackground(canvas, theme);
     const radius = Math.max(0, theme.page.borderRadius);
     const safeArea = canvas.artboard.safeArea;
     const showSafeArea = context === 'editor';
+    const pagePaperTextureStyle = firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']);
+    const pageOverlayTextureStyle = firstTextureLayerStyle(theme, assets, ['agingOverlay', 'pageOverlay']);
+    const stainTextureStyle = buildTextureLayerStyle(theme, assets, 'stainOverlay');
+    const edgeTextureStyle = buildTextureLayerStyle(theme, assets, 'edgeOverlay');
     const style = {
         backgroundColor: background,
         backgroundImage: surfaceTexture(theme),
@@ -34,24 +41,33 @@ export function PageSurface({ canvas, children, context = 'preview', theme }: Pa
     } as CSSProperties;
 
     return (
-        <div
-            className="relative h-full w-full overflow-hidden border"
-            style={style}
-        >
+        <div className="relative h-full w-full overflow-hidden border" style={style}>
             <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0"
                 style={{
                     backgroundImage:
                         'linear-gradient(90deg, rgba(255,255,255,0.42), transparent 15%, transparent 86%, rgba(58,36,24,0.10)), linear-gradient(180deg, rgba(255,255,255,0.30), transparent 12%, transparent 85%, rgba(58,36,24,0.08))',
-                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.36), inset 14px 0 24px rgba(58,36,24,0.08), inset -10px 0 22px rgba(58,36,24,0.05)',
+                    boxShadow:
+                        'inset 0 0 0 1px rgba(255,255,255,0.36), inset 14px 0 24px rgba(58,36,24,0.08), inset -10px 0 22px rgba(58,36,24,0.05)',
                 }}
             />
+            {pagePaperTextureStyle ? (
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0"
+                    style={pagePaperTextureStyle}
+                />
+            ) : null}
             {theme.page.decorations.paperGrain ? (
                 <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 mix-blend-multiply"
-                    style={{ backgroundImage: grainTexture(theme), backgroundSize: '18px 18px, 23px 23px, 31px 31px', opacity: 0.42 }}
+                    style={{
+                        backgroundImage: grainTexture(theme),
+                        backgroundSize: '18px 18px, 23px 23px, 31px 31px',
+                        opacity: 0.42,
+                    }}
                 />
             ) : null}
             {theme.page.decorations.subtleStains ? (
@@ -64,6 +80,16 @@ export function PageSurface({ canvas, children, context = 'preview', theme }: Pa
                     }}
                 />
             ) : null}
+            {pageOverlayTextureStyle ? (
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0"
+                    style={pageOverlayTextureStyle}
+                />
+            ) : null}
+            {stainTextureStyle ? (
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={stainTextureStyle} />
+            ) : null}
             {theme.page.decorations.edgeWear ? (
                 <div
                     aria-hidden="true"
@@ -74,6 +100,9 @@ export function PageSurface({ canvas, children, context = 'preview', theme }: Pa
                         opacity: 0.42,
                     }}
                 />
+            ) : null}
+            {edgeTextureStyle ? (
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={edgeTextureStyle} />
             ) : null}
             {showSafeArea ? (
                 <div
@@ -101,7 +130,11 @@ function pageBackground(canvas: Canvas, theme: NormalizedThemeConfig): string {
     }
 
     if (canvas.background?.color || canvas.background?.value) {
-        return resolveThemeColor(theme, canvas.background.color ?? `var(--${canvas.background.value})`, theme.page.backgroundColor);
+        return resolveThemeColor(
+            theme,
+            canvas.background.color ?? `var(--${canvas.background.value})`,
+            theme.page.backgroundColor,
+        );
     }
 
     return theme.page.backgroundColor;

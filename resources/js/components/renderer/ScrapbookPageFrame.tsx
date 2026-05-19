@@ -1,21 +1,26 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Canvas } from '../../domain/canvas/schema';
+import type { RendererAssetMap } from './assetTypes';
 import type { NormalizedThemeConfig, RendererContext } from './theme';
+import { firstTextureLayerStyle } from './themeTextureUtils';
 
 type ScrapbookPageFrameProps = {
+    assets?: RendererAssetMap;
     canvas: Canvas;
     children: ReactNode;
     context?: RendererContext;
     theme: NormalizedThemeConfig;
 };
 
-export function ScrapbookPageFrame({ canvas, children, context = 'preview', theme }: ScrapbookPageFrameProps) {
+export function ScrapbookPageFrame({ assets, canvas, children, context = 'preview', theme }: ScrapbookPageFrameProps) {
     const width = canvas.artboard.width;
     const height = canvas.artboard.height;
     const radius = Math.max(0, theme.page.borderRadius);
     const frameInset = context === 'editor' ? '3.4%' : '4%';
     const showTape = theme.page.decorations.cornerTape;
+    const bookTextureStyle = firstTextureLayerStyle(theme, assets, ['bookSurface', 'kraftSurface']);
+    const spineTextureStyle = firstTextureLayerStyle(theme, assets, ['bookSpine', 'bookSurface']);
     const style = {
         aspectRatio: `${width} / ${height}`,
         '--scrap-book-bg': theme.tokens.colors.bookBackground,
@@ -31,19 +36,44 @@ export function ScrapbookPageFrame({ canvas, children, context = 'preview', them
         <div className="relative w-full px-[1.2%] py-[1.4%]" style={style}>
             <div
                 className="absolute inset-[0.2%] rotate-[-1.4deg] rounded-[var(--scrap-frame-radius)] opacity-45"
-                style={{ backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 72%, #8B5E3C)`, boxShadow: `0 28px 72px ${theme.tokens.colors.shadow}` }}
+                style={{
+                    backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 72%, #8B5E3C)`,
+                    boxShadow: `0 28px 72px ${theme.tokens.colors.shadow}`,
+                }}
             />
             <div
                 className="absolute inset-[1.2%] rotate-[0.9deg] rounded-[var(--scrap-frame-radius)] opacity-80"
-                style={{ backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 82%, white)`, boxShadow: '0 14px 28px rgba(58,36,24,0.12)' }}
+                style={{
+                    backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 82%, white)`,
+                    boxShadow: '0 14px 28px rgba(58,36,24,0.12)',
+                }}
             />
             <div
                 className="absolute inset-[2.1%] rounded-[var(--scrap-frame-radius)] border border-[rgba(58,36,24,0.12)]"
-                style={{ backgroundImage: 'linear-gradient(90deg,rgba(58,36,24,0.10),transparent 7%,transparent 93%,rgba(255,255,255,0.18))' }}
-            />
+                style={{
+                    backgroundImage:
+                        'linear-gradient(90deg,rgba(58,36,24,0.10),transparent 7%,transparent 93%,rgba(255,255,255,0.18))',
+                }}
+            >
+                {bookTextureStyle ? (
+                    <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+                        style={bookTextureStyle}
+                    />
+                ) : null}
+            </div>
             {theme.book.binding === 'left' ? (
                 <>
-                    <div className="absolute bottom-[5.2%] left-[1.8%] top-[5.2%] z-10 w-[5.1%] rounded-full bg-[linear-gradient(90deg,rgba(58,36,24,0.32),var(--scrap-binding-color)_46%,rgba(255,255,255,0.26))] shadow-[inset_-12px_0_18px_rgba(58,36,24,0.20),6px_0_18px_rgba(58,36,24,0.14)]" />
+                    <div className="absolute bottom-[5.2%] left-[1.8%] top-[5.2%] z-10 w-[5.1%] overflow-hidden rounded-full bg-[linear-gradient(90deg,rgba(58,36,24,0.32),var(--scrap-binding-color)_46%,rgba(255,255,255,0.26))] shadow-[inset_-12px_0_18px_rgba(58,36,24,0.20),6px_0_18px_rgba(58,36,24,0.14)]">
+                        {spineTextureStyle ? (
+                            <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-0"
+                                style={spineTextureStyle}
+                            />
+                        ) : null}
+                    </div>
                     {[18, 50, 82].map((top) => (
                         <div
                             aria-hidden="true"

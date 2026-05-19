@@ -32,8 +32,8 @@ export function PageRenderer({
     const normalizedTheme = normalizeThemeConfig(theme);
 
     return (
-        <ScrapbookPageFrame canvas={canvas} context={context} theme={normalizedTheme}>
-            <PageSurface canvas={canvas} context={context} theme={normalizedTheme}>
+        <ScrapbookPageFrame assets={assets} canvas={canvas} context={context} theme={normalizedTheme}>
+            <PageSurface assets={assets} canvas={canvas} context={context} theme={normalizedTheme}>
                 <ThemedArtboard canvas={canvas} theme={normalizedTheme}>
                     <CanvasElementLayer
                         assets={assets}
