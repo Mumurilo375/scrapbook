@@ -121,10 +121,11 @@ class GiftShareTest extends TestCase
 
         $qrCode = app(GenerateGiftQrCode::class)->handle($gift);
 
-        $this->assertSame($this->publicUrl($gift), $qrCode->payload);
+        $this->assertSame($this->publicUrl($gift, 'qr'), $qrCode->payload);
         $this->assertStringStartsWith($this->publicUrl($gift), $qrCode->payload);
         $this->assertStringContainsString('<svg', $qrCode->svg);
-        $this->assertStringNotContainsString($owner->id, $qrCode->payload);
+        $this->assertStringNotContainsString('user_id', $qrCode->payload);
+        $this->assertStringNotContainsString('owner_id', $qrCode->payload);
         $this->assertStringNotContainsString($owner->email, $qrCode->payload);
         $this->assertStringNotContainsString($owner->email, $qrCode->svg);
         $this->assertStringNotContainsString('user_id', $qrCode->svg);
@@ -171,7 +172,7 @@ class GiftShareTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('gifts/Share/ShareCard', false)
-                ->where('card.public_url', $this->publicUrl($gift))
+                ->where('card.public_url', $this->publicUrl($gift, 'share_card'))
                 ->where('card.recipient_name', 'Ana')
                 ->where('card.sender_name', 'João')
                 ->where('card.qr_code_url', route('app.gifts.qr-code', $gift, false)));
@@ -202,8 +203,11 @@ class GiftShareTest extends TestCase
             ->assertNotFound();
     }
 
-    private function publicUrl(Gift $gift): string
+    private function publicUrl(Gift $gift, ?string $source = null): string
     {
-        return route('public.gifts.show', $gift->slug.'-'.$gift->public_code);
+        return route('public.gifts.show', [
+            'slugToken' => $gift->slug.'-'.$gift->public_code,
+            ...($source === null ? [] : ['src' => $source]),
+        ]);
     }
 }
