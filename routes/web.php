@@ -1,9 +1,13 @@
 <?php
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
+use App\Http\Controllers\Analytics\AnalyticsEventController;
 use App\Http\Controllers\Assets\AssetPreviewController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Gifts\CreateGiftFlowController;
+use App\Http\Controllers\Gifts\GiftAnalyticsController;
 use App\Http\Controllers\Gifts\GiftAssetController;
 use App\Http\Controllers\Gifts\GiftController;
 use App\Http\Controllers\Gifts\GiftMediaController;
@@ -21,16 +25,23 @@ use App\Http\Controllers\Gifts\UserGiftDashboardController;
 use App\Http\Controllers\Payments\DevPaymentApprovalController;
 use App\Http\Controllers\Payments\GiftCheckoutController;
 use App\Http\Controllers\Payments\OrderStatusController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
+Route::get('/', function (Request $request, AnalyticsTracker $tracker) {
+    $tracker->track(AnalyticsEventName::LandingViewed, ['request' => $request, 'source' => 'server']);
+
     return Inertia::render('Home');
 })->name('home');
 
 Route::get('/demo', function () {
     return Inertia::render('Demo');
 })->name('demo');
+
+Route::post('/analytics/events', AnalyticsEventController::class)
+    ->middleware('throttle:analytics-events')
+    ->name('analytics.events');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
@@ -65,6 +76,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/app/gifts/{gift}/preview', GiftPreviewController::class)->name('app.gifts.preview');
     Route::get('/app/gifts/{gift}/review', GiftReviewController::class)->name('app.gifts.review');
     Route::get('/app/gifts/{gift}/share', GiftShareController::class)->name('app.gifts.share');
+    Route::get('/app/gifts/{gift}/analytics', GiftAnalyticsController::class)->name('app.gifts.analytics');
     Route::get('/app/gifts/{gift}/qr-code', GiftQrCodeController::class)->name('app.gifts.qr-code');
     Route::get('/app/gifts/{gift}/share-card', GiftShareCardController::class)->name('app.gifts.share-card');
     Route::get('/app/gifts/{gift}/share-card/download', [GiftShareCardController::class, 'download'])->name('app.gifts.share-card.download');
