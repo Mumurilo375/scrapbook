@@ -10,6 +10,11 @@ export type ViewerPage = {
 };
 
 export type ViewerGift = {
+    analytics?: {
+        enabled: boolean;
+        event_url: string;
+        visit_uuid: string | null;
+    };
     id?: string;
     title: string;
     recipient_name: string | null;
