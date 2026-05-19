@@ -1,6 +1,8 @@
 import { ArrowRight, PlayCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { useAnalytics } from '../../../../lib/analytics';
+
 type CTAButtonProps = {
     children: ReactNode;
     href: string;
@@ -18,11 +20,25 @@ const variantClasses = {
 
 export function CTAButton({ children, href, variant = 'primary', icon = 'arrow', className = '' }: CTAButtonProps) {
     const Icon = icon === 'play' ? PlayCircle : ArrowRight;
+    const { trackEvent } = useAnalytics();
+
+    function trackClick() {
+        if (href.startsWith('/demo')) {
+            trackEvent('demo_cta_clicked', { payload: { surface: 'landing' } });
+
+            return;
+        }
+
+        if (href.startsWith('/criar')) {
+            trackEvent('landing_cta_clicked', { payload: { surface: 'landing' } });
+        }
+    }
 
     return (
         <a
             className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D93632] sm:px-6 ${variantClasses[variant]} ${className}`}
             href={href}
+            onClick={trackClick}
         >
             <span>{children}</span>
             {icon !== 'none' && <Icon aria-hidden="true" className="h-4 w-4" />}

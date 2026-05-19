@@ -1,6 +1,8 @@
 import { Check, Clipboard } from 'lucide-react';
 import { useState } from 'react';
 
+import { useAnalytics } from '../../../../lib/analytics';
+
 type CopyPublicLinkButtonProps = {
     className?: string;
     publicUrl: string;
@@ -8,12 +10,18 @@ type CopyPublicLinkButtonProps = {
 
 export function CopyPublicLinkButton({ className, publicUrl }: CopyPublicLinkButtonProps) {
     const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+    const { trackEvent } = useAnalytics();
 
     async function copy() {
         const url = absoluteUrl(publicUrl);
 
         try {
             await navigator.clipboard.writeText(url);
+            trackEvent('public_link_copied', {
+                payload: {
+                    surface: 'share_page',
+                },
+            });
             setStatus('copied');
             window.setTimeout(() => setStatus('idle'), 1800);
         } catch {

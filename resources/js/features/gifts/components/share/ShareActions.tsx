@@ -1,5 +1,6 @@
 import { Download, ExternalLink, Printer } from 'lucide-react';
 
+import { useAnalytics } from '../../../../lib/analytics';
 import { CopyPublicLinkButton } from './CopyPublicLinkButton';
 
 type ShareActionsProps = {
@@ -12,6 +13,8 @@ const buttonClass =
     'inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]';
 
 export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: ShareActionsProps) {
+    const { trackEvent } = useAnalytics();
+
     return (
         <div className="flex flex-wrap gap-2">
             <CopyPublicLinkButton className={buttonClass} publicUrl={publicUrl} />
@@ -28,6 +31,7 @@ export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: Sha
                 className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
                 download
                 href={qrCodeDownloadUrl}
+                onClick={() => trackEvent('qr_code_downloaded', { payload: { surface: 'share_page' } })}
             >
                 <Download aria-hidden="true" className="h-4 w-4" />
                 Baixar QR
@@ -35,6 +39,7 @@ export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: Sha
             <a
                 className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
                 href={cardPrintUrl}
+                onClick={() => trackEvent('share_card_print_clicked', { payload: { surface: 'share_page' } })}
             >
                 <Printer aria-hidden="true" className="h-4 w-4" />
                 Imprimir cartão
