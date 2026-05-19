@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Services\ViewerMediaUrlResolver;
 use App\Domain\Media\Enums\MediaStatus;
@@ -15,7 +17,7 @@ use Inertia\Response;
 
 class GiftPreviewController extends Controller
 {
-    public function __invoke(Request $request, Gift $gift): Response
+    public function __invoke(Request $request, Gift $gift, AnalyticsTracker $tracker): Response
     {
         Gate::forUser($request->user())->authorize('view', $gift);
 
@@ -27,6 +29,13 @@ class GiftPreviewController extends Controller
             'mediaItems' => fn ($query) => $query
                 ->where('type', MediaType::Image->value)
                 ->where('status', MediaStatus::Processed->value),
+        ]);
+
+        $tracker->track(AnalyticsEventName::PreviewOpened, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
         ]);
 
         return Inertia::render('gifts/Preview/GiftPreview', [

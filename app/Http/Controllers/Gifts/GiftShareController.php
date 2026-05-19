@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Gifts\Services\GiftShareCardData;
 use App\Domain\Gifts\Services\GiftShareUrlGenerator;
@@ -19,7 +21,7 @@ class GiftShareController extends Controller
         private readonly GiftShareCardData $shareCardData,
     ) {}
 
-    public function __invoke(Request $request, Gift $gift): Response
+    public function __invoke(Request $request, Gift $gift, AnalyticsTracker $tracker): Response
     {
         Gate::forUser($request->user())->authorize('view', $gift);
 
@@ -27,6 +29,15 @@ class GiftShareController extends Controller
 
         $publicUrl = $this->urlGenerator->publicUrl($gift);
         $canShare = $publicUrl !== null;
+
+        $tracker->track(AnalyticsEventName::SharePageOpened, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
+        ], [
+            'can_share' => $canShare,
+        ]);
 
         return Inertia::render('gifts/Share/GiftShare', [
             'gift' => $this->giftPayload($gift),

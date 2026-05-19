@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Gifts\Enums\GiftStatus;
 use App\Domain\Gifts\Models\Gift;
 use App\Domain\Media\Actions\ProcessUploadedImage;
@@ -39,8 +41,22 @@ class GiftMediaController extends Controller
         StoreGiftMediaRequest $request,
         Gift $gift,
         ProcessUploadedImage $processUploadedImage,
+        AnalyticsTracker $tracker,
     ): JsonResponse {
         $mediaItem = $processUploadedImage->handle($request->user(), $gift, $request->file('image'));
+
+        $tracker->track(AnalyticsEventName::ImageUploaded, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
+        ], [
+            'media_item_id' => $mediaItem->id,
+            'mime_type' => $mediaItem->mime_type,
+            'size_bytes' => $mediaItem->size_bytes,
+            'width' => $mediaItem->width,
+            'height' => $mediaItem->height,
+        ]);
 
         return response()->json([
             'data' => EditorMediaItemResource::make($mediaItem)->resolve(),
