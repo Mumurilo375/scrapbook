@@ -1,10 +1,22 @@
 import { z } from 'zod';
 
+export const pageBackgroundSchema = z.discriminatedUnion('type', [
+    z.object({
+        type: z.literal('theme'),
+    }),
+    z.object({
+        type: z.literal('asset'),
+        assetId: z.union([z.string().min(1), z.number()]),
+        fit: z.enum(['cover', 'contain']).optional(),
+        opacity: z.number().finite().min(0).max(1).optional(),
+    }),
+]);
+
 export const artboardSchema = z.object({
     width: z.number().finite().positive(),
     height: z.number().finite().positive(),
     unit: z.literal('px').optional(),
-    background: z.record(z.string(), z.unknown()).optional(),
+    background: pageBackgroundSchema.optional(),
     safeArea: z.object({
         top: z.number().finite().min(0),
         right: z.number().finite().min(0),

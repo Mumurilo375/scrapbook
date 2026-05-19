@@ -196,6 +196,83 @@ final class CanvasSecurity
                 ]);
             }
         }
+
+        $this->validateArtboardBackground($artboard['background'] ?? null);
+    }
+
+    /**
+     * @param  array<string, mixed>|mixed  $background
+     */
+    private function validateArtboardBackground(mixed $background): void
+    {
+        if (! is_array($background)) {
+            throw ValidationException::withMessages([
+                'canvas.artboard.background' => 'O fundo da página precisa ser um objeto válido.',
+            ]);
+        }
+
+        $type = $background['type'] ?? null;
+
+        if ($type === 'theme') {
+            $this->validateAllowedKeys($background, ['type'], 'canvas.artboard.background');
+
+            return;
+        }
+
+        if ($type !== 'asset') {
+            throw ValidationException::withMessages([
+                'canvas.artboard.background.type' => 'O fundo da página precisa usar type theme ou asset.',
+            ]);
+        }
+
+        $this->validateAllowedKeys($background, ['type', 'assetId', 'asset_id', 'fit', 'opacity'], 'canvas.artboard.background');
+
+        $assetId = $background['assetId'] ?? $background['asset_id'] ?? null;
+
+        if (! is_string($assetId) && ! is_int($assetId)) {
+            throw ValidationException::withMessages([
+                'canvas.artboard.background.assetId' => 'O papel da página precisa usar um assetId válido.',
+            ]);
+        }
+
+        $assetId = trim((string) $assetId);
+
+        if ($assetId === '' || preg_match('/^[A-Za-z0-9_-]{1,80}$/', $assetId) !== 1) {
+            throw ValidationException::withMessages([
+                'canvas.artboard.background.assetId' => 'O papel da página precisa usar um assetId válido.',
+            ]);
+        }
+
+        if (array_key_exists('fit', $background) && ! in_array($background['fit'], ['cover', 'contain'], true)) {
+            throw ValidationException::withMessages([
+                'canvas.artboard.background.fit' => 'O encaixe do papel precisa ser cover ou contain.',
+            ]);
+        }
+
+        if (array_key_exists('opacity', $background)) {
+            $opacity = $this->finiteNumber($background['opacity']);
+
+            if ($opacity === null || $opacity < 0 || $opacity > 1) {
+                throw ValidationException::withMessages([
+                    'canvas.artboard.background.opacity' => 'A opacidade do papel precisa ficar entre 0 e 1.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $value
+     * @param  array<int, string>  $allowedKeys
+     */
+    private function validateAllowedKeys(array $value, array $allowedKeys, string $path): void
+    {
+        foreach (array_keys($value) as $key) {
+            if (! in_array((string) $key, $allowedKeys, true)) {
+                throw ValidationException::withMessages([
+                    $path => 'O fundo da página não pode salvar URLs, paths internos ou campos manuais.',
+                ]);
+            }
+        }
     }
 
     /**

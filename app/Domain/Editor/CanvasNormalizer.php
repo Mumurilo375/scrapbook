@@ -66,9 +66,7 @@ final class CanvasNormalizer
             ? $artboard['unit']
             : 'px';
 
-        $artboard['background'] = is_array($artboard['background'] ?? null)
-            ? $artboard['background']
-            : ['type' => 'theme'];
+        $artboard['background'] = $this->normalizePageBackground($artboard['background'] ?? null);
 
         $artboard['safeArea'] = $this->normalizeSafeArea($artboard['safeArea'] ?? null);
 
@@ -87,6 +85,12 @@ final class CanvasNormalizer
 
         if (is_array($canvas['elements'] ?? null)) {
             $canvas['elements'] = $this->normalizeLayerOrder($canvas['elements']);
+        }
+
+        if (is_array($canvas['artboard'] ?? null)) {
+            $canvas['artboard']['background'] = $this->normalizePageBackgroundForPersistence(
+                $canvas['artboard']['background'] ?? null,
+            );
         }
 
         return $canvas;
@@ -122,6 +126,52 @@ final class CanvasNormalizer
             'bottom' => $this->nonNegativeNumber($safeArea['bottom'] ?? null, self::DEFAULT_SAFE_AREA['bottom']),
             'left' => $this->nonNegativeNumber($safeArea['left'] ?? null, self::DEFAULT_SAFE_AREA['left']),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizePageBackground(mixed $background): array
+    {
+        if (! is_array($background)) {
+            return ['type' => 'theme'];
+        }
+
+        $type = $background['type'] ?? null;
+
+        if ($type === 'theme' || ($type === 'themeToken' && ($background['value'] ?? null) === 'paper')) {
+            return ['type' => 'theme'];
+        }
+
+        return $background;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizePageBackgroundForPersistence(mixed $background): array
+    {
+        $background = $this->normalizePageBackground($background);
+        $type = $background['type'] ?? null;
+
+        if ($type !== 'asset') {
+            return ['type' => 'theme'];
+        }
+
+        $assetId = $background['assetId'] ?? $background['asset_id'] ?? null;
+
+        if (! is_string($assetId) && ! is_int($assetId)) {
+            return $background;
+        }
+
+        $normalized = [
+            'type' => 'asset',
+            'assetId' => trim((string) $assetId),
+            'fit' => in_array($background['fit'] ?? null, ['cover', 'contain'], true) ? $background['fit'] : 'cover',
+            'opacity' => $this->opacity($background['opacity'] ?? null),
+        ];
+
+        return $normalized;
     }
 
     /**
@@ -254,5 +304,14 @@ final class CanvasNormalizer
     private function isPositiveNumber(mixed $value): bool
     {
         return is_numeric($value) && (float) $value > 0;
+    }
+
+    private function opacity(mixed $value): int|float
+    {
+        if (! is_numeric($value)) {
+            return 1;
+        }
+
+        return max(0, min(1, $value + 0));
     }
 }
