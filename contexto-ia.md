@@ -2,7 +2,7 @@
 
 > Este arquivo deve ser lido antes de qualquer alteração no código. Ele descreve o produto, regras de negócio, arquitetura, segurança e convenções. Não implemente features que contrariem este documento sem decisão explícita do dono do projeto.
 
-regra numero 1: nunca rode um teste que vai resetar meu banco de dados, estou passando por varios problemas por que sempre que voce (IA) vai fazer os testes acaba resetando meu banco de dados principal (postgres na porta 5432), se atente sempre a isso para que nao ocorra novamente!
+regra numero 1: nunca rode um teste que vai resetar meu banco de dados, estou passando por varios problemas por que sempre que voce (IA) vai fazer os testes acaba resetando meu banco de dados principal (postgres na porta 5432), se atente sempre a isso para que nao ocorra novamente! A suite de testes deve usar `scrapbook_testing` em porta segura (`55432`) ou outro banco descartavel com `test` no nome; PostgreSQL na porta `5432` e bancos sem `test` no nome devem ser bloqueados antes de `RefreshDatabase`.
 
 ## 1. Resumo do produto
 
@@ -17,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: papel/fundo da página corretamente modelado
+## Prioridade atual: transições leves do Book Mode
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -25,11 +25,24 @@ O domínio, banco real e admin inicial em Filament já foram implementados. O pr
 
 Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado, viewer público seguro, revisão/publicação técnica MVP e checkout interno/manual-dev já existem. O usuário autenticado acessa `/app/gifts/{gift}/edit`, seleciona páginas, vê preview, seleciona elementos existentes, move/redimensiona/rotaciona elementos suportados, edita textos, salva canvas e metadados por autosave, envia fotos reais, aplica fotos em elementos `image`, abre `/app/gifts/{gift}/preview`, revisa requisitos em `/app/gifts/{gift}/review`, passa por checkout interno e gifts publicados podem ser vistos em `/p/{slug}-{public_code}`.
 
-A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável e admin real de assets visuais.
+A fundação visual do scrapbook já foi aprofundada e a última etapa estabilizou o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais e sistema correto de papel/fundo da página em `canvas.artboard.background`.
 
-Neste momento, a prioridade principal é **corrigir o modelo de papel/fundo da página**. Papel da página não é sticker, não entra em `canvas.elements[]` e não deve ser redimensionado manualmente. Tema define o papel padrão; cada página pode sobrescrever esse papel em `canvas.artboard.background` com um asset seguro; editor, preview privado e viewer público devem renderizar a mesma folha.
+Neste momento, a prioridade principal é **polir a leitura do Book Mode com transições leves**. O viewer público e o preview privado devem ganhar entrada suave, troca de página/par com direção `next`/`previous`, microinterações discretas e respeito a `prefers-reduced-motion`, sem implementar page flip 3D pesado nem adicionar biblioteca externa de virar página.
 
-### Prioridade atual: sistema correto de papel/fundo da página
+### Prioridade atual: transições leves do Book Mode
+
+- A abertura do presente deve entrar suavemente e o livro deve aparecer com transição curta ao clicar em "Abrir presente".
+- Navegação por botões, teclado e swipe deve atualizar `direction: next | previous | none`.
+- Desktop/tablet largo em Book Mode usa transição leve de spread com fade, deslocamento horizontal, scale sutil e sombra de dobra temporária.
+- Mobile continua uma página por vez, com slide/fade curto e swipe preservado.
+- Tela final entra com fade/slide leve e CTA discreto.
+- `prefers-reduced-motion: reduce` deve remover ou reduzir movimento, evitando translate/scale fortes.
+- `theme_versions.config.book` pode controlar motion com valores sanitizados como `transition`, `transitionIntensity` e `motion`, sempre com fallback seguro.
+- Esta fase não implementa page flip 3D pesado, gateway real, landing, marketplace, template builder, editor novo ou mudanças de segurança.
+
+O sistema de papel/fundo da página está estabilizado. Papel da página não é sticker, não entra em `canvas.elements[]` e não deve ser redimensionado manualmente. Tema define o papel padrão; cada página pode sobrescrever esse papel em `canvas.artboard.background` com um asset seguro; editor, preview privado e viewer público devem renderizar a mesma folha.
+
+### Sistema estabilizado: papel/fundo da página
 
 - Papel/fundo da página é propriedade visual do artboard, salvo em `canvas.artboard.background`.
 - `background.type = theme` usa o papel padrão do tema, resolvido por `paper_texture`, `kraft_surface` ou fallback visual do tema.
@@ -38,15 +51,19 @@ Neste momento, a prioridade principal é **corrigir o modelo de papel/fundo da p
 - A aba `Página`/`Fundo` do editor deve permitir trocar o papel da página atual com 1 clique e voltar para "Usar papel do tema".
 - Preview privado, viewer público e Book Mode precisam usar o mesmo renderer de fundo da folha.
 - Gift para Template deve preservar background asset seguro e normalizar background inválido para `theme`.
+- Bug crítico desta fase: o papel escolhido não pode voltar sozinho depois do clique/autosave. A resposta do backend, o estado local e o rascunho em `localStorage` precisam manter o mesmo `canvas.artboard.background`.
+- A UI deve falar em "papel do tema", "papel herdado" ou "papel personalizado"; evitar o label confuso "tema atual" como estado de página.
+- Não reintroduzir papel como sticker, nem permitir papel em `canvas.elements[]`.
+- Checkerboard/quadriculado de transparência só é aceitável em preview técnico/admin de asset transparente, nunca no fundo geral do editor.
 
-Depois desta correção, a prioridade volta para produção de templates reais com assets reais por ocasião. Page flip leve/componentes especiais seguem etapa posterior.
+Depois deste polimento de leitura, a próxima fase recomendada é avançar para componentes especiais de scrapbook e depois QA visual/templates reais, landing final e gateway real em etapas separadas.
 
-### Prioridade atual: pipeline visual e Gift para Template
+### Base atual: pipeline visual e Gift para Template
 
 - O admin real de assets visuais já existe. Seeds e assets placeholder continuam como exemplo, não como fonte final de estética.
 - `Asset` é decoração do sistema/admin; `MediaItem` continua sendo foto/imagem enviada pelo usuário final dentro de um Gift.
 - Adesivos, papéis, texturas, fitas, molduras, envelopes, selos, flores e recortes devem ser cadastrados pelo admin/support, não hardcoded no frontend.
-- Código novo deve focar pipeline visual, admin de assets/temas/templates e editor existente, mantendo checkout, gateway, publicação, landing e page flip pesado fora do escopo.
+- Código novo nesta fase deve focar polimento do viewer/preview e Book Mode, mantendo checkout, gateway, publicação, landing, editor pesado e page flip 3D fora do escopo.
 - Template define estrutura: páginas, elementos iniciais, posições, tamanhos, rotações, placeholders, textos editáveis, ordem de camadas, composição e ritmo visual.
 - Theme define aparência: texturas, paleta, papel, fundo, sombras, profundidade e atmosfera visual.
 - Book Mode desktop/tablet largo já mostra livro aberto com página esquerda, página direita, lombada central, sombra na dobra e navegação por pares.

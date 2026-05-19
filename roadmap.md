@@ -30,9 +30,10 @@
 - Templates premium com assets reais, colagem, polaroids, fitas, etiquetas e composição visual mais autoral implementados.
 - Book mode com duas páginas no desktop/tablet largo e página única no mobile implementado no viewer/preview.
 - Pipeline visual e Gift para Template implementados como base de criação visual.
-- Fase atual: sistema correto de papel/fundo da página. Objetivo: papel como propriedade do artboard, seletor de página, papel padrão do tema, override por página, preview/viewer consistentes e assets de papel fora da aba Adesivos.
-- Próxima fase: usar assets reais para montar templates finais por ocasião.
-- Depois: page flip leve, componentes especiais de scrapbook e QA visual.
+- Sistema de papel/fundo da página estabilizado em `canvas.artboard.background`, com papel do tema vs papel personalizado e preview/viewer consistentes.
+- Fase atual: transições leves do Book Mode no viewer público e preview privado, com abertura suave, direção `next`/`previous`, microinterações, suporte a `prefers-reduced-motion` e sem page flip 3D pesado.
+- Próxima fase: componentes especiais de scrapbook.
+- Depois: QA visual/templates reais, landing final e gateway real em etapas separadas.
 - Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
@@ -40,7 +41,8 @@
 - O erro local de `npm run build` em `public/build/assets` ocorre quando o serviço `vite` do Docker escreve artefatos como `root`.
 - O `compose.yaml` deve rodar o serviço `vite` com `${UID:-1000}:${GID:-1000}` para novos builds não recriarem artefatos root-owned.
 - Se o diretório já estiver root-owned, a correção recomendada é uma limpeza pontual de `public/build` ou `chown` apenas nesse diretório ignorado pelo Git, nunca uma mudança ampla de permissão no projeto.
-- A suíte PHPUnit usa PostgreSQL local em `127.0.0.1:5432`, alinhado ao `compose.yaml`. Se os testes recusarem conexão, suba o serviço com `docker compose up -d postgres` e confirme `docker compose ps`.
+- A suíte PHPUnit não deve usar PostgreSQL local em `127.0.0.1:5432`. Por padrão, `phpunit.xml` aponta para `127.0.0.1:55432` e banco `scrapbook_testing`; `Tests\TestCase` bloqueia PostgreSQL na porta `5432` ou banco sem `test` no nome antes de `RefreshDatabase` rodar, para evitar apagar dados reais.
+- Para rodar testes com Docker, suba apenas o banco descartável com `docker compose --profile testing up -d postgres_test`. Esse serviço usa `tmpfs` e porta `55432`, separado do banco de desenvolvimento.
 
 ## Fase 0 — Branding, posicionamento e landing page
 
@@ -390,7 +392,7 @@ Controles de camadas atuais: lista de camadas da página, seleção por camada, 
 
 Histórico local atual: undo/redo por página no editor, limite de 40 entradas por página, botões na topbar, atalhos `Ctrl/Cmd + Z`, `Ctrl/Cmd + Shift + Z` e `Ctrl/Cmd + Y`, coalescing para texto/propriedades e uma única entrada ao finalizar mover/redimensionar/rotacionar. Undo/redo não é salvo como versionamento no banco; ele altera o canvas local, preserva o rascunho local e deixa o autosave persistir pelo endpoint existente.
 
-Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado, admin real de assets visuais, renderização premium/física de stickers/assets, texturas reais de tema/papel/fundo, templates premium, book mode e Gift para Template já foram implementados/refinados. Fase atual: sistema correto de papel/fundo da página, sem avançar gateway externo real.
+Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado, admin real de assets visuais, renderização premium/física de stickers/assets, texturas reais de tema/papel/fundo, templates premium, book mode, sistema de papel/fundo em `canvas.artboard.background` e Gift para Template já foram implementados/refinados. Fase atual: transições leves do Book Mode, sem avançar gateway externo real, landing ou editor pesado.
 
 ## Fase 12 - Upload e processamento de fotos
 

@@ -1848,6 +1848,26 @@ O renderer (`PageSurface`) aplica o papel como camada de fundo que cobre a folha
 
 O papel padrão do tema é resolvido preferencialmente por `paper_texture`, depois `kraft_surface`, depois config visual/CSS do tema. Para qualidade, papéis cadastrados no admin devem ter proporção próxima do artboard padrão `1080x1350` ou maior, preferencialmente WebP/JPG otimizados.
 
+Fluxo correto de persistência:
+
+1. clique na aba `Página` atualiza imediatamente `canvas.artboard.background` da página selecionada;
+2. o editor grava rascunho local apenas como proteção temporária;
+3. o autosave envia o canvas completo para `PATCH /app/gifts/{gift}/pages/{giftPage}`;
+4. `CanvasSecurity` valida forma, campos permitidos e ausência de URL/path manual;
+5. `UpdateGiftPageCanvas` confirma que o `assetId` é ativo, permitido ao Gift e classificado como papel/fundo;
+6. a resposta JSON devolve o canvas normalizado salvo, preservando `{ "type": "asset", "assetId": ... }` quando o papel é válido;
+7. editor, preview privado e viewer público resolvem o mesmo `assetId` por payload seguro de assets, sem `storage_path`.
+
+Uma página com `{ "type": "theme" }` está usando papel herdado do tema. Uma página com `{ "type": "asset" }` tem papel personalizado. A interface deve usar textos como "Usando papel do tema", "Papel personalizado", "Padrão do tema" e "Usar papel do tema"; não deve sugerir que cada página tem um tema próprio.
+
+Cuidados de performance e aparência:
+
+- checkerboard, quadriculado de transparência ou fundos técnicos só podem aparecer em previews administrativos de asset transparente, nunca como fundo geral do editor;
+- o fundo geral do editor deve usar cor/gradientes do tema e evitar aplicar textura placeholder pesada em tela cheia;
+- mapas de assets e estilos de textura devem ser memoizados quando possível;
+- previews de papéis no painel devem usar carregamento controlado/lazy;
+- preview privado e viewer público devem receber apenas texturas necessárias e assets referenciados, não a biblioteca inteira.
+
 ### Renderização física de assets
 
 O renderer compartilhado aplica uma camada visual física para assets decorativos. A responsabilidade fica em `PhysicalAssetFrame` e utilitários de estilo do renderer; `StickerElement` continua apenas resolvendo `assetId` pelo mapa seguro e renderizando o conteúdo.
@@ -2036,7 +2056,8 @@ O viewer público `/p/{slug}-{public_code}` é a experiência final do destinat�
 1. tela de abertura com “Você recebeu um scrapbook”, título, destinatário/remetente quando existirem e botão “Abrir presente”;
 2. leitura página por página usando o renderer compartilhado;
 3. navegação por anterior/próxima, teclado no desktop, swipe simples no mobile, indicador textual e progresso discreto;
-4. estado final com “Fim deste scrapbook”, voltar ao início, voltar à última página, copiar/compartilhar link e CTA discreto para `/criar`.
+4. transições leves de abertura, troca de página/par e final, respeitando direção `next`/`previous` e `prefers-reduced-motion`;
+5. estado final com “Fim deste scrapbook”, voltar ao início, voltar à última página, copiar/compartilhar link e CTA discreto para `/criar`.
 
 O preview privado `/app/gifts/{gift}/preview` reutiliza a mesma experiência visual, incluindo a abertura, mas mantém uma barra privada discreta com voltar para editar, revisar/publicar ou compartilhar/abrir link público conforme o status. O preview não mostra CTA público “Criar o meu também”.
 
@@ -2295,7 +2316,10 @@ O config de tema deve ter defaults úteis para o renderer:
     "spineWidth": 28,
     "spreadGap": 0,
     "pageCurl": "subtle",
-    "foldShadow": true
+    "foldShadow": true,
+    "transition": "soft-slide",
+    "transitionIntensity": "medium",
+    "motion": true
   },
 	  "page": {
 	    "surface": "kraft",
@@ -2435,7 +2459,22 @@ Componentes principais:
 
 O cálculo de pares fica em `bookModeUtils`: no modo `spread`, índice `0` mostra páginas 1–2, índice `2` mostra páginas 3–4 e assim por diante; no modo `single`, cada índice corresponde a uma página real. A folha vazia decorativa não entra no total de progresso.
 
-`theme_versions.config.book` pode controlar `mode`, `spineWidth`, `spreadGap`, `pageCurl` e `foldShadow`, sempre com fallback seguro. O backend expõe esses campos por `ThemeConfig::publicConfig()` sem caminhos internos; o frontend normaliza/clampa valores antes de usar CSS. As texturas continuam vindo apenas de assets seguros resolvidos pelo backend.
+`theme_versions.config.book` pode controlar `mode`, `spineWidth`, `spreadGap`, `pageCurl`, `foldShadow`, `transition`, `transitionIntensity` e `motion`, sempre com fallback seguro. O backend expõe esses campos por `ThemeConfig::publicConfig()` sem caminhos internos; o frontend normaliza/clampa valores antes de usar CSS. As texturas continuam vindo apenas de assets seguros resolvidos pelo backend.
+
+### Transições leves do Book Mode
+
+O viewer público e o preview privado têm uma camada de movimento leve para deixar a leitura mais fluida sem implementar page flip 3D pesado.
+
+- A abertura usa fade/scale curto e o livro entra suavemente ao clicar em "Abrir presente".
+- A navegação mantém `direction: next | previous | none`, usado por botões, teclado e swipe.
+- Desktop/tablet largo em spread usa fade + translate horizontal + scale sutil, com sombra temporária sobre a dobra para sugerir troca de página.
+- Mobile continua em página única e usa slide/fade curto, preservando swipe horizontal sem conflitar com rolagem vertical.
+- A tela final entra com transição curta e CTAs com microinteração discreta.
+- `prefers-reduced-motion: reduce` desativa animações de translate/scale e reduz transições para mudanças instantâneas ou mínimas.
+- A configuração opcional de tema aceita somente valores allowlistados: `transition` (`soft-slide`, `fade`, `none`), `transitionIntensity` (`low`, `medium`, `high`) e `motion` booleano.
+- A camada renderiza somente a página ou par atual; não pré-renderiza todas as páginas e usa apenas `transform`/`opacity`.
+
+Essa camada não muda regras de segurança, não altera publicação/checkout, não muda o sistema de papel/fundo e não substitui o Book Mode por page flip 3D.
 
 ### Estado visual mínimo esperado
 
@@ -2450,4 +2489,4 @@ A página renderizada não deve parecer um retângulo branco simples. Ela deve m
 - placeholders bonitos para imagens vazias;
 - responsividade para mobile e desktop.
 
-Esta fase não implementa drag-and-drop completo, marketplace de assets, animação de virar página, autosave paralelo/complexo ou gateway real.
+Esta fase não implementa drag-and-drop completo, marketplace de assets, page flip 3D pesado, autosave paralelo/complexo ou gateway real.
