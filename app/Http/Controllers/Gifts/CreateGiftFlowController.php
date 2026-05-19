@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Enums\TemplateVersionStatus;
 use App\Domain\Templates\Models\Occasion;
@@ -17,8 +19,13 @@ use Inertia\Response;
 
 class CreateGiftFlowController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request, AnalyticsTracker $tracker): Response
     {
+        $tracker->track(AnalyticsEventName::CreateFlowStarted, [
+            'request' => $request,
+            'source' => 'server',
+        ]);
+
         $occasions = Occasion::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -39,9 +46,24 @@ class CreateGiftFlowController extends Controller
         ]);
     }
 
-    public function templates(Occasion $occasion): Response
+    public function templates(Request $request, Occasion $occasion, AnalyticsTracker $tracker): Response
     {
         abort_unless($occasion->is_active, 404);
+
+        $tracker->track(AnalyticsEventName::OccasionSelected, [
+            'request' => $request,
+            'source' => 'server',
+            'occasion' => $occasion,
+        ], [
+            'occasion_id' => $occasion->id,
+            'occasion_slug' => $occasion->slug,
+        ]);
+
+        $tracker->track(AnalyticsEventName::TemplateListViewed, [
+            'request' => $request,
+            'source' => 'server',
+            'occasion' => $occasion,
+        ]);
 
         $templates = Template::query()
             ->whereBelongsTo($occasion)
@@ -70,7 +92,7 @@ class CreateGiftFlowController extends Controller
         ]);
     }
 
-    public function show(Request $request, Occasion $occasion, Template $template): Response
+    public function show(Request $request, Occasion $occasion, Template $template, AnalyticsTracker $tracker): Response
     {
         abort_unless($occasion->is_active && $template->is_active && $template->occasion_id === $occasion->id, 404);
 
@@ -82,6 +104,19 @@ class CreateGiftFlowController extends Controller
 
         $plan = $this->defaultPlan($templateVersion);
         $returnTo = route('create.template.show', [$occasion->slug, $template->slug]);
+
+        $tracker->track(AnalyticsEventName::TemplatePreviewed, [
+            'request' => $request,
+            'source' => 'server',
+            'occasion' => $occasion,
+            'template' => $template,
+            'template_version' => $templateVersion,
+            'theme_version' => $themeVersion,
+            'plan' => $plan,
+        ], [
+            'template_id' => $template->id,
+            'template_slug' => $template->slug,
+        ]);
 
         return Inertia::render('gifts/Create/TemplateShow', [
             'occasion' => $this->occasionSummary($occasion),

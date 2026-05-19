@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Gifts;
 
+use App\Domain\Analytics\Enums\AnalyticsEventName;
+use App\Domain\Analytics\Services\AnalyticsTracker;
 use App\Domain\Assets\Services\RendererAssetCatalog;
 use App\Domain\Editor\CanvasSecurity;
 use App\Domain\Gifts\Actions\CreateGiftFromTemplate;
@@ -32,8 +34,11 @@ use Inertia\Response;
 
 class GiftController extends Controller
 {
-    public function store(StoreGiftFromTemplateRequest $request, CreateGiftFromTemplate $createGift): RedirectResponse
-    {
+    public function store(
+        StoreGiftFromTemplateRequest $request,
+        CreateGiftFromTemplate $createGift,
+        AnalyticsTracker $tracker,
+    ): RedirectResponse {
         $templateVersion = $request->templateVersion();
         $themeVersion = $this->resolveThemeVersion($request, $templateVersion);
         $plan = $this->resolvePlan($request, $templateVersion);
@@ -46,12 +51,36 @@ class GiftController extends Controller
             'sender_name' => $data['sender_name'] ?? null,
         ]);
 
+        $tracker->track(AnalyticsEventName::TemplateSelected, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
+            'template_version' => $templateVersion,
+            'theme_version' => $themeVersion,
+            'plan' => $plan,
+        ], [
+            'template_version_id' => $templateVersion->id,
+            'theme_version_id' => $themeVersion->id,
+            'plan_id' => $plan?->id,
+        ]);
+
+        $tracker->track(AnalyticsEventName::GiftDraftCreated, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
+            'template_version' => $templateVersion,
+            'theme_version' => $themeVersion,
+            'plan' => $plan,
+        ]);
+
         return redirect()
             ->route('app.gifts.edit', $gift)
             ->with('status', 'Rascunho criado.');
     }
 
-    public function edit(Request $request, Gift $gift, CanvasSecurity $canvasSecurity): Response
+    public function edit(Request $request, Gift $gift, CanvasSecurity $canvasSecurity, AnalyticsTracker $tracker): Response
     {
         Gate::forUser($request->user())->authorize('view', $gift);
 
@@ -67,6 +96,16 @@ class GiftController extends Controller
                 ->where('type', MediaType::Image->value)
                 ->where('status', MediaStatus::Processed->value)
                 ->latest(),
+        ]);
+
+        $tracker->track(AnalyticsEventName::EditorOpened, [
+            'request' => $request,
+            'source' => 'server',
+            'user' => $request->user(),
+            'gift' => $gift,
+        ], [
+            'pages_count' => $gift->pages->count(),
+            'media_count' => $gift->mediaItems->count(),
         ]);
 
         return Inertia::render('gifts/Edit/GiftEdit', [
