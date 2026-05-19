@@ -69,6 +69,7 @@ class UserGiftDashboardController extends Controller
             'edit_url' => route('app.gifts.edit', $gift),
             'preview_url' => route('app.gifts.preview', $gift),
             'review_url' => route('app.gifts.review', $gift),
+            'analytics_url' => route('app.gifts.analytics', $gift),
             'checkout_url' => route('app.gifts.checkout', $gift),
             'order_url' => $this->latestOrderUrl($gift),
             'public_url' => $publicUrl,

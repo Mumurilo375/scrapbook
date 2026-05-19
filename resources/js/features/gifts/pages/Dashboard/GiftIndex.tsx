@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ClipboardCheck, CreditCard, ExternalLink, Gift, LogOut, PenLine, Plus, Share2 } from 'lucide-react';
+import { BarChart3, ClipboardCheck, CreditCard, ExternalLink, Gift, LogOut, PenLine, Plus, Share2 } from 'lucide-react';
 
 import { formatDate } from '../../components/formatters';
 import { GiftStatusBadge } from '../../components/GiftStatusBadge';
@@ -93,6 +93,13 @@ export default function GiftIndex({ gifts, createUrl }: GiftIndexProps) {
                                             </Link>
                                             {gift.public_url && gift.share_url ? (
                                                 <>
+                                                    <Link
+                                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                                                        href={gift.analytics_url}
+                                                    >
+                                                        <BarChart3 aria-hidden="true" className="h-4 w-4" />
+                                                        Analytics
+                                                    </Link>
                                                     <Link
                                                         className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
                                                         href={gift.share_url}

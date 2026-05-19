@@ -75,6 +75,7 @@ export type GiftSummary = {
     edit_url: string;
     preview_url: string;
     review_url: string;
+    analytics_url: string;
     checkout_url: string;
     order_url: string | null;
     public_url: string | null;
