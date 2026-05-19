@@ -7,14 +7,17 @@ import {
     type RendererContext,
 } from '../../../components/renderer';
 import type { NormalizedViewerPage } from '../../gifts/components/viewer/viewerTypes';
+import type { BookMotionDirection } from './bookMotionUtils';
 import { BookPageSlot } from './BookPageSlot';
 import { BookSpine } from './BookSpine';
 
 type OpenBookSpreadProps = {
     assets?: RendererAssetMap;
     context: RendererContext;
+    direction: BookMotionDirection;
     isSpread: boolean;
     leftPage: NormalizedViewerPage | null;
+    motionEnabled: boolean;
     rightPage: NormalizedViewerPage | null;
     showDecorativeRightPage: boolean;
     theme: NormalizedThemeConfig;
@@ -23,8 +26,10 @@ type OpenBookSpreadProps = {
 export function OpenBookSpread({
     assets,
     context,
+    direction,
     isSpread,
     leftPage,
+    motionEnabled,
     rightPage,
     showDecorativeRightPage,
     theme,
@@ -39,7 +44,11 @@ export function OpenBookSpread({
     } as CSSProperties;
 
     return (
-        <div className="mx-auto w-full transition duration-300 ease-out" style={spreadStyle}>
+        <div
+            className="gift-book-shell mx-auto w-full transition duration-300 ease-out"
+            data-motion={motionEnabled ? 'on' : 'off'}
+            style={spreadStyle}
+        >
             <div
                 className={`relative overflow-hidden border border-[rgba(58,36,24,0.16)] bg-[var(--book-bg)] shadow-[0_34px_96px_rgba(58,36,24,0.24)] ${
                     isSpread ? 'rounded-[30px] p-3 sm:p-4 lg:p-5' : 'rounded-[28px] p-3 sm:p-4'
@@ -80,6 +89,14 @@ export function OpenBookSpread({
                     ) : null}
                 </div>
                 {isSpread ? <BookSpine assets={assets} theme={theme} /> : null}
+                {isSpread ? (
+                    <div
+                        aria-hidden="true"
+                        className="gift-book-motion-shadow pointer-events-none absolute inset-0 z-20 hidden md:block"
+                        data-direction={direction}
+                        data-motion={motionEnabled ? 'on' : 'off'}
+                    />
+                ) : null}
                 {isSpread && showDecorativeRightPage ? (
                     <div
                         aria-hidden="true"

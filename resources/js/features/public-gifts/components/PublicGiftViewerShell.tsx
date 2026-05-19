@@ -7,12 +7,14 @@ import { GiftViewerLayout } from '../../gifts/components/viewer/GiftViewerLayout
 import type { ViewerGift } from '../../gifts/components/viewer/viewerTypes';
 import { normalizeViewerPages } from '../../gifts/components/viewer/viewerUtils';
 import { BookViewerShell } from './BookViewerShell';
+import { bookMotionAttributes, isBookMotionEnabled, type BookMotionDirection } from './bookMotionUtils';
 import { lastBookStartIndex, resolveBookPageRange, type BookViewMode } from './bookModeUtils';
 import { PublicGiftCta } from './PublicGiftCta';
 import { PublicGiftEnding } from './PublicGiftEnding';
 import { PublicGiftNavigation } from './PublicGiftNavigation';
 import { PublicGiftOpening } from './PublicGiftOpening';
 import { PublicGiftProgress } from './PublicGiftProgress';
+import { useReducedMotion } from './useReducedMotion';
 
 type PublicGiftViewerShellProps = {
     gift: ViewerGift;
@@ -32,10 +34,17 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     const assetMap = useMemo(() => assetMapFromList(gift.assets), [gift.assets]);
     const [phase, setPhase] = useState<ViewerPhase>('opening');
     const [activePageIndex, setActivePageIndex] = useState(0);
+    const [direction, setDirection] = useState<BookMotionDirection>('none');
     const isWideViewport = useMediaQuery('(min-width: 768px)');
+    const prefersReducedMotion = useReducedMotion();
     const touchStart = useRef<TouchPoint | null>(null);
     const pageCount = pages.length;
     const bookMode: BookViewMode = isWideViewport && theme.book.mode !== 'single' ? 'spread' : 'single';
+    const motionEnabled = isBookMotionEnabled(theme, prefersReducedMotion);
+    const motionAttributes = useMemo(
+        () => bookMotionAttributes(theme, direction, bookMode, motionEnabled),
+        [bookMode, direction, motionEnabled, theme],
+    );
     const pageRange = useMemo(
         () => resolveBookPageRange(activePageIndex, pageCount, bookMode),
         [activePageIndex, bookMode, pageCount],
@@ -44,7 +53,9 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     const isPublic = mode === 'public';
 
     const goToPage = useCallback(
-        (index: number) => {
+        (index: number, nextDirection: BookMotionDirection = 'none') => {
+            setDirection(nextDirection);
+
             if (pageCount <= 0) {
                 setActivePageIndex(0);
                 setPhase('pages');
@@ -59,7 +70,7 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
     );
 
     const openGift = useCallback(() => {
-        goToPage(0);
+        goToPage(0, 'next');
     }, [goToPage]);
 
     const goNext = useCallback(() => {
@@ -74,17 +85,19 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
         }
 
         if (pageRange.nextIndex === null) {
+            setDirection('next');
             setPhase('ending');
 
             return;
         }
 
+        setDirection('next');
         setActivePageIndex(pageRange.nextIndex);
     }, [openGift, pageCount, pageRange.nextIndex, phase]);
 
     const goPrevious = useCallback(() => {
         if (phase === 'ending') {
-            goToPage(lastBookStartIndex(pageCount, bookMode));
+            goToPage(lastBookStartIndex(pageCount, bookMode), 'previous');
 
             return;
         }
@@ -93,17 +106,23 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
             return;
         }
 
+        if (!pageRange.canGoPrevious) {
+            return;
+        }
+
+        setDirection('previous');
         setActivePageIndex(pageRange.previousIndex ?? 0);
-    }, [bookMode, goToPage, pageCount, pageRange.previousIndex, phase]);
+    }, [bookMode, goToPage, pageCount, pageRange.canGoPrevious, pageRange.previousIndex, phase]);
 
     const restart = useCallback(() => {
+        setDirection('previous');
         setActivePageIndex(0);
         setPhase('opening');
 
         if (typeof window !== 'undefined') {
-            window.scrollTo({ behavior: 'smooth', top: 0 });
+            window.scrollTo({ behavior: prefersReducedMotion ? 'auto' : 'smooth', top: 0 });
         }
-    }, []);
+    }, [prefersReducedMotion]);
 
     useEffect(() => {
         function handleKeyDown(event: KeyboardEvent) {
@@ -173,22 +192,32 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
                 className="mx-auto grid w-full flex-1 content-start gap-5 pb-7 pt-2 sm:pt-5"
                 onTouchEnd={handleTouchEnd}
                 onTouchStart={handleTouchStart}
+                {...motionAttributes}
             >
                 {phase === 'opening' ? (
-                    <PublicGiftOpening gift={gift} mode={mode} onOpen={openGift} theme={theme} />
+                    <PublicGiftOpening
+                        gift={gift}
+                        mode={mode}
+                        motionEnabled={motionEnabled}
+                        onOpen={openGift}
+                        theme={theme}
+                    />
                 ) : null}
 
                 {phase === 'pages' ? (
                     <div className="grid gap-5">
                         <ViewerPageHeader gift={gift} mode={mode} theme={theme} />
                         <div
-                            className="gift-viewer-page-transition"
+                            className="gift-viewer-page-transition gift-viewer-motion"
                             key={`${bookMode}-${pageRange.startIndex}-${pageRange.rightIndex ?? 'blank'}`}
+                            {...motionAttributes}
                         >
                             <BookViewerShell
                                 assets={assetMap}
                                 context={context}
+                                direction={direction}
                                 isSpread={bookMode === 'spread'}
+                                motionEnabled={motionEnabled}
                                 pages={pages}
                                 range={pageRange}
                                 theme={theme}
@@ -236,7 +265,8 @@ export function PublicGiftViewerShell({ gift, mode }: PublicGiftViewerShellProps
                             createUrl={gift.urls.create}
                             gift={gift}
                             isPublic={isPublic}
-                            onBackToLastPage={() => goToPage(Math.max(0, pageCount - 1))}
+                            motionEnabled={motionEnabled}
+                            onBackToLastPage={() => goToPage(Math.max(0, pageCount - 1), 'previous')}
                             onRestart={restart}
                             theme={theme}
                         />

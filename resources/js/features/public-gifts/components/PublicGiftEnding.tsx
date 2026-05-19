@@ -9,12 +9,21 @@ type PublicGiftEndingProps = {
     createUrl: string;
     gift: ViewerGift;
     isPublic: boolean;
+    motionEnabled: boolean;
     onBackToLastPage: () => void;
     onRestart: () => void;
     theme: NormalizedThemeConfig;
 };
 
-export function PublicGiftEnding({ createUrl, gift, isPublic, onBackToLastPage, onRestart, theme }: PublicGiftEndingProps) {
+export function PublicGiftEnding({
+    createUrl,
+    gift,
+    isPublic,
+    motionEnabled,
+    onBackToLastPage,
+    onRestart,
+    theme,
+}: PublicGiftEndingProps) {
     const [feedback, setFeedback] = useState<string | null>(null);
 
     async function copyLink() {
@@ -46,7 +55,10 @@ export function PublicGiftEnding({ createUrl, gift, isPublic, onBackToLastPage, 
     }
 
     return (
-        <section className="gift-viewer-page-transition mx-auto grid w-full max-w-[720px] gap-6 py-8 text-center">
+        <section
+            className="gift-viewer-ending-transition mx-auto grid w-full max-w-[720px] gap-6 py-8 text-center"
+            data-motion={motionEnabled ? 'on' : 'off'}
+        >
             <div
                 className="paper-grain relative overflow-hidden rounded-[10px] border px-5 py-10 shadow-2xl sm:px-10"
                 style={{
@@ -67,20 +79,26 @@ export function PublicGiftEnding({ createUrl, gift, isPublic, onBackToLastPage, 
                     style={{ backgroundColor: theme.tokens.colors.accentSoft }}
                 />
 
-                <p className="font-hand text-4xl leading-none sm:text-5xl" style={{ color: theme.tokens.colors.accent }}>
+                <p
+                    className="font-hand text-4xl leading-none sm:text-5xl"
+                    style={{ color: theme.tokens.colors.accent }}
+                >
                     Fim deste scrapbook
                 </p>
                 <h2 className="mx-auto mt-5 max-w-lg font-editorial text-3xl font-semibold leading-tight sm:text-4xl">
                     Mas essa história ainda continua
                 </h2>
-                <p className="mx-auto mt-4 max-w-md text-sm font-semibold leading-7" style={{ color: theme.tokens.colors.mutedInk }}>
+                <p
+                    className="mx-auto mt-4 max-w-md text-sm font-semibold leading-7"
+                    style={{ color: theme.tokens.colors.mutedInk }}
+                >
                     {gift.recipient_name ? `${gift.recipient_name}, ` : ''}
                     guarde este carinho por perto e volte quando quiser.
                 </p>
 
                 <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
                     <button
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] border px-4 text-sm font-semibold transition hover:-translate-y-0.5"
+                        className="gift-viewer-action inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] border px-4 text-sm font-semibold"
                         onClick={onRestart}
                         style={{
                             backgroundColor: theme.tokens.colors.accent,
@@ -93,7 +111,7 @@ export function PublicGiftEnding({ createUrl, gift, isPublic, onBackToLastPage, 
                         Voltar ao início
                     </button>
                     <button
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] border px-4 text-sm font-semibold transition hover:-translate-y-0.5"
+                        className="gift-viewer-action inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] border px-4 text-sm font-semibold"
                         onClick={onBackToLastPage}
                         style={{
                             backgroundColor: theme.tokens.colors.paper,
@@ -110,7 +128,7 @@ export function PublicGiftEnding({ createUrl, gift, isPublic, onBackToLastPage, 
                 {isPublic ? (
                     <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
                         <button
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold transition hover:-translate-y-0.5"
+                            className="gift-viewer-action inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold"
                             onClick={copyLink}
                             style={{
                                 backgroundColor: 'transparent',
@@ -123,7 +141,7 @@ export function PublicGiftEnding({ createUrl, gift, isPublic, onBackToLastPage, 
                             {feedback ?? 'Copiar link'}
                         </button>
                         <button
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold transition hover:-translate-y-0.5"
+                            className="gift-viewer-action inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold"
                             onClick={shareGift}
                             style={{
                                 backgroundColor: 'transparent',

@@ -6,14 +6,18 @@ import type { ViewerGift } from '../../gifts/components/viewer/viewerTypes';
 type PublicGiftOpeningProps = {
     gift: ViewerGift;
     mode: 'preview' | 'public';
+    motionEnabled: boolean;
     onOpen: () => void;
     theme: NormalizedThemeConfig;
 };
 
-export function PublicGiftOpening({ gift, mode, onOpen, theme }: PublicGiftOpeningProps) {
+export function PublicGiftOpening({ gift, mode, motionEnabled, onOpen, theme }: PublicGiftOpeningProps) {
     return (
-        <section className="gift-viewer-opening-transition mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-[720px] content-center gap-7 py-8 text-center sm:min-h-[680px]">
-            <div aria-hidden="true" className="relative mx-auto h-44 w-60 sm:h-52 sm:w-72">
+        <section
+            className="gift-viewer-opening-transition mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-[720px] content-center gap-7 py-8 text-center sm:min-h-[680px]"
+            data-motion={motionEnabled ? 'on' : 'off'}
+        >
+            <div aria-hidden="true" className="gift-opening-book relative mx-auto h-44 w-60 sm:h-52 sm:w-72">
                 <div
                     className="absolute inset-x-5 bottom-2 top-7 rotate-[-4deg] rounded-[8px] border shadow-xl"
                     style={{
@@ -53,17 +57,23 @@ export function PublicGiftOpening({ gift, mode, onOpen, theme }: PublicGiftOpeni
                 <p className="text-xs font-semibold uppercase" style={{ color: theme.tokens.colors.accent }}>
                     {mode === 'preview' ? 'Prévia do presente' : 'Você recebeu um scrapbook'}
                 </p>
-                <h1 className="font-editorial text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: theme.elements.text.headingColor }}>
+                <h1
+                    className="font-editorial text-4xl font-semibold leading-tight sm:text-5xl"
+                    style={{ color: theme.elements.text.headingColor }}
+                >
                     {gift.title}
                 </h1>
-                <p className="mx-auto max-w-md text-base font-semibold leading-7" style={{ color: theme.tokens.colors.mutedInk }}>
+                <p
+                    className="mx-auto max-w-md text-base font-semibold leading-7"
+                    style={{ color: theme.tokens.colors.mutedInk }}
+                >
                     {gift.recipient_name ? `Feito com carinho para ${gift.recipient_name}` : 'Feito com carinho'}
                     {gift.sender_name ? `, de ${gift.sender_name}` : ''}
                 </p>
             </div>
 
             <button
-                className="mx-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-[6px] border px-5 text-sm font-bold transition hover:-translate-y-0.5"
+                className="gift-viewer-action mx-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-[6px] border px-5 text-sm font-bold"
                 onClick={onOpen}
                 style={{
                     backgroundColor: theme.tokens.colors.accent,
@@ -77,7 +87,10 @@ export function PublicGiftOpening({ gift, mode, onOpen, theme }: PublicGiftOpeni
                 Abrir presente
             </button>
 
-            <p className="mx-auto inline-flex items-center gap-2 text-sm font-semibold" style={{ color: theme.tokens.colors.mutedInk }}>
+            <p
+                className="mx-auto inline-flex items-center gap-2 text-sm font-semibold"
+                style={{ color: theme.tokens.colors.mutedInk }}
+            >
                 <Sparkles aria-hidden="true" className="h-4 w-4" />
                 Uma página de cada vez
             </p>
