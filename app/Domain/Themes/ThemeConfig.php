@@ -2,6 +2,8 @@
 
 namespace App\Domain\Themes;
 
+use App\Domain\Assets\Support\ThemeAssetRoles;
+
 final class ThemeConfig
 {
     /**
@@ -37,6 +39,11 @@ final class ThemeConfig
                 'binding' => 'left',
                 'background' => '#F3E7D3',
                 'spineColor' => '#7B4F32',
+                'mode' => 'spread',
+                'spineWidth' => 28,
+                'spreadGap' => 0,
+                'pageCurl' => 'subtle',
+                'foldShadow' => true,
             ],
             'page' => [
                 'surface' => 'kraft',
@@ -52,6 +59,88 @@ final class ThemeConfig
                     'paperGrain' => true,
                     'subtleStains' => true,
                     'edgeWear' => true,
+                ],
+            ],
+            'textures' => [
+                'appBackground' => [
+                    'assetRole' => 'background_texture',
+                    'opacity' => 0.72,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'fabricBackground' => [
+                    'assetRole' => 'fabric_background',
+                    'opacity' => 0.68,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'bookSurface' => [
+                    'assetRole' => 'book_texture',
+                    'opacity' => 0.58,
+                    'blendMode' => 'overlay',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'bookSpine' => [
+                    'assetRole' => 'spine_texture',
+                    'opacity' => 0.62,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'pagePaper' => [
+                    'assetRole' => 'paper_texture',
+                    'opacity' => 0.82,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'kraftSurface' => [
+                    'assetRole' => 'kraft_surface',
+                    'opacity' => 0.74,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'pageOverlay' => [
+                    'assetRole' => 'page_overlay',
+                    'opacity' => 0.18,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'agingOverlay' => [
+                    'assetRole' => 'aging_overlay',
+                    'opacity' => 0.18,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'stainOverlay' => [
+                    'assetRole' => 'stain_overlay',
+                    'opacity' => 0.14,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
+                ],
+                'edgeOverlay' => [
+                    'assetRole' => 'edge_overlay',
+                    'opacity' => 0.32,
+                    'blendMode' => 'multiply',
+                    'size' => 'cover',
+                    'position' => 'center',
+                    'repeat' => 'no-repeat',
                 ],
             ],
             'elements' => [
@@ -118,16 +207,55 @@ final class ThemeConfig
         return [
             'schemaVersion' => 1,
             'tokens' => self::publicTokens($config['tokens'] ?? []),
-            'book' => self::onlyKeys($config['book'] ?? [], ['style', 'binding', 'background', 'spineColor']),
+            'book' => self::publicBook($config['book'] ?? []),
             'page' => [
                 ...self::onlyKeys($config['page'] ?? [], ['surface', 'backgroundColor', 'texture', 'textureAssetRole', 'edge', 'borderRadius', 'shadow', 'padding']),
                 'decorations' => self::onlyKeys(data_get($config, 'page.decorations', []), ['cornerTape', 'paperGrain', 'subtleStains', 'edgeWear']),
             ],
+            'textures' => self::publicTextures($config['textures'] ?? []),
             'elements' => [
                 'text' => self::onlyKeys(data_get($config, 'elements.text', []), ['defaultColor', 'headingColor']),
                 'image' => self::onlyKeys(data_get($config, 'elements.image', []), ['defaultFrame', 'shadow']),
                 'sticker' => self::onlyKeys(data_get($config, 'elements.sticker', []), ['shadow', 'defaultShadow']),
             ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $config
+     * @return array{roles: array<int, string>, assetIds: array<int, string>}
+     */
+    public static function textureAssetReferences(?array $config): array
+    {
+        $config = self::publicConfig($config);
+        $roles = [];
+        $assetIds = [];
+        $legacyTextureRole = data_get($config, 'page.textureAssetRole');
+
+        if (is_string($legacyTextureRole) && ThemeAssetRoles::isTextureRole($legacyTextureRole)) {
+            $roles[] = $legacyTextureRole;
+        }
+
+        foreach (($config['textures'] ?? []) as $texture) {
+            if (! is_array($texture)) {
+                continue;
+            }
+
+            $role = $texture['assetRole'] ?? null;
+            $assetId = $texture['assetId'] ?? null;
+
+            if (is_string($role) && ThemeAssetRoles::isTextureRole($role)) {
+                $roles[] = $role;
+            }
+
+            if (is_string($assetId) && self::safeAssetId($assetId) !== null) {
+                $assetIds[] = $assetId;
+            }
+        }
+
+        return [
+            'roles' => array_values(array_unique($roles)),
+            'assetIds' => array_values(array_unique($assetIds)),
         ];
     }
 
@@ -181,6 +309,105 @@ final class ThemeConfig
     }
 
     /**
+     * @param  array<string, mixed>|mixed  $book
+     * @return array<string, mixed>
+     */
+    private static function publicBook(mixed $book): array
+    {
+        $book = is_array($book) ? $book : [];
+
+        return [
+            'style' => is_string($book['style'] ?? null) && trim($book['style']) !== ''
+                ? trim($book['style'])
+                : 'scrapbook',
+            'binding' => ($book['binding'] ?? null) === 'none' ? 'none' : 'left',
+            'background' => is_string($book['background'] ?? null) ? $book['background'] : '#F3E7D3',
+            'spineColor' => is_string($book['spineColor'] ?? null) ? $book['spineColor'] : '#7B4F32',
+            'mode' => ($book['mode'] ?? null) === 'single' ? 'single' : 'spread',
+            'spineWidth' => self::clampedNumber($book['spineWidth'] ?? null, 28, 8, 72),
+            'spreadGap' => self::clampedNumber($book['spreadGap'] ?? null, 0, 0, 32),
+            'pageCurl' => ($book['pageCurl'] ?? null) === 'none' ? 'none' : 'subtle',
+            'foldShadow' => is_bool($book['foldShadow'] ?? null) ? $book['foldShadow'] : true,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $textures
+     * @return array<string, array<string, mixed>>
+     */
+    private static function publicTextures(array $textures): array
+    {
+        $publicTextures = [];
+
+        foreach (self::textureSlots() as $slot) {
+            $texture = $textures[$slot] ?? null;
+
+            if (! is_array($texture)) {
+                continue;
+            }
+
+            $publicTexture = self::publicTextureLayer($texture);
+
+            if ($publicTexture !== null) {
+                $publicTextures[$slot] = $publicTexture;
+            }
+        }
+
+        return $publicTextures;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function textureSlots(): array
+    {
+        return [
+            'appBackground',
+            'fabricBackground',
+            'bookSurface',
+            'bookSpine',
+            'pagePaper',
+            'kraftSurface',
+            'pageOverlay',
+            'agingOverlay',
+            'stainOverlay',
+            'edgeOverlay',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $texture
+     * @return array<string, mixed>|null
+     */
+    private static function publicTextureLayer(array $texture): ?array
+    {
+        $assetRole = self::safeTextureRole($texture['assetRole'] ?? $texture['role'] ?? null);
+        $assetId = self::safeAssetId($texture['assetId'] ?? null);
+
+        if ($assetRole === null && $assetId === null) {
+            return null;
+        }
+
+        $layer = [];
+
+        if ($assetRole !== null) {
+            $layer['assetRole'] = $assetRole;
+        }
+
+        if ($assetId !== null) {
+            $layer['assetId'] = $assetId;
+        }
+
+        $layer['opacity'] = self::opacity($texture['opacity'] ?? null, 1.0);
+        $layer['blendMode'] = self::safeBlendMode($texture['blendMode'] ?? null);
+        $layer['size'] = self::safeBackgroundSize($texture['size'] ?? null);
+        $layer['position'] = self::safeBackgroundPosition($texture['position'] ?? null);
+        $layer['repeat'] = self::safeBackgroundRepeat($texture['repeat'] ?? null);
+
+        return $layer;
+    }
+
+    /**
      * @param  array<string, mixed>|mixed  $value
      * @param  array<int, string>  $keys
      * @return array<string, mixed>
@@ -195,5 +422,104 @@ final class ThemeConfig
             ->only($keys)
             ->filter(fn (mixed $item): bool => is_scalar($item) || $item === null)
             ->all();
+    }
+
+    private static function safeTextureRole(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return ThemeAssetRoles::isTextureRole($value) ? $value : null;
+    }
+
+    private static function safeAssetId(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_int($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return preg_match('/^[A-Za-z0-9_-]{4,80}$/', $value) === 1 ? $value : null;
+    }
+
+    private static function opacity(mixed $value, float $fallback): float
+    {
+        if (! is_numeric($value)) {
+            return $fallback;
+        }
+
+        return max(0.0, min(1.0, round((float) $value, 3)));
+    }
+
+    private static function clampedNumber(mixed $value, int|float $fallback, int|float $min, int|float $max): int|float
+    {
+        if (! is_numeric($value)) {
+            return $fallback;
+        }
+
+        return max($min, min($max, $value + 0));
+    }
+
+    private static function safeBlendMode(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return 'normal';
+        }
+
+        return in_array($value, [
+            'normal',
+            'multiply',
+            'screen',
+            'overlay',
+            'darken',
+            'lighten',
+            'soft-light',
+            'hard-light',
+            'color-burn',
+            'luminosity',
+        ], true) ? $value : 'normal';
+    }
+
+    private static function safeBackgroundSize(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return 'cover';
+        }
+
+        $value = trim($value);
+
+        if (in_array($value, ['auto', 'cover', 'contain'], true)) {
+            return $value;
+        }
+
+        return preg_match('/^(?:\d{1,4}(?:px|%)|auto)(?:\s+(?:\d{1,4}(?:px|%)|auto))?$/', $value) === 1
+            ? $value
+            : 'cover';
+    }
+
+    private static function safeBackgroundPosition(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return 'center';
+        }
+
+        $value = trim($value);
+
+        return preg_match('/^(?:left|right|center|top|bottom|\d{1,3}%)(?:\s+(?:left|right|center|top|bottom|\d{1,3}%))?$/', $value) === 1
+            ? $value
+            : 'center';
+    }
+
+    private static function safeBackgroundRepeat(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return 'no-repeat';
+        }
+
+        return in_array($value, ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'], true) ? $value : 'no-repeat';
     }
 }

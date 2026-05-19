@@ -24,4 +24,11 @@ export type { AssetDefaultTransform, AssetFrameStyles, AssetPhysicalConfig, Asse
 export { assetFromMap, assetMapFromList } from './assetTypes';
 export type { RendererAsset, RendererAssetCategory, RendererAssetMap } from './assetTypes';
 export { DEFAULT_THEME_CONFIG, normalizeThemeConfig } from './theme';
-export type { NormalizedThemeConfig, RendererContext, ThemeConfigInput } from './theme';
+export type { NormalizedThemeConfig, RendererContext, ThemeConfigInput, ThemeTextureLayerConfig } from './theme';
+export {
+    buildTextureLayerStyle,
+    firstTextureLayerStyle,
+    getThemeAssetByRole,
+    resolveThemeTextureLayer,
+} from './themeTextureUtils';
+export type { ResolvedThemeTextureLayer, ThemeTextureSlot } from './themeTextureUtils';
