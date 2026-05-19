@@ -40,6 +40,7 @@ final class UpdateGiftPageCanvas
             $this->canvasSecurity->textMaxLengthForPage($giftPage),
         );
         $this->ensureLockedElementsWereNotMutated($giftPage, $canvas);
+        $canvas = $this->normalizePageBackground($giftPage, $canvas);
         $canvas = $this->normalizeStickerElements($giftPage, $canvas);
         $canvas = $this->normalizeImageElements($user, $giftPage, $canvas);
         $this->validateMediaReferences($user, $giftPage, $canvas);
@@ -131,6 +132,38 @@ final class UpdateGiftPageCanvas
      * @param  array<string, mixed>  $canvas
      * @return array<string, mixed>
      */
+    private function normalizePageBackground(GiftPage $giftPage, array $canvas): array
+    {
+        $background = data_get($canvas, 'artboard.background');
+
+        if (! is_array($background) || ($background['type'] ?? null) !== 'asset') {
+            data_set($canvas, 'artboard.background', ['type' => 'theme']);
+
+            return $canvas;
+        }
+
+        $asset = $this->assetForCanvas($background['assetId'] ?? $background['asset_id'] ?? null);
+
+        if (! $this->assetCatalog->assetIsAllowedPageBackgroundForGift($giftPage->gift, $asset)) {
+            throw ValidationException::withMessages([
+                'canvas.artboard.background.assetId' => 'O papel da página precisa ser um asset ativo e permitido como fundo de página.',
+            ]);
+        }
+
+        data_set($canvas, 'artboard.background', [
+            'type' => 'asset',
+            'assetId' => $asset->id,
+            'fit' => in_array($background['fit'] ?? null, ['cover', 'contain'], true) ? $background['fit'] : 'cover',
+            'opacity' => is_numeric($background['opacity'] ?? null) ? max(0, min(1, $background['opacity'] + 0)) : 1,
+        ]);
+
+        return $canvas;
+    }
+
+    /**
+     * @param  array<string, mixed>  $canvas
+     * @return array<string, mixed>
+     */
     private function normalizeStickerElements(GiftPage $giftPage, array $canvas): array
     {
         if (! isset($canvas['elements']) || ! is_array($canvas['elements'])) {
@@ -158,6 +191,12 @@ final class UpdateGiftPageCanvas
             if (! $this->assetCatalog->assetIsAllowedForGift($giftPage->gift, $asset)) {
                 throw ValidationException::withMessages([
                     'canvas.assets' => 'O canvas referencia um asset indisponível para este tema.',
+                ]);
+            }
+
+            if (! $this->assetCatalog->assetIsAllowedDecorativeForGift($giftPage->gift, $asset)) {
+                throw ValidationException::withMessages([
+                    'canvas.assets' => 'Papéis e texturas de página devem ser usados como fundo da página, não como adesivos.',
                 ]);
             }
 

@@ -222,6 +222,7 @@ class GiftController extends Controller
             'public_url' => $publicUrl,
             'share_url' => $publicUrl !== null ? route('app.gifts.share', $gift) : null,
             'assets_index_url' => route('app.gifts.assets.index', $gift),
+            'page_backgrounds_index_url' => route('app.gifts.page-backgrounds.index', $gift),
             'media_index_url' => route('app.gifts.media.index', $gift),
             'media_store_url' => route('app.gifts.media.store', $gift),
             'dashboard_url' => route('app.gifts.index'),

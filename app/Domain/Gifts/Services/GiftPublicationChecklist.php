@@ -111,6 +111,25 @@ final class GiftPublicationChecklist
     private function assetReferencesCheck(Gift $gift, Collection $visiblePages): array
     {
         foreach ($visiblePages as $page) {
+            $background = data_get($page->canvas, 'artboard.background');
+
+            if (is_array($background) && ($background['type'] ?? null) === 'asset') {
+                $assetId = $background['assetId'] ?? $background['asset_id'] ?? null;
+                $asset = (is_string($assetId) || is_int($assetId))
+                    ? Asset::query()->find(trim((string) $assetId))
+                    : null;
+
+                if (! $asset instanceof Asset || ! $this->assetCatalog->assetIsAllowedPageBackgroundForGift($gift, $asset)) {
+                    return $this->check(
+                        'asset_references',
+                        'Stickers e papéis usam assets seguros',
+                        false,
+                        'error',
+                        "A página {$page->name} referencia um papel de fundo indisponível ou inválido.",
+                    );
+                }
+            }
+
             foreach ($this->stickerElements($page) as $element) {
                 foreach (['src', 'url', 'publicUrl', 'public_url', 'previewUrl', 'preview_url', 'assetUrl', 'asset_url', 'storage_path', 'storagePath'] as $key) {
                     if (filled($element[$key] ?? null)) {
@@ -132,13 +151,13 @@ final class GiftPublicationChecklist
 
                 $asset = Asset::query()->find(trim((string) $assetId));
 
-                if (! $asset instanceof Asset || ! $this->assetCatalog->assetIsAllowedForGift($gift, $asset)) {
+                if (! $asset instanceof Asset || ! $this->assetCatalog->assetIsAllowedDecorativeForGift($gift, $asset)) {
                     return $this->check(
                         'asset_references',
-                        'Stickers usam assets seguros',
+                        'Stickers e papéis usam assets seguros',
                         false,
                         'error',
-                        "A página {$page->name} referencia um asset indisponível ou inativo.",
+                        "A página {$page->name} referencia um asset indisponível, inativo ou reservado para fundo de página.",
                     );
                 }
             }
@@ -146,7 +165,7 @@ final class GiftPublicationChecklist
 
         return $this->check(
             'asset_references',
-            'Stickers usam assets seguros',
+            'Stickers e papéis usam assets seguros',
             true,
             'error',
         );
