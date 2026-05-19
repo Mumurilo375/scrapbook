@@ -191,7 +191,7 @@ class AnalyticsTrackingTest extends TestCase
         $support = $this->userWithRole('support');
         $customer = $this->userWithRole('customer');
 
-        $this->actingAs($admin)->get(AnalyticsOverview::getUrl())->assertOk()->assertSee('Analytics e observabilidade');
+        $this->actingAs($admin)->get(AnalyticsOverview::getUrl())->assertOk()->assertSee('Analytics e Observabilidade');
         $this->actingAs($support)->get(AnalyticsOverview::getUrl())->assertForbidden();
         $this->actingAs($customer)->get(AnalyticsOverview::getUrl())->assertForbidden();
     }
