@@ -56,5 +56,13 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(10)->by($userKey.'|'.$request->ip());
         });
+
+        RateLimiter::for('analytics-events', function (Request $request): Limit {
+            $userKey = $request->user()?->getAuthIdentifier()
+                ?? $request->cookies->get('scrapbook_visitor')
+                ?? $request->ip();
+
+            return Limit::perMinute(120)->by((string) $userKey);
+        });
     }
 }

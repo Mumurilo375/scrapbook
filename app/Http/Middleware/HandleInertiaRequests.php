@@ -52,6 +52,10 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
             ],
+            'analytics' => [
+                'eventUrl' => route('analytics.events', [], false),
+                'enabled' => (bool) config('scrapbook.analytics.enabled', true),
+            ],
         ];
     }
 }
