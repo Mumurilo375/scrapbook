@@ -57,7 +57,7 @@ export function GiftEditorTopBar({
                     </div>
                 </div>
 
-                <div className="-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0 sm:pb-0">
+                <div className="-mx-1 flex w-[calc(100%+0.5rem)] snap-x items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0 sm:pb-0">
                     <EditorSaveStatus detail={saveDetail} status={saveStatus} />
                     <EditorHistoryControls
                         canRedo={canRedo}
@@ -67,14 +67,14 @@ export function GiftEditorTopBar({
                         onUndo={onUndo}
                     />
                     <Link
-                        className="inline-flex min-h-10 shrink-0 items-center gap-2 text-sm font-semibold text-[#42291D]"
+                        className="inline-flex min-h-10 shrink-0 snap-start items-center gap-2 text-sm font-semibold text-[#42291D]"
                         href={dashboardUrl}
                     >
                         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                         Meus presentes
                     </Link>
                     <Link
-                        className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                        className="inline-flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
                         href={previewUrl}
                     >
                         <Eye aria-hidden="true" className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function GiftEditorTopBar({
                     </Link>
                     {shareUrl ? (
                         <Link
-                            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                            className="inline-flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
                             href={shareUrl}
                         >
                             <Share2 aria-hidden="true" className="h-4 w-4" />
@@ -90,7 +90,7 @@ export function GiftEditorTopBar({
                         </Link>
                     ) : status === 'pending_payment' && orderUrl ? (
                         <Link
-                            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                            className="inline-flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
                             href={orderUrl}
                         >
                             <CreditCard aria-hidden="true" className="h-4 w-4" />
@@ -98,7 +98,7 @@ export function GiftEditorTopBar({
                         </Link>
                     ) : (
                         <Link
-                            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                            className="inline-flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
                             href={reviewUrl}
                         >
                             <ClipboardCheck aria-hidden="true" className="h-4 w-4" />
@@ -106,7 +106,7 @@ export function GiftEditorTopBar({
                         </Link>
                     )}
                     <button
-                        className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                        className="inline-flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
                         onClick={() => router.post('/logout')}
                         type="button"
                     >
