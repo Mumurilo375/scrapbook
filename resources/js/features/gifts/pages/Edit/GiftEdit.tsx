@@ -2,7 +2,12 @@ import { Head } from '@inertiajs/react';
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { assetMapFromList, normalizeThemeConfig, resolveAssetDefaultTransform } from '../../../../components/renderer';
+import {
+    assetMapFromList,
+    firstTextureLayerStyle,
+    normalizeThemeConfig,
+    resolveAssetDefaultTransform,
+} from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import { ElementPropertiesPanel } from '../../components/editor/ElementPropertiesPanel';
 import { EditorTabs } from '../../components/editor/EditorTabs';
@@ -73,6 +78,7 @@ import { useUnsavedChangesWarning } from '../../components/editor/useUnsavedChan
 import type { EditableGift, GiftPageSummary } from '../../types';
 
 type GiftEditProps = {
+    assets?: EditorAsset[];
     debugEnabled: boolean;
     gift: EditableGift;
     media: EditorMediaItem[];
@@ -132,7 +138,7 @@ type TransformHistorySession = {
     pageId: string;
 };
 
-export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditProps) {
+export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gift, media, pages }: GiftEditProps) {
     const normalizedTheme = useMemo(() => normalizeThemeConfig(gift.theme?.config), [gift.theme?.config]);
     const editorPages = useMemo<EditorPage[]>(
         () =>
@@ -162,8 +168,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
         for (const page of editorPages) {
             const pageKey = pageDraftKey(gift.id, page.id);
             const draft = readLocalDraft<Canvas>(pageKey, {
-                onError: () =>
-                    errors.push(`Não foi possível recuperar o rascunho local da página "${page.name}".`),
+                onError: () => errors.push(`Não foi possível recuperar o rascunho local da página "${page.name}".`),
             });
 
             if (!draft) {
@@ -211,7 +216,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const [metadataStatus, setMetadataStatus] = useState<SaveStatus>(recoveredMetadataDraft ? 'dirty' : 'idle');
     const [metadataErrors, setMetadataErrors] = useState<Partial<Record<keyof GiftMetadataDraft, string>>>({});
     const [assetCategories, setAssetCategories] = useState<EditorAssetCategory[]>([]);
-    const [assets, setAssets] = useState<EditorAsset[]>([]);
+    const [assets, setAssets] = useState<EditorAsset[]>(initialAssets);
     const [assetLibraryStatus, setAssetLibraryStatus] = useState<AssetLibraryStatus>('loading');
     const [assetLibraryError, setAssetLibraryError] = useState<string | null>(null);
     const [localDraftNotice, setLocalDraftNotice] = useState(
@@ -258,7 +263,6 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const loadAssets = useCallback(async () => {
         if (!canEditGift) {
             setAssetCategories([]);
-            setAssets([]);
             setAssetLibraryStatus('ready');
             setAssetLibraryError(null);
 
@@ -342,6 +346,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
     const textElements =
         selectedCanvas && selectedPage ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length) : [];
     const assetMap = useMemo(() => assetMapFromList(assets), [assets]);
+    const appTextureStyle = firstTextureLayerStyle(normalizedTheme, assetMap, ['fabricBackground', 'appBackground']);
     const editorDisabled = Boolean(selectedPage?.locked || !canEditGift);
     const selectedPageHistory = editorHistory.availability(selectedPage?.id);
     const hasSaving =
@@ -1136,7 +1141,7 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
         <>
             <Head title={`Editar ${metadata.title}`} />
             <main
-                className="min-h-screen"
+                className="relative min-h-screen overflow-hidden"
                 style={
                     {
                         backgroundColor: normalizedTheme.tokens.colors.appBackground,
@@ -1145,155 +1150,163 @@ export default function GiftEdit({ debugEnabled, gift, media, pages }: GiftEditP
                     } as CSSProperties
                 }
             >
-                <GiftEditorTopBar
-                    canRedo={selectedPageHistory.canRedo}
-                    canUndo={selectedPageHistory.canUndo}
-                    dashboardUrl={gift.dashboard_url}
-                    historyDisabled={editorDisabled}
-                    onRedo={redoCurrentPage}
-                    onUndo={undoCurrentPage}
-                    orderUrl={gift.order_url}
-                    previewUrl={gift.preview_url}
-                    reviewUrl={gift.review_url}
-                    saveDetail={globalSaveDetail}
-                    saveStatus={globalSaveStatus}
-                    shareUrl={gift.share_url}
-                    status={gift.status}
-                    title={metadata.title}
-                />
-                <input
-                    ref={directImageInputRef}
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    disabled={editorDisabled || directImageUploading}
-                    onChange={(event) => {
-                        void uploadDirectImage(event.target.files?.[0] ?? null);
-                    }}
-                    type="file"
-                />
+                {appTextureStyle ? (
+                    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0" style={appTextureStyle} />
+                ) : null}
+                <div className="relative z-10">
+                    <GiftEditorTopBar
+                        canRedo={selectedPageHistory.canRedo}
+                        canUndo={selectedPageHistory.canUndo}
+                        dashboardUrl={gift.dashboard_url}
+                        historyDisabled={editorDisabled}
+                        onRedo={redoCurrentPage}
+                        onUndo={undoCurrentPage}
+                        orderUrl={gift.order_url}
+                        previewUrl={gift.preview_url}
+                        reviewUrl={gift.review_url}
+                        saveDetail={globalSaveDetail}
+                        saveStatus={globalSaveStatus}
+                        shareUrl={gift.share_url}
+                        status={gift.status}
+                        title={metadata.title}
+                    />
+                    <input
+                        ref={directImageInputRef}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="sr-only"
+                        disabled={editorDisabled || directImageUploading}
+                        onChange={(event) => {
+                            void uploadDirectImage(event.target.files?.[0] ?? null);
+                        }}
+                        type="file"
+                    />
 
-                <GiftEditorLayout
-                    left={
-                        <GiftPageSidebar
-                            onSelectPage={selectPage}
-                            pageStatuses={effectivePageStatuses}
-                            pages={editorPages}
-                            selectedPageId={selectedPageId}
-                        />
-                    }
-                    center={
-                        <div className="grid gap-3">
-                            {localDraftNotice ? (
-                                <LocalDraftNotice onDismiss={() => setLocalDraftNotice(false)} />
-                            ) : null}
-                            {localDraftErrors.length > 0 ? (
-                                <LocalDraftErrorNotice
-                                    errors={localDraftErrors}
-                                    onDismiss={() => setLocalDraftErrors([])}
+                    <GiftEditorLayout
+                        left={
+                            <GiftPageSidebar
+                                onSelectPage={selectPage}
+                                pageStatuses={effectivePageStatuses}
+                                pages={editorPages}
+                                selectedPageId={selectedPageId}
+                            />
+                        }
+                        center={
+                            <div className="grid gap-3">
+                                {localDraftNotice ? (
+                                    <LocalDraftNotice onDismiss={() => setLocalDraftNotice(false)} />
+                                ) : null}
+                                {localDraftErrors.length > 0 ? (
+                                    <LocalDraftErrorNotice
+                                        errors={localDraftErrors}
+                                        onDismiss={() => setLocalDraftErrors([])}
+                                    />
+                                ) : null}
+                                {globalSaveStatus === 'error' && visibleSaveError ? (
+                                    <EditorAlert
+                                        message={visibleSaveError}
+                                        title="Não foi possível salvar tudo agora"
+                                    />
+                                ) : null}
+                                <GiftPagePreview
+                                    assets={assetMap}
+                                    canGoNext={selectedPageIndex < editorPages.length - 1}
+                                    canGoPrevious={selectedPageIndex > 0}
+                                    canvas={selectedCanvas}
+                                    disabled={editorDisabled}
+                                    imageReplacing={directImageUploading}
+                                    maxTextLength={selectedPage?.text_max_length ?? 1000}
+                                    onChangeElement={changeElementFromStage}
+                                    onChangeText={changeSelectedElementText}
+                                    onClearSelection={selection.clearSelection}
+                                    onNext={() => goToPage(1)}
+                                    onPrevious={() => goToPage(-1)}
+                                    onReplaceImage={openImageUpload}
+                                    onSelectElement={selectElementFromCanvas}
+                                    onTransformEnd={endElementTransform}
+                                    onTransformStart={beginElementTransform}
+                                    page={selectedPage}
+                                    selectedElementId={selection.selectedElementId}
+                                    theme={gift.theme?.config}
                                 />
-                            ) : null}
-                            {globalSaveStatus === 'error' && visibleSaveError ? (
-                                <EditorAlert message={visibleSaveError} title="Não foi possível salvar tudo agora" />
-                            ) : null}
-                            <GiftPagePreview
-                                assets={assetMap}
-                                canGoNext={selectedPageIndex < editorPages.length - 1}
-                                canGoPrevious={selectedPageIndex > 0}
-                                canvas={selectedCanvas}
-                                disabled={editorDisabled}
-                                imageReplacing={directImageUploading}
-                                maxTextLength={selectedPage?.text_max_length ?? 1000}
-                                onChangeElement={changeElementFromStage}
-                                onChangeText={changeSelectedElementText}
-                                onClearSelection={selection.clearSelection}
-                                onNext={() => goToPage(1)}
-                                onPrevious={() => goToPage(-1)}
-                                onReplaceImage={openImageUpload}
-                                onSelectElement={selectElementFromCanvas}
-                                onTransformEnd={endElementTransform}
-                                onTransformStart={beginElementTransform}
-                                page={selectedPage}
-                                selectedElementId={selection.selectedElementId}
-                                theme={gift.theme?.config}
-                            />
-                        </div>
-                    }
-                    right={
-                        <div className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-2 shadow-sm sm:p-3">
-                            <ElementPropertiesPanel
-                                disabled={editorDisabled}
-                                element={selection.selectedElement}
-                                maxTextLength={selectedPage?.text_max_length ?? 1000}
-                                onChangeText={changeSelectedElementText}
-                                onLayerAction={changeSelectedElementLayer}
-                                onPatchElement={patchSelectedElement}
-                                onPatchStyle={patchSelectedElementStyle}
-                            />
-                            <EditorTabs activeTab={activeTab} onChange={setActiveTab} showDebug={debugEnabled} />
-                            <div className="mt-5">
-                                {activeTab === 'content' ? (
-                                    <GiftContentPanel
-                                        disabled={editorDisabled}
-                                        elements={textElements}
-                                        error={selectedPageError}
-                                        onChangeText={changeText}
-                                        saveStatus={selectedPageSaveStatus}
-                                    />
-                                ) : null}
-                                {activeTab === 'images' ? (
-                                    <GiftImagesPanel
-                                        disabled={editorDisabled}
-                                        mediaItems={mediaItems}
-                                        mediaLibraryRef={mediaLibraryRef}
-                                        onSelectMedia={setSelectedMediaId}
-                                        onUploaded={addUploadedMedia}
-                                        selectedMediaId={selectedMediaId}
-                                        uploadUrl={gift.media_store_url}
-                                    />
-                                ) : null}
-                                {activeTab === 'stickers' ? (
-                                    <GiftAssetsPanel
-                                        assets={assets}
-                                        categories={assetCategories}
-                                        disabled={editorDisabled || !selectedPage || !selectedCanvas}
-                                        error={assetLibraryError}
-                                        onAddAsset={addAssetToCurrentPage}
-                                        onRetry={loadAssets}
-                                        saveStatus={selectedPageSaveStatus}
-                                        status={assetLibraryStatus}
-                                        theme={gift.theme?.config}
-                                    />
-                                ) : null}
-                                {activeTab === 'gift' ? (
-                                    <GiftMetadataPanel
-                                        disabled={!canEditGift}
-                                        errors={metadataErrors}
-                                        metadata={metadata}
-                                        onChange={changeMetadata}
-                                    />
-                                ) : null}
-                                {activeTab === 'layers' ? (
-                                    <GiftLayersPanel
-                                        assets={assetMap}
-                                        canvas={selectedCanvas}
-                                        disabled={editorDisabled}
-                                        onDeleteElement={deleteCanvasElement}
-                                        onDuplicateElement={duplicateCanvasElement}
-                                        onLayerAction={changeSelectedElementLayer}
-                                        onRenameElement={renameCanvasElement}
-                                        onSelectElement={selectElementFromCanvas}
-                                        onToggleHidden={toggleElementHidden}
-                                        onToggleLocked={toggleElementLocked}
-                                        selectedElementId={selection.selectedElementId}
-                                    />
-                                ) : null}
-                                {activeTab === 'debug' && debugEnabled ? (
-                                    <GiftDebugPanel canvas={selectedCanvas} pageId={selectedPageId} />
-                                ) : null}
                             </div>
-                        </div>
-                    }
-                />
+                        }
+                        right={
+                            <div className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-2 shadow-sm sm:p-3">
+                                <ElementPropertiesPanel
+                                    disabled={editorDisabled}
+                                    element={selection.selectedElement}
+                                    maxTextLength={selectedPage?.text_max_length ?? 1000}
+                                    onChangeText={changeSelectedElementText}
+                                    onLayerAction={changeSelectedElementLayer}
+                                    onPatchElement={patchSelectedElement}
+                                    onPatchStyle={patchSelectedElementStyle}
+                                />
+                                <EditorTabs activeTab={activeTab} onChange={setActiveTab} showDebug={debugEnabled} />
+                                <div className="mt-5">
+                                    {activeTab === 'content' ? (
+                                        <GiftContentPanel
+                                            disabled={editorDisabled}
+                                            elements={textElements}
+                                            error={selectedPageError}
+                                            onChangeText={changeText}
+                                            saveStatus={selectedPageSaveStatus}
+                                        />
+                                    ) : null}
+                                    {activeTab === 'images' ? (
+                                        <GiftImagesPanel
+                                            disabled={editorDisabled}
+                                            mediaItems={mediaItems}
+                                            mediaLibraryRef={mediaLibraryRef}
+                                            onSelectMedia={setSelectedMediaId}
+                                            onUploaded={addUploadedMedia}
+                                            selectedMediaId={selectedMediaId}
+                                            uploadUrl={gift.media_store_url}
+                                        />
+                                    ) : null}
+                                    {activeTab === 'stickers' ? (
+                                        <GiftAssetsPanel
+                                            assets={assets}
+                                            categories={assetCategories}
+                                            disabled={editorDisabled || !selectedPage || !selectedCanvas}
+                                            error={assetLibraryError}
+                                            onAddAsset={addAssetToCurrentPage}
+                                            onRetry={loadAssets}
+                                            saveStatus={selectedPageSaveStatus}
+                                            status={assetLibraryStatus}
+                                            theme={gift.theme?.config}
+                                        />
+                                    ) : null}
+                                    {activeTab === 'gift' ? (
+                                        <GiftMetadataPanel
+                                            disabled={!canEditGift}
+                                            errors={metadataErrors}
+                                            metadata={metadata}
+                                            onChange={changeMetadata}
+                                        />
+                                    ) : null}
+                                    {activeTab === 'layers' ? (
+                                        <GiftLayersPanel
+                                            assets={assetMap}
+                                            canvas={selectedCanvas}
+                                            disabled={editorDisabled}
+                                            onDeleteElement={deleteCanvasElement}
+                                            onDuplicateElement={duplicateCanvasElement}
+                                            onLayerAction={changeSelectedElementLayer}
+                                            onRenameElement={renameCanvasElement}
+                                            onSelectElement={selectElementFromCanvas}
+                                            onToggleHidden={toggleElementHidden}
+                                            onToggleLocked={toggleElementLocked}
+                                            selectedElementId={selection.selectedElementId}
+                                        />
+                                    ) : null}
+                                    {activeTab === 'debug' && debugEnabled ? (
+                                        <GiftDebugPanel canvas={selectedCanvas} pageId={selectedPageId} />
+                                    ) : null}
+                                </div>
+                            </div>
+                        }
+                    />
+                </div>
             </main>
         </>
     );

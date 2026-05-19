@@ -99,7 +99,7 @@ export function GiftPagePreview({
                 </div>
             </div>
 
-            <ScrapbookStage context="editor" theme={theme}>
+            <ScrapbookStage assets={assets} context="editor" theme={theme}>
                 {canvas ? (
                     <EditableCanvasStage
                         canvas={canvas}
