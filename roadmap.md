@@ -33,8 +33,9 @@
 - Sistema de papel/fundo da página estabilizado em `canvas.artboard.background`, com papel do tema vs papel personalizado e preview/viewer consistentes.
 - Transições leves do Book Mode implementadas no viewer público e preview privado, com abertura suave, direção `next`/`previous`, microinterações, suporte a `prefers-reduced-motion` e sem page flip 3D pesado.
 - Componentes especiais de scrapbook v1 implementados, começando por envelope com carta (`interactive_envelope`) e polaroid virável (`flip_polaroid`) como elementos seguros do canvas.
-- Fase atual: QA visual/mobile com auditoria automática, assets reais, templates finais, editor, viewer, Book Mode, envelope, polaroid, QR Code/cartão e performance.
-- Próxima fase possível: bilhete secreto, page flip mais avançado, landing final ou gateway real, conforme resultado do QA visual.
+- QA visual/mobile com auditoria automática, assets reais, templates finais, editor, viewer, Book Mode, envelope, polaroid, QR Code/cartão e performance ficou como trilha de validação/polimento contínuo.
+- Fase atual: analytics, métricas, logs e observabilidade interna, sem ferramenta externa e sem tracking invasivo.
+- Próxima fase possível: QA real com assets finais, polimentos de performance/mobile, landing final ou gateway real em etapa separada.
 - Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
@@ -573,24 +574,25 @@ Status: refinado como base atual. O objetivo desta fase foi fazer `/p/{slug}-{pu
 
 ## Fase 20 - Analytics
 
-395. Criar endpoint leve para eventos públicos.
-396. Não armazenar dados pessoais desnecessários.
-397. Hash de IP quando usar.
-398. Criar job de agregação diária.
-399. Criar painel do usuário com métricas simples.
-400. Mostrar: abriu quantas vezes.
-401. Mostrar: primeira visualização.
-402. Mostrar: última visualização.
-403. Mostrar: interações totais.
-404. Criar painel admin com funil.
-405. Métricas admin: drafts criados.
-406. Métricas admin: checkout iniciado.
-407. Métricas admin: pagamentos aprovados.
-408. Métricas admin: presentes publicados.
-409. Métricas admin: templates mais usados.
-410. Métricas admin: temas mais usados.
-411. Métricas admin: receita.
-412. Métricas admin: falhas de pagamento.
+395. [feito] Criar sessão analítica first-party com cookie `scrapbook_visitor`.
+396. [feito] Criar `analytics_sessions`, `analytics_events` e `analytics_daily_metrics`.
+397. [feito] Evoluir `gift_visits` e `gift_events` sem remover compatibilidade antiga.
+398. [feito] Criar taxonomia centralizada `AnalyticsEventName` e `AnalyticsEventGroup`.
+399. [feito] Criar `AnalyticsTracker`, `AnalyticsSessionResolver` e `AnalyticsPayloadSanitizer`.
+400. [feito] Criar endpoint leve `POST /analytics/events` com allowlist e rate limit.
+401. [feito] Não armazenar IP puro; usar hash com salt/config.
+402. [feito] Não armazenar user-agent puro; guardar hash e dados derivados.
+403. [feito] Sanitizar payloads sensíveis e limitar tamanho.
+404. [feito] Registrar funil server-side: landing, criação, auth, editor, preview, review, checkout, order, payment, publicação.
+405. [feito] Registrar visitas públicas com `public_source` (`qr`, `share_card`, `copy_link`, `link`, `direct`).
+406. [feito] Registrar interações leves do viewer por `sendBeacon`: abertura, páginas vistas, conclusão, envelope, polaroid e CTA.
+407. [feito] Ajustar QR Code para usar `?src=qr` e cartão para usar `?src=share_card`.
+408. [feito] Criar métricas financeiras por pedidos/pagamentos existentes usando centavos inteiros.
+409. [feito] Criar funil principal com contagens, conversão e queda.
+410. [feito] Criar dashboard admin `/admin/analytics` com receita, funil, viewer, eventos recentes e erros.
+411. [feito] Criar analytics simples do dono em `/app/gifts/{gift}/analytics`.
+412. [feito] Integrar eventos administrativos importantes com analytics/activitylog.
+413. [pendente] Criar job/comando destrutivo de retenção/prune depois de validar política operacional.
 
 ## Fase 21 - Limpeza e expiração
 

@@ -1131,41 +1131,158 @@ timestamps
 
 ### 7.12 Analytics
 
+Analytics agora é uma camada própria de produto, privacidade e observabilidade interna. Ela não substitui logs técnicos externos no futuro, mas já permite acompanhar visitantes, funil, checkout, receita, viewer público e interações do presente sem gravar dados sensíveis.
+
+Princípios obrigatórios:
+
+- não guardar IP puro;
+- não guardar user-agent puro;
+- usar hash com salt configurável para IP, user-agent e identificadores técnicos;
+- não gravar texto de carta, mensagens, nomes de arquivos, `storage_path`, `public_code`, HTML ou payload bruto sensível;
+- mascarar paths públicos sensíveis, usando o padrão `/p/{slugToken}` em analytics;
+- aceitar eventos client-side apenas a partir da taxonomia permitida;
+- sanitizar e limitar payloads antes de persistir;
+- analytics nunca pode derrubar criação, checkout, publicação ou viewer.
+
+#### `analytics_sessions`
+
+Sessão first-party anônima/autenticada. O cookie `scrapbook_visitor` guarda apenas um UUID aleatório. Após login/cadastro, a sessão passa a ser associada ao `user_id`.
+
+```txt
+id bigint pk
+session_uuid uuid unique
+user_id fk users nullable
+first_seen_at timestamp nullable
+last_seen_at timestamp nullable
+entry_path text nullable
+current_path text nullable
+referrer text nullable
+utm_source varchar nullable
+utm_medium varchar nullable
+utm_campaign varchar nullable
+utm_content varchar nullable
+utm_term varchar nullable
+device_type varchar nullable -- mobile/tablet/desktop
+browser varchar nullable
+os varchar nullable
+locale varchar nullable
+timezone varchar nullable
+screen_size_bucket varchar nullable
+ip_hash varchar(64) nullable
+user_agent_hash varchar(64) nullable
+metadata jsonb nullable
+timestamps
+```
+
+#### `analytics_events`
+
+Evento genérico do produto. As strings vêm de `AnalyticsEventName` e `AnalyticsEventGroup`, não de strings soltas espalhadas no código.
+
+```txt
+id ulid pk
+event_uuid uuid unique nullable
+session_id fk analytics_sessions nullable
+user_id fk users nullable
+gift_id fk gifts nullable
+order_id fk orders nullable
+payment_id fk payments nullable
+plan_id fk plans nullable
+template_id fk templates nullable
+template_version_id fk template_versions nullable
+theme_id fk themes nullable
+theme_version_id fk theme_versions nullable
+occasion_id fk occasions nullable
+event_name varchar
+event_group varchar -- marketing, creation, auth, editor, checkout, payment, publication, share, viewer, admin, system, error
+occurred_at timestamp
+source varchar -- server, client, viewer, admin
+path text nullable
+referrer text nullable
+payload jsonb nullable -- sempre sanitizado
+metadata jsonb nullable -- sempre sanitizado
+timestamps
+```
+
+#### `gift_visits`
+
+Registra aberturas do viewer público. A URL de QR Code usa `?src=qr`; cartão compartilhável usa `?src=share_card`; demais origens caem em `copy_link`, `link`, `direct` ou `unknown`.
+
+```txt
+id ulid pk
+visit_uuid uuid unique nullable
+gift_id fk gifts
+analytics_session_id fk analytics_sessions nullable
+public_source varchar nullable
+session_hash varchar(64) nullable
+ip_hash varchar(64) nullable
+user_agent_hash varchar(64) nullable
+device_type varchar nullable
+browser varchar nullable
+os varchar nullable
+referrer text nullable -- host apenas
+opened_at timestamp
+completed_at timestamp nullable
+page_views_count int default 0
+interactions_count int default 0
+metadata jsonb nullable
+timestamps
+```
+
 #### `gift_events`
 
-```txt
-id ulid pk
-gift_id fk gifts
-page_id fk gift_pages nullable
-event_type varchar -- opened, page_viewed, shared, interaction_clicked, music_played, qr_downloaded
-viewer_session_hash varchar nullable
-ip_hash varchar nullable
-user_agent_hash varchar nullable
-device_type varchar nullable
-referrer_host varchar nullable
-metadata jsonb
-created_at timestamp
-```
-
-#### `gift_daily_metrics`
+Eventos específicos dentro do viewer/gift. `event_type` permanece por compatibilidade com a estrutura inicial, mas o campo principal novo é `event_name`.
 
 ```txt
 id ulid pk
 gift_id fk gifts
-date date
-opens int default 0
-unique_viewers int default 0
-page_views int default 0
-shares int default 0
-interactions int default 0
-last_opened_at timestamp nullable
+gift_visit_id fk gift_visits nullable
+analytics_session_id fk analytics_sessions nullable
+user_id fk users nullable
+event_name varchar nullable
+event_type varchar -- compatibilidade
+payload jsonb nullable
+metadata jsonb nullable
+occurred_at timestamp
+page_index int nullable
+page_id varchar nullable
+element_id varchar nullable
+element_type varchar nullable
 timestamps
-unique(gift_id, date)
 ```
 
-### 7.13 Auditoria/admin
+#### `analytics_daily_metrics`
 
-Se usar Spatie Activitylog, ele criará tabelas próprias. Ainda assim, você pode ter uma tabela de auditoria customizada para ações críticas.
+Tabela de agregados futuros. A primeira versão calcula dashboard a partir das tabelas transacionais, mas deixa essa base pronta para acelerar painéis.
+
+```txt
+id bigint pk
+date date
+metric_key varchar
+dimensions jsonb nullable
+value_numeric decimal(16,2)
+metadata jsonb nullable
+timestamps
+```
+
+### 7.13 Dashboard de analytics
+
+O admin `/admin/analytics` mostra:
+
+- receita total, últimos 7 dias, ticket médio e taxa de aprovação;
+- contagem de gifts criados/publicados;
+- visitantes estimados e visitas públicas;
+- funil principal de `landing_viewed` até `public_gift_opened`;
+- pedidos/pagamentos por status;
+- receita por plano, template, ocasião e tema;
+- gifts mais visualizados, fontes de tráfego, conclusão, envelopes e polaroids;
+- eventos recentes com payload já sanitizado;
+- eventos de erro/sistema como autosave, upload, mídia, asset, webhook e viewer.
+
+Usuário customer não acessa analytics global. O dono do gift tem uma tela simples em `/app/gifts/{gift}/analytics`, limitada a seus próprios gifts, com totais agregados e sem IP, user-agent ou detalhes invasivos.
+
+### 7.14 Auditoria/admin
+
+Spatie Activitylog está disponível para auditoria. Ações administrativas importantes também entram como eventos de analytics no grupo `admin`.
 
 #### `admin_audit_logs`
 
@@ -1234,9 +1351,38 @@ unique(provider, provider_event_id)
 ### Analytics
 
 ```txt
-index(gift_id, created_at)
-index(gift_id, event_type, created_at)
-index(event_type, created_at)
+analytics_sessions:
+index(user_id, last_seen_at)
+index(first_seen_at)
+index(last_seen_at)
+index(utm_source, utm_campaign)
+
+analytics_events:
+index(event_name)
+index(event_group)
+index(occurred_at)
+index(session_id, occurred_at)
+index(user_id, occurred_at)
+index(gift_id, occurred_at)
+index(order_id, occurred_at)
+index(payment_id, occurred_at)
+index(template_version_id, occurred_at)
+index(theme_version_id, occurred_at)
+index(occasion_id, occurred_at)
+
+gift_visits:
+index(gift_id, opened_at)
+index(analytics_session_id, opened_at)
+index(gift_id, public_source, opened_at)
+index(completed_at)
+
+gift_events:
+index(gift_id, event_type, occurred_at)
+index(gift_id, event_name, occurred_at)
+index(gift_visit_id, event_name, occurred_at)
+index(analytics_session_id, event_name, occurred_at)
+index(page_id, event_name)
+index(element_type, event_name)
 ```
 
 ### JSONB

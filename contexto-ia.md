@@ -17,7 +17,7 @@ O foco inicial é:
 
 O visual deve ser informal, jovem, emocional, bonito, com estética de scrapbook/caderno artesanal, mas com acabamento digital premium.
 
-## Prioridade atual: QA visual/mobile com assets reais
+## Prioridade atual: analytics, métricas e logs
 
 A landing v1 já existe como rascunho inicial de exploração visual da estética kraft/scrapbook/vintage. Ela NÃO é versão final do produto, NÃO valida promessas comerciais e NÃO deve ser tratada como referência definitiva para demo, templates reais ou experiência final.
 
@@ -27,9 +27,29 @@ Autenticação real mínima, Editor MVP, upload/mídia básica, preview privado,
 
 A fundação visual do scrapbook já foi aprofundada e as últimas etapas estabilizaram o editor sem criar feature grande nova: editor, preview e viewer usam renderer compartilhado, artboard padronizado, tema visual aplicado, autosave corrigido, aba Imagens limpa, seleção/manipulação básica de elementos existentes, correções de UX do editor visual, biblioteca inicial de stickers/assets decorativos, controles de elementos/camadas, histórico local com desfazer/refazer, link público de Gift publicado por slug + `public_code`, viewer público refinado, preview privado refinado, QR Code/cartão compartilhável, admin real de assets visuais, sistema correto de papel/fundo da página em `canvas.artboard.background`, Book Mode com duas páginas, transições leves no preview/viewer e componentes especiais de scrapbook (`interactive_envelope` e `flip_polaroid`).
 
-Neste momento, a prioridade principal é **QA visual/mobile com assets reais**. O foco é validar o fluxo completo com material visual final ou próximo do final, principalmente em celular, e aplicar apenas correções pequenas e objetivas em editor, viewer, admin, performance e documentação.
+Neste momento, a prioridade principal é **analytics, métricas e logs internos**. O foco é dar inteligência operacional ao produto: visitantes, funil de criação, editor, publicação, checkout, receita, viewer público, interações do presente, QR Code/cartão, eventos recentes, erros operacionais e auditoria administrativa.
 
-### Prioridade atual: QA visual/mobile com assets reais
+Analytics deve ser útil, mas seguro:
+
+- não integrar Google Analytics, Meta Pixel ou ferramenta externa nesta fase;
+- não avançar gateway real, landing final, demo pública ou feature visual nova;
+- não coletar IP puro;
+- não coletar user-agent puro;
+- se precisar identificar IP/user-agent, usar hash com salt/config;
+- não gravar textos escritos pelo usuário, carta, mensagens, HTML, nomes de arquivos, `storage_path`, `public_code` ou payload sensível;
+- sanitizar e limitar payloads antes de persistir;
+- mascarar paths públicos sensíveis em analytics, usando `/p/{slugToken}`;
+- admin acessa analytics global;
+- customer não acessa analytics global;
+- dono do gift pode ver apenas analytics simples do próprio gift;
+- tracking client-side deve ser controlado, permitido por taxonomia e leve;
+- viewer público não pode ser bloqueado por analytics.
+
+### QA visual/mobile com assets reais
+
+A rodada de QA visual/mobile com assets reais continua importante, mas agora fica como fase de validação/polimento paralela ou posterior à base de analytics. O foco dessa rodada segue sendo validar o fluxo completo com material visual final ou próximo do final, principalmente em celular, e aplicar apenas correções pequenas e objetivas em editor, viewer, admin, performance e documentação.
+
+### Checklist de QA visual/mobile com assets reais
 
 - Existe checklist interno em `/admin/visual-qa` e espelho em `docs/visual-qa-checklist.md`.
 - Antes de avançar feature nova, rode a auditoria automática com `php artisan scrapbook:visual-audit` e depois faça o QA manual com celular/assets reais.
@@ -64,7 +84,7 @@ Depois desta rodada de QA visual/mobile, a próxima fase deve ser escolhida pelo
 - O admin real de assets visuais já existe. Seeds e assets placeholder continuam como exemplo, não como fonte final de estética.
 - `Asset` é decoração do sistema/admin; `MediaItem` continua sendo foto/imagem enviada pelo usuário final dentro de um Gift.
 - Adesivos, papéis, texturas, fitas, molduras, envelopes, selos, flores e recortes devem ser cadastrados pelo admin/support, não hardcoded no frontend.
-- Código novo nesta fase deve focar QA visual/mobile, documentação interna e polimentos pequenos, mantendo checkout, gateway real, publicação pesada, landing, editor pesado, page flip 3D, mini games e novos componentes fora do escopo.
+- Código novo na fase de QA visual/mobile deve focar documentação interna e polimentos pequenos, mantendo checkout, gateway real, publicação pesada, landing, editor pesado, page flip 3D, mini games e novos componentes fora do escopo. Na fase atual de analytics, o mesmo cuidado de escopo continua: não avançar gateway, landing ou feature pública nova.
 - Template define estrutura: páginas, elementos iniciais, posições, tamanhos, rotações, placeholders, textos editáveis, ordem de camadas, composição e ritmo visual.
 - Theme define aparência: texturas, paleta, papel, fundo, sombras, profundidade e atmosfera visual.
 - Book Mode desktop/tablet largo já mostra livro aberto com página esquerda, página direita, lombada central, sombra na dobra e navegação por pares.
