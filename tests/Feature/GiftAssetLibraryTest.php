@@ -101,7 +101,7 @@ class GiftAssetLibraryTest extends TestCase
             ->assertJsonPath('data.assets.1.source', 'global');
     }
 
-    public function test_theme_version_can_associate_texture_assets_by_role_for_editor_payload(): void
+    public function test_page_background_endpoint_lists_papers_separately_from_stickers(): void
     {
         $user = User::factory()->create();
         $gift = Gift::factory()->create(['user_id' => $user->id]);
@@ -150,15 +150,21 @@ class GiftAssetLibraryTest extends TestCase
 
         $this
             ->actingAs($user)
-            ->getJson(route('app.gifts.assets.index', $gift))
+            ->getJson(route('app.gifts.page-backgrounds.index', $gift))
             ->assertOk()
-            ->assertJsonPath('data.assets.0.id', $paperTexture->id)
-            ->assertJsonPath('data.assets.0.role', ThemeAssetRoles::PAPER_TEXTURE)
-            ->assertJsonPath('data.assets.0.previewUrl', route('assets.preview', $paperTexture, false))
-            ->assertJsonPath('data.assets.1.id', $backgroundTexture->id)
-            ->assertJsonPath('data.assets.1.role', ThemeAssetRoles::BACKGROUND_TEXTURE)
+            ->assertJsonPath('data.pageBackgrounds.0.id', $paperTexture->id)
+            ->assertJsonPath('data.pageBackgrounds.0.role', ThemeAssetRoles::PAPER_TEXTURE)
+            ->assertJsonPath('data.pageBackgrounds.0.previewUrl', route('assets.preview', $paperTexture, false))
+            ->assertJsonMissing(['id' => $backgroundTexture->id])
             ->assertJsonMissing(['storage_path' => $paperTexture->storage_path])
             ->assertJsonMissing(['storage_path' => $backgroundTexture->storage_path]);
+
+        $this
+            ->actingAs($user)
+            ->getJson(route('app.gifts.assets.index', $gift))
+            ->assertOk()
+            ->assertJsonMissing(['id' => $paperTexture->id])
+            ->assertJsonMissing(['id' => $backgroundTexture->id]);
     }
 
     public function test_global_assets_are_available_for_gifts_using_any_theme(): void
@@ -353,6 +359,82 @@ class GiftAssetLibraryTest extends TestCase
             ->assertJsonValidationErrors('canvas.assets');
     }
 
+    public function test_page_canvas_accepts_theme_background(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => $this->canvas([], ['type' => 'theme']),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.artboard.background.type', 'theme');
+
+        $this->assertSame(['type' => 'theme'], $page->refresh()->canvas['artboard']['background']);
+    }
+
+    public function test_page_canvas_accepts_valid_paper_background_asset(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
+        $paper = $this->asset(['type' => AssetType::Paper->value]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => $this->canvas([], [
+                    'type' => 'asset',
+                    'assetId' => $paper->id,
+                    'fit' => 'cover',
+                    'opacity' => 1,
+                ]),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page.canvas.artboard.background.type', 'asset')
+            ->assertJsonPath('data.page.canvas.artboard.background.assetId', $paper->id)
+            ->assertJsonMissingPath('data.page.canvas.artboard.background.previewUrl')
+            ->assertJsonMissingPath('data.page.canvas.artboard.background.storage_path');
+    }
+
+    public function test_page_canvas_rejects_missing_sticker_or_url_background_asset(): void
+    {
+        $user = User::factory()->create();
+        $gift = Gift::factory()->create(['user_id' => $user->id]);
+        $page = GiftPage::factory()->create(['gift_id' => $gift->id, 'source_template_page_id' => null]);
+        $sticker = $this->asset(['type' => AssetType::Sticker->value]);
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => $this->canvas([], ['type' => 'asset', 'assetId' => 'missing_asset_id']),
+            ])
+            ->assertUnprocessable();
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => $this->canvas([], ['type' => 'asset', 'assetId' => $sticker->id]),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.artboard.background.assetId');
+
+        $this
+            ->actingAs($user)
+            ->patchJson(route('app.gifts.pages.update', [$gift, $page]), [
+                'canvas' => $this->canvas([], [
+                    'type' => 'asset',
+                    'assetId' => $sticker->id,
+                    'previewUrl' => 'https://example.test/paper.png',
+                ]),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('canvas.artboard.background');
+    }
+
     public function test_preview_and_public_viewer_resolve_assets_without_exposing_storage_path(): void
     {
         $user = User::factory()->create();
@@ -393,6 +475,50 @@ class GiftAssetLibraryTest extends TestCase
                 ->missing('gift.pages.0.canvas.elements.0.storage_path'));
     }
 
+    public function test_preview_and_public_viewer_resolve_page_background_without_storage_path(): void
+    {
+        $user = User::factory()->create();
+        $paper = $this->asset([
+            'name' => 'Papel seguro',
+            'type' => AssetType::Paper->value,
+            'storage_path' => 'private/system/paper.webp',
+        ]);
+        $draftGift = Gift::factory()->create(['user_id' => $user->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $draftGift->id,
+            'source_template_page_id' => null,
+            'canvas' => $this->canvas([], ['type' => 'asset', 'assetId' => $paper->id, 'fit' => 'cover', 'opacity' => 1]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('app.gifts.preview', $draftGift))
+            ->assertOk()
+            ->assertDontSee('private/system/paper.webp')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('gift.assets.0.id', $paper->id)
+                ->where('gift.pages.0.canvas.artboard.background.assetId', $paper->id)
+                ->missing('gift.assets.0.storage_path')
+                ->missing('gift.pages.0.canvas.artboard.background.storage_path'));
+
+        $publicGift = Gift::factory()->published()->create(['user_id' => $user->id]);
+        GiftPage::factory()->create([
+            'gift_id' => $publicGift->id,
+            'source_template_page_id' => null,
+            'canvas' => $this->canvas([], ['type' => 'asset', 'assetId' => $paper->id, 'fit' => 'cover', 'opacity' => 1]),
+        ]);
+
+        $this
+            ->get('/p/'.$publicGift->slug.'-'.$publicGift->public_code)
+            ->assertOk()
+            ->assertDontSee('private/system/paper.webp')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('gift.assets.0.id', $paper->id)
+                ->where('gift.pages.0.canvas.artboard.background.assetId', $paper->id)
+                ->missing('gift.assets.0.storage_path')
+                ->missing('gift.pages.0.canvas.artboard.background.storage_path'));
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -418,12 +544,17 @@ class GiftAssetLibraryTest extends TestCase
      * @param  array<int, array<string, mixed>>  $elements
      * @return array<string, mixed>
      */
-    private function canvas(array $elements): array
+    private function canvas(array $elements, ?array $background = null): array
     {
         return [
             'schemaVersion' => 1,
             'version' => 1,
-            'artboard' => ['width' => 1080, 'height' => 1350, 'unit' => 'px'],
+            'artboard' => [
+                'width' => 1080,
+                'height' => 1350,
+                'unit' => 'px',
+                'background' => $background ?? ['type' => 'theme'],
+            ],
             'elements' => $elements,
         ];
     }
