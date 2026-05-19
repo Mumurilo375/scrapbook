@@ -18,7 +18,7 @@ class GiftPageController extends Controller
         GiftPage $giftPage,
         UpdateGiftPageCanvas $updateGiftPageCanvas,
     ): RedirectResponse|JsonResponse {
-        $updatedPage = $updateGiftPageCanvas->handle($request->user(), $giftPage, $request->validated('canvas'));
+        $updatedPage = $updateGiftPageCanvas->handle($request->user(), $giftPage, $request->canvas());
 
         if ($request->expectsJson()) {
             return response()->json([

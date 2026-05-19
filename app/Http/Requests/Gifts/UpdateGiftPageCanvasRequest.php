@@ -79,6 +79,16 @@ class UpdateGiftPageCanvasRequest extends FormRequest
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function canvas(): array
+    {
+        $canvas = $this->input('canvas');
+
+        return is_array($canvas) ? $canvas : [];
+    }
+
     private function enumValue(mixed $value): string
     {
         return $value instanceof BackedEnum ? $value->value : (string) $value;

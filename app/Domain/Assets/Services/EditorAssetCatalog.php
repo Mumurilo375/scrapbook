@@ -177,7 +177,19 @@ final class EditorAssetCatalog
             return false;
         }
 
-        return PageBackgroundAssets::isDecorativeCanvasAsset($asset, $this->roleForGiftAsset($gift, $asset));
+        $roles = $this->rolesForGiftAsset($gift, $asset);
+
+        if ($roles === []) {
+            return PageBackgroundAssets::isDecorativeCanvasAsset($asset);
+        }
+
+        foreach ($roles as $role) {
+            if (PageBackgroundAssets::isDecorativeCanvasAsset($asset, $role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function assetIsAllowedPageBackgroundForGift(Gift $gift, Asset $asset): bool
@@ -186,24 +198,41 @@ final class EditorAssetCatalog
             return false;
         }
 
-        return PageBackgroundAssets::isPageBackground($asset, $this->roleForGiftAsset($gift, $asset));
+        $roles = $this->rolesForGiftAsset($gift, $asset);
+
+        if ($roles === []) {
+            return PageBackgroundAssets::isPageBackground($asset);
+        }
+
+        foreach ($roles as $role) {
+            if (PageBackgroundAssets::isPageBackground($asset, $role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    private function roleForGiftAsset(Gift $gift, Asset $asset): ?string
+    /**
+     * @return array<int, string>
+     */
+    private function rolesForGiftAsset(Gift $gift, Asset $asset): array
     {
         $gift->loadMissing('themeVersion');
 
         if ($gift->theme_version_id === null) {
-            return null;
+            return [];
         }
 
-        $themeVersion = $asset->themeVersions()
+        return $asset->themeVersions()
             ->whereKey($gift->theme_version_id)
-            ->first();
-
-        $role = $themeVersion?->pivot?->role;
-
-        return is_string($role) && trim($role) !== '' ? trim($role) : null;
+            ->get()
+            ->map(fn ($themeVersion): mixed => $themeVersion->pivot?->role)
+            ->filter(fn (mixed $role): bool => is_string($role) && trim($role) !== '')
+            ->map(fn (mixed $role): string => trim((string) $role))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function editorRole(Asset $asset): ?string
