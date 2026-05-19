@@ -36,6 +36,29 @@ return [
         'max_storage_mb' => (int) env('SCRAPBOOK_MEDIA_MAX_STORAGE_MB', 50),
     ],
 
+    'assets' => [
+        'disk' => env('SCRAPBOOK_ASSET_DISK', env('FILESYSTEM_DISK', 'local')),
+        'allowed_mime_types' => [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ],
+        'allowed_extensions' => [
+            'jpg',
+            'jpeg',
+            'png',
+            'webp',
+        ],
+        'mime_extensions' => [
+            'image/jpeg' => ['jpg', 'jpeg'],
+            'image/png' => ['png'],
+            'image/webp' => ['webp'],
+        ],
+        'max_upload_kb' => (int) env('SCRAPBOOK_ASSET_MAX_UPLOAD_KB', 8192),
+        'max_input_width' => (int) env('SCRAPBOOK_ASSET_MAX_INPUT_WIDTH', 6000),
+        'max_input_height' => (int) env('SCRAPBOOK_ASSET_MAX_INPUT_HEIGHT', 6000),
+    ],
+
     'gifts' => [
         'default_lifetime_days' => (int) env('SCRAPBOOK_GIFT_DEFAULT_LIFETIME_DAYS', 180),
     ],
