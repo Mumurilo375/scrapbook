@@ -4,6 +4,7 @@ namespace App\Domain\Assets\Services;
 
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Models\AssetCategory;
+use App\Domain\Assets\Support\PageBackgroundAssets;
 use App\Domain\Gifts\Models\Gift;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -51,6 +52,32 @@ final class EditorAssetCatalog
             });
 
         return $themeAssets->concat($globalAssets)->values();
+    }
+
+    /**
+     * @return Collection<int, Asset>
+     */
+    public function decorativeAssetsForGift(Gift $gift): Collection
+    {
+        return $this->availableForGift($gift)
+            ->filter(fn (Asset $asset): bool => PageBackgroundAssets::isDecorativeCanvasAsset(
+                $asset,
+                $this->editorRole($asset),
+            ))
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, Asset>
+     */
+    public function pageBackgroundsForGift(Gift $gift): Collection
+    {
+        return $this->availableForGift($gift)
+            ->filter(fn (Asset $asset): bool => PageBackgroundAssets::isPageBackground(
+                $asset,
+                $this->editorRole($asset),
+            ))
+            ->values();
     }
 
     /**
@@ -142,6 +169,48 @@ final class EditorAssetCatalog
         }
 
         return ! $asset->themeVersions()->exists();
+    }
+
+    public function assetIsAllowedDecorativeForGift(Gift $gift, Asset $asset): bool
+    {
+        if (! $this->assetIsAllowedForGift($gift, $asset)) {
+            return false;
+        }
+
+        return PageBackgroundAssets::isDecorativeCanvasAsset($asset, $this->roleForGiftAsset($gift, $asset));
+    }
+
+    public function assetIsAllowedPageBackgroundForGift(Gift $gift, Asset $asset): bool
+    {
+        if (! $this->assetIsAllowedForGift($gift, $asset)) {
+            return false;
+        }
+
+        return PageBackgroundAssets::isPageBackground($asset, $this->roleForGiftAsset($gift, $asset));
+    }
+
+    private function roleForGiftAsset(Gift $gift, Asset $asset): ?string
+    {
+        $gift->loadMissing('themeVersion');
+
+        if ($gift->theme_version_id === null) {
+            return null;
+        }
+
+        $themeVersion = $asset->themeVersions()
+            ->whereKey($gift->theme_version_id)
+            ->first();
+
+        $role = $themeVersion?->pivot?->role;
+
+        return is_string($role) && trim($role) !== '' ? trim($role) : null;
+    }
+
+    private function editorRole(Asset $asset): ?string
+    {
+        $role = $asset->getAttribute('editor_role');
+
+        return is_string($role) && trim($role) !== '' ? trim($role) : null;
     }
 
     private function whereCategoryIsActiveOrEmpty(Builder $query): Builder

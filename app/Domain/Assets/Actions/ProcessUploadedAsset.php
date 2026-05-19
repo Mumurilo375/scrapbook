@@ -45,10 +45,18 @@ final class ProcessUploadedAsset
                 'width' => $source['width'],
                 'height' => $source['height'],
             ];
-        } catch (Throwable $exception) {
-            Storage::disk($disk)->delete($storagePath);
+        } catch (ValidationException $exception) {
+            $this->deleteStoredFileQuietly($disk, $storagePath);
 
             throw $exception;
+        } catch (Throwable $exception) {
+            $this->deleteStoredFileQuietly($disk, $storagePath);
+
+            report($exception);
+
+            throw ValidationException::withMessages([
+                'asset_file' => 'Não foi possível salvar o asset no storage configurado. Verifique se o storage está online e tente novamente.',
+            ]);
         }
     }
 
@@ -144,5 +152,14 @@ final class ProcessUploadedAsset
                 'asset_file' => 'Tipo de asset não suportado.',
             ]),
         };
+    }
+
+    private function deleteStoredFileQuietly(string $disk, string $path): void
+    {
+        try {
+            Storage::disk($disk)->delete($path);
+        } catch (Throwable) {
+            //
+        }
     }
 }

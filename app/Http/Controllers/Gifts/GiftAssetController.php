@@ -31,7 +31,7 @@ class GiftAssetController extends Controller
             'success' => true,
             'data' => [
                 'categories' => EditorAssetCategoryResource::collection($assetCatalog->activeCategories())->resolve($request),
-                'assets' => EditorAssetResource::collection($assetCatalog->availableForGift($gift))->resolve($request),
+                'assets' => EditorAssetResource::collection($assetCatalog->decorativeAssetsForGift($gift))->resolve($request),
             ],
         ]);
     }
