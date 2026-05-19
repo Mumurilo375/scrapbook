@@ -17,7 +17,7 @@ final readonly class GenerateGiftQrCode
 
     public function handle(Gift $gift): GiftQrCode
     {
-        $publicUrl = $this->urlGenerator->publicUrlOrFail($gift);
+        $publicUrl = $this->urlGenerator->publicUrlOrFail($gift, source: 'qr');
 
         $options = new QROptions([
             'addQuietzone' => true,

@@ -9,7 +9,7 @@ final readonly class GiftShareUrlGenerator
 {
     public function __construct(private PublicGiftResolver $publicGiftResolver) {}
 
-    public function publicUrl(Gift $gift, bool $absolute = true): ?string
+    public function publicUrl(Gift $gift, bool $absolute = true, ?string $source = null): ?string
     {
         if (! $gift->isPubliclyAccessible()) {
             return null;
@@ -21,12 +21,18 @@ final readonly class GiftShareUrlGenerator
             return null;
         }
 
-        return route('public.gifts.show', $slugToken, $absolute);
+        $parameters = [$slugToken];
+
+        if (in_array($source, ['qr', 'share_card', 'copy_link'], true)) {
+            $parameters['src'] = $source;
+        }
+
+        return route('public.gifts.show', $parameters, $absolute);
     }
 
-    public function publicUrlOrFail(Gift $gift, bool $absolute = true): string
+    public function publicUrlOrFail(Gift $gift, bool $absolute = true, ?string $source = null): string
     {
-        $publicUrl = $this->publicUrl($gift, $absolute);
+        $publicUrl = $this->publicUrl($gift, $absolute, $source);
 
         if ($publicUrl === null) {
             throw new NotFoundHttpException('Publique o presente para gerar o link final.');

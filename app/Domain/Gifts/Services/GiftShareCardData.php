@@ -17,7 +17,7 @@ final readonly class GiftShareCardData
     {
         $gift->loadMissing('themeVersion.theme');
 
-        $publicUrl = $this->urlGenerator->publicUrlOrFail($gift);
+        $publicUrl = $this->urlGenerator->publicUrlOrFail($gift, source: 'share_card');
         $themeConfig = ThemeConfig::publicConfig($gift->themeVersion?->config);
         $colors = data_get($themeConfig, 'tokens.colors', []);
 
