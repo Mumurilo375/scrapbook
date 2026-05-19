@@ -6,6 +6,7 @@ use App\Domain\Assets\Enums\AssetType;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Assets\Models\AssetCategory;
 use App\Domain\Assets\Support\AssetMetadata;
+use App\Domain\Assets\Support\ThemeAssetRoles;
 use App\Domain\Editor\CanvasNormalizer;
 use App\Domain\Payments\Models\Plan;
 use App\Domain\Templates\Enums\PageType;
@@ -14,6 +15,7 @@ use App\Domain\Templates\Models\Occasion;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Templates\Models\TemplatePage;
 use App\Domain\Templates\Models\TemplateVersion;
+use App\Domain\Templates\Support\PremiumTemplateCanvasFactory;
 use App\Domain\Themes\Enums\ThemeVersionStatus;
 use App\Domain\Themes\Models\Theme;
 use App\Domain\Themes\Models\ThemeVersion;
@@ -133,6 +135,7 @@ class InitialDomainSeeder extends Seeder
                             'edgeWear' => true,
                         ],
                     ],
+                    'textures' => $this->themeTextureConfig(),
                     'elements' => [
                         'text' => ['defaultColor' => '#3A2418', 'headingColor' => '#3A2418'],
                         'image' => ['defaultFrame' => 'polaroid', 'shadow' => true],
@@ -184,6 +187,7 @@ class InitialDomainSeeder extends Seeder
                             'edgeWear' => true,
                         ],
                     ],
+                    'textures' => $this->themeTextureConfig(),
                     'elements' => [
                         'text' => ['defaultColor' => '#3C2630', 'headingColor' => '#8E2F45'],
                         'image' => ['defaultFrame' => 'polaroid', 'shadow' => true],
@@ -235,6 +239,7 @@ class InitialDomainSeeder extends Seeder
                             'edgeWear' => true,
                         ],
                     ],
+                    'textures' => $this->themeTextureConfig(),
                     'elements' => [
                         'text' => ['defaultColor' => '#3F2A24', 'headingColor' => '#C9505C'],
                         'image' => ['defaultFrame' => 'polaroid', 'shadow' => true],
@@ -250,7 +255,21 @@ class InitialDomainSeeder extends Seeder
      */
     private function templateDefinitions(string $planId): array
     {
+        $premiumCanvas = new PremiumTemplateCanvasFactory($this->assetIdsBySlug());
+
         return [
+            [
+                'slug' => 'love-letter-scrapbook-premium',
+                'name' => 'Love Letter Scrapbook',
+                'description' => 'Scrapbook romântico premium com carta, polaroids, fitas, selos e colagem orgânica.',
+                'occasion_slug' => 'amor-namoro',
+                'theme_slug' => 'kraft-vintage',
+                'sort_order' => 5,
+                'version_name' => 'Love Letter Scrapbook v1',
+                'plan_id' => $planId,
+                'premium' => true,
+                'pages' => $premiumCanvas->loveLetterPages(),
+            ],
             [
                 'slug' => 'amor-namoro-basico',
                 'name' => 'Amor / Namoro',
@@ -267,6 +286,18 @@ class InitialDomainSeeder extends Seeder
                     ['page_type' => PageType::Music, 'name' => 'Música', 'sort_order' => 40, 'layout' => 'music', 'text' => 'Uma trilha para lembrar de nós', 'music_title' => 'Nossa música'],
                     ['page_type' => PageType::Final, 'name' => 'Página final', 'sort_order' => 50, 'layout' => 'final', 'text' => 'Com carinho, sempre.', 'sticker' => 'fim'],
                 ],
+            ],
+            [
+                'slug' => 'birthday-handmade-premium',
+                'name' => 'Birthday Handmade',
+                'description' => 'Template premium de aniversário com fotos inclinadas, calendário, confete, etiquetas e desejos.',
+                'occasion_slug' => 'feliz-aniversario',
+                'theme_slug' => 'aniversario-fofo',
+                'sort_order' => 15,
+                'version_name' => 'Birthday Handmade v1',
+                'plan_id' => $planId,
+                'premium' => true,
+                'pages' => $premiumCanvas->birthdayPages(),
             ],
             [
                 'slug' => 'feliz-aniversario-basico',
@@ -286,6 +317,18 @@ class InitialDomainSeeder extends Seeder
                 ],
             ],
             [
+                'slug' => 'best-friends-collage-premium',
+                'name' => 'Best Friends Collage',
+                'description' => 'Colagem premium de amizade com bilhetes, doodles, fotos inclinadas e frases internas.',
+                'occasion_slug' => 'melhor-amiga',
+                'theme_slug' => 'romance-delicado',
+                'sort_order' => 25,
+                'version_name' => 'Best Friends Collage v1',
+                'plan_id' => $planId,
+                'premium' => true,
+                'pages' => $premiumCanvas->bestFriendsPages(),
+            ],
+            [
                 'slug' => 'melhor-amiga-basico',
                 'name' => 'Melhor Amiga',
                 'description' => 'Template de amizade com capa, história, momentos, piadas internas e final.',
@@ -302,7 +345,64 @@ class InitialDomainSeeder extends Seeder
                     ['page_type' => PageType::Final, 'name' => 'Página final', 'sort_order' => 50, 'layout' => 'final', 'text' => 'Obrigada por ser parte da minha história.', 'sticker' => 'sempre'],
                 ],
             ],
+            [
+                'slug' => 'vintage-memory-book-premium',
+                'name' => 'Vintage Memory Book',
+                'description' => 'Template premium nostálgico com jornal, selo, molduras antigas, carta curta e flores discretas.',
+                'occasion_slug' => 'aniversario-de-namoro',
+                'theme_slug' => 'kraft-vintage',
+                'sort_order' => 35,
+                'version_name' => 'Vintage Memory Book v1',
+                'plan_id' => $planId,
+                'premium' => true,
+                'pages' => $premiumCanvas->vintageMemoryPages(),
+            ],
         ];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function themeTextureConfig(): array
+    {
+        return [
+            'appBackground' => [
+                'assetRole' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+                'opacity' => 0.72,
+                'blendMode' => 'multiply',
+                'size' => 'cover',
+            ],
+            'bookSurface' => [
+                'assetRole' => ThemeAssetRoles::BOOK_TEXTURE,
+                'opacity' => 0.58,
+                'blendMode' => 'overlay',
+                'size' => 'cover',
+            ],
+            'pagePaper' => [
+                'assetRole' => ThemeAssetRoles::PAPER_TEXTURE,
+                'opacity' => 0.84,
+                'blendMode' => 'multiply',
+                'size' => 'cover',
+            ],
+            'agingOverlay' => [
+                'assetRole' => ThemeAssetRoles::AGING_OVERLAY,
+                'opacity' => 0.18,
+                'blendMode' => 'multiply',
+                'size' => 'cover',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function assetIdsBySlug(): array
+    {
+        return Asset::query()
+            ->whereIn('slug', collect($this->decorativeAssetDefinitions())->pluck('slug')->all())
+            ->pluck('id', 'slug')
+            ->map(fn (mixed $id): string => (string) $id)
+            ->all();
     }
 
     /**
@@ -375,6 +475,63 @@ class InitialDomainSeeder extends Seeder
                 ]);
             }
         }
+
+        foreach ($this->textureAssetDefinitions() as $definition) {
+            $asset = Asset::query()->updateOrCreate(
+                ['slug' => $definition['slug']],
+                [
+                    'asset_category_id' => $categories[$definition['category_slug']]->id ?? null,
+                    'name' => $definition['name'],
+                    'type' => $definition['type'],
+                    'storage_disk' => 'public',
+                    'storage_path' => '',
+                    'public_url' => $definition['public_url'],
+                    'mime_type' => 'image/svg+xml',
+                    'size_bytes' => null,
+                    'width' => $definition['default_size']['w'],
+                    'height' => $definition['default_size']['h'],
+                    'metadata' => AssetMetadata::normalizeForVisualAsset([
+                        'seed' => true,
+                        'placeholderTexture' => true,
+                        'renderStyle' => $definition['render_style'],
+                        'editor' => [
+                            'renderMode' => 'image',
+                            'defaultSize' => $definition['default_size'],
+                            'keywords' => $definition['keywords'] ?? [],
+                        ],
+                    ], $definition['type'], $definition['default_size']['w'], $definition['default_size']['h'], forceImageRenderMode: true),
+                    'is_active' => true,
+                    'sort_order' => $definition['sort_order'],
+                ],
+            );
+
+            foreach (($definition['theme_roles'] ?? []) as $themeSlug => $roles) {
+                $themeVersion = $themeVersions[$themeSlug] ?? null;
+
+                if (! $themeVersion instanceof ThemeVersion) {
+                    continue;
+                }
+
+                foreach (array_values((array) $roles) as $index => $role) {
+                    if (! is_string($role) || ! ThemeAssetRoles::isKnown($role)) {
+                        continue;
+                    }
+
+                    $themeVersion->assets()->syncWithoutDetaching([
+                        $asset->id => [
+                            'id' => (string) Str::ulid(),
+                            'role' => $role,
+                            'sort_order' => $definition['sort_order'] + ($index * 2),
+                            'config' => json_encode([
+                                'schemaVersion' => 1,
+                                'seedPlaceholder' => true,
+                                'note' => 'Substitua por textura real enviada pelo admin.',
+                            ], JSON_THROW_ON_ERROR),
+                        ],
+                    ]);
+                }
+            }
+        }
     }
 
     /**
@@ -430,7 +587,7 @@ class InitialDomainSeeder extends Seeder
                 'colors' => ['primary' => '#E8C27A', 'secondary' => '#B98247', 'ink' => '#7A4A25'],
                 'default_size' => ['w' => 240, 'h' => 86],
                 'sort_order' => 20,
-                'theme_slugs' => ['kraft-vintage'],
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado', 'aniversario-fofo'],
                 'keywords' => ['fita', 'kraft', 'colagem'],
             ],
             [
@@ -442,7 +599,7 @@ class InitialDomainSeeder extends Seeder
                 'colors' => ['primary' => '#E8899E', 'secondary' => '#F7D879', 'ink' => '#7A5D2E'],
                 'default_size' => ['w' => 190, 'h' => 190],
                 'sort_order' => 30,
-                'theme_slugs' => ['romance-delicado'],
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado', 'aniversario-fofo'],
                 'keywords' => ['flor', 'romance', 'delicado'],
             ],
             [
@@ -466,7 +623,7 @@ class InitialDomainSeeder extends Seeder
                 'colors' => ['primary' => '#FFF2C7', 'secondary' => '#C79E67', 'ink' => '#5B3926'],
                 'default_size' => ['w' => 280, 'h' => 130],
                 'sort_order' => 50,
-                'theme_slugs' => ['kraft-vintage', 'romance-delicado'],
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado', 'aniversario-fofo'],
                 'keywords' => ['etiqueta', 'papel', 'texto'],
             ],
             [
@@ -478,7 +635,7 @@ class InitialDomainSeeder extends Seeder
                 'colors' => ['primary' => '#F7E2B6', 'secondary' => '#C99B63', 'ink' => '#7B5A43'],
                 'default_size' => ['w' => 320, 'h' => 170],
                 'sort_order' => 60,
-                'theme_slugs' => ['kraft-vintage'],
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado', 'aniversario-fofo'],
                 'keywords' => ['papel', 'rasgado', 'vintage'],
             ],
             [
@@ -541,6 +698,127 @@ class InitialDomainSeeder extends Seeder
                 'theme_slugs' => [],
                 'keywords' => ['moldura', 'foto', 'polaroid'],
             ],
+            [
+                'name' => 'Envelope Carta Creme',
+                'slug' => 'envelope-carta-creme',
+                'type' => AssetType::Envelope->value,
+                'category_slug' => 'envelopes',
+                'shape' => 'envelope',
+                'colors' => ['primary' => '#F7DFB6', 'secondary' => '#C89A63', 'ink' => '#7B5134'],
+                'default_size' => ['w' => 420, 'h' => 300],
+                'sort_order' => 120,
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado'],
+                'keywords' => ['envelope', 'carta', 'romance'],
+            ],
+            [
+                'name' => 'Fita Rosa Translúcida',
+                'slug' => 'fita-rosa-translucida',
+                'type' => AssetType::Tape->value,
+                'category_slug' => 'fitas',
+                'shape' => 'tape',
+                'colors' => ['primary' => '#F4B8BC', 'secondary' => '#FBE0DC', 'ink' => '#9B5866'],
+                'default_size' => ['w' => 250, 'h' => 82],
+                'sort_order' => 130,
+                'theme_slugs' => ['kraft-vintage', 'romance-delicado', 'aniversario-fofo'],
+                'keywords' => ['fita', 'rosa', 'colagem'],
+            ],
+            [
+                'name' => 'Calendário Especial',
+                'slug' => 'calendario-especial',
+                'type' => AssetType::Paper->value,
+                'category_slug' => 'aniversario',
+                'shape' => 'calendar',
+                'colors' => ['primary' => '#FFF8EF', 'secondary' => '#F3B66D', 'ink' => '#6F3E2E'],
+                'default_size' => ['w' => 300, 'h' => 330],
+                'sort_order' => 140,
+                'theme_slugs' => ['aniversario-fofo'],
+                'keywords' => ['calendario', 'data', 'aniversario'],
+            ],
+            [
+                'name' => 'Jornal Recortado',
+                'slug' => 'jornal-recortado',
+                'type' => AssetType::Newspaper->value,
+                'category_slug' => 'jornal',
+                'shape' => 'newspaper',
+                'colors' => ['primary' => '#E8D7B8', 'secondary' => '#B08A61', 'ink' => '#5D4634'],
+                'default_size' => ['w' => 430, 'h' => 270],
+                'sort_order' => 150,
+                'theme_slugs' => ['kraft-vintage'],
+                'keywords' => ['jornal', 'vintage', 'recorte'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function textureAssetDefinitions(): array
+    {
+        return [
+            [
+                'name' => 'Textura Papel Kraft Placeholder',
+                'slug' => 'textura-papel-kraft-placeholder',
+                'type' => AssetType::Paper->value,
+                'category_slug' => 'texturas',
+                'render_style' => 'texture',
+                'public_url' => '/system-assets/textura-papel-kraft.svg',
+                'default_size' => ['w' => 900, 'h' => 900],
+                'sort_order' => 200,
+                'theme_roles' => [
+                    'kraft-vintage' => ThemeAssetRoles::PAPER_TEXTURE,
+                    'romance-delicado' => ThemeAssetRoles::PAPER_TEXTURE,
+                    'aniversario-fofo' => ThemeAssetRoles::PAPER_TEXTURE,
+                ],
+                'keywords' => ['papel', 'kraft', 'textura'],
+            ],
+            [
+                'name' => 'Textura Fundo Tecido Placeholder',
+                'slug' => 'textura-fundo-tecido-placeholder',
+                'type' => AssetType::Background->value,
+                'category_slug' => 'texturas',
+                'render_style' => 'background',
+                'public_url' => '/system-assets/textura-fundo-tecido.svg',
+                'default_size' => ['w' => 1200, 'h' => 900],
+                'sort_order' => 210,
+                'theme_roles' => [
+                    'kraft-vintage' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+                    'romance-delicado' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+                    'aniversario-fofo' => ThemeAssetRoles::BACKGROUND_TEXTURE,
+                ],
+                'keywords' => ['fundo', 'mesa', 'tecido'],
+            ],
+            [
+                'name' => 'Textura Capa de Livro Placeholder',
+                'slug' => 'textura-capa-livro-placeholder',
+                'type' => AssetType::Texture->value,
+                'category_slug' => 'texturas',
+                'render_style' => 'texture',
+                'public_url' => '/system-assets/textura-capa-livro.svg',
+                'default_size' => ['w' => 900, 'h' => 900],
+                'sort_order' => 220,
+                'theme_roles' => [
+                    'kraft-vintage' => ThemeAssetRoles::BOOK_TEXTURE,
+                    'romance-delicado' => ThemeAssetRoles::BOOK_TEXTURE,
+                    'aniversario-fofo' => ThemeAssetRoles::BOOK_TEXTURE,
+                ],
+                'keywords' => ['livro', 'capa', 'superficie'],
+            ],
+            [
+                'name' => 'Overlay Papel Envelhecido Placeholder',
+                'slug' => 'overlay-papel-envelhecido-placeholder',
+                'type' => AssetType::Overlay->value,
+                'category_slug' => 'texturas',
+                'render_style' => 'overlay',
+                'public_url' => '/system-assets/overlay-papel-envelhecido.svg',
+                'default_size' => ['w' => 900, 'h' => 900],
+                'sort_order' => 230,
+                'theme_roles' => [
+                    'kraft-vintage' => ThemeAssetRoles::AGING_OVERLAY,
+                    'romance-delicado' => ThemeAssetRoles::AGING_OVERLAY,
+                    'aniversario-fofo' => ThemeAssetRoles::AGING_OVERLAY,
+                ],
+                'keywords' => ['envelhecido', 'mancha', 'overlay'],
+            ],
         ];
     }
 
@@ -584,7 +862,11 @@ class InitialDomainSeeder extends Seeder
                 'description' => $definition['description'],
                 'is_active' => true,
                 'sort_order' => $definition['sort_order'],
-                'metadata' => ['schemaVersion' => 1, 'seed' => true],
+                'metadata' => [
+                    'schemaVersion' => 1,
+                    'seed' => true,
+                    'premium' => (bool) ($definition['premium'] ?? false),
+                ],
             ],
         );
 
@@ -594,8 +876,15 @@ class InitialDomainSeeder extends Seeder
                 'theme_version_id' => $themeVersions[$definition['theme_slug']]->id,
                 'status' => TemplateVersionStatus::Published,
                 'name' => $definition['version_name'],
-                'preview_config' => ['schemaVersion' => 1],
-                'default_config' => ['schemaVersion' => 1, 'plan_id' => $definition['plan_id']],
+                'preview_config' => [
+                    'schemaVersion' => 1,
+                    'premium' => (bool) ($definition['premium'] ?? false),
+                ],
+                'default_config' => [
+                    'schemaVersion' => 1,
+                    'plan_id' => $definition['plan_id'],
+                    'premium' => (bool) ($definition['premium'] ?? false),
+                ],
                 'published_at' => now(),
             ],
         );
@@ -606,16 +895,16 @@ class InitialDomainSeeder extends Seeder
                 [
                     'page_type' => $page['page_type'],
                     'name' => $page['name'],
-                    'canvas' => $this->canvas($page),
-                    'editable_schema' => [
+                    'canvas' => is_array($page['canvas'] ?? null) ? $page['canvas'] : $this->canvas($page),
+                    'editable_schema' => is_array($page['editable_schema'] ?? null) ? $page['editable_schema'] : [
                         'schemaVersion' => 1,
                         'fields' => ['main_text', 'photo_1'],
                     ],
-                    'constraints' => [
+                    'constraints' => is_array($page['constraints'] ?? null) ? $page['constraints'] : [
                         'schemaVersion' => 1,
                         'maxTextLength' => 700,
                     ],
-                    'metadata' => ['schemaVersion' => 1],
+                    'metadata' => is_array($page['metadata'] ?? null) ? $page['metadata'] : ['schemaVersion' => 1],
                 ],
             );
         }
