@@ -113,6 +113,7 @@ export type EditableGift = {
     public_url: string | null;
     share_url: string | null;
     assets_index_url: string;
+    page_backgrounds_index_url: string;
     media_index_url: string;
     media_store_url: string;
     dashboard_url: string;

@@ -57,6 +57,7 @@ export function GiftAssetsPanel({
                 </div>
                 <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0 text-[#7A2634]" />
             </div>
+            <p className="text-sm font-semibold text-[#5F4636]">Clique em um adesivo para adicionar à página.</p>
 
             <label className="relative block">
                 <span className="sr-only">Buscar adesivo</span>

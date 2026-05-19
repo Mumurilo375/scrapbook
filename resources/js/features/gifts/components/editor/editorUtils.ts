@@ -26,7 +26,7 @@ export function normalizeCanvas(rawCanvas: unknown): Canvas {
             width: positiveNumber(artboard.width, DEFAULT_ARTBOARD.width),
             height: positiveNumber(artboard.height, DEFAULT_ARTBOARD.height),
             unit: 'px',
-            background: isRecord(artboard.background) ? artboard.background : { type: 'theme' },
+            background: normalizePageBackground(artboard.background),
             safeArea: isRecord(artboard.safeArea)
                 ? {
                       top: nonNegativeNumber(artboard.safeArea.top, DEFAULT_ARTBOARD.safeArea.top),
@@ -183,6 +183,30 @@ function nonNegativeNumber(value: unknown, fallback: number): number {
     const number = numberValue(value, fallback);
 
     return number >= 0 ? number : fallback;
+}
+
+function normalizePageBackground(value: unknown): Canvas['artboard']['background'] {
+    if (!isRecord(value) || value.type !== 'asset') {
+        return { type: 'theme' };
+    }
+
+    const rawAssetId = value.assetId ?? value.asset_id;
+    const assetId = typeof rawAssetId === 'string' || typeof rawAssetId === 'number' ? rawAssetId : null;
+
+    if (assetId === null || String(assetId).trim() === '') {
+        return { type: 'theme' };
+    }
+
+    return {
+        type: 'asset',
+        assetId,
+        fit: value.fit === 'contain' ? 'contain' : 'cover',
+        opacity: clampOpacity(value.opacity),
+    };
+}
+
+function clampOpacity(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
 }
 
 function truncateLabel(value: string, maxLength: number): string {

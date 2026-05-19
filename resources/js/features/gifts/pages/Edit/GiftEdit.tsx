@@ -20,6 +20,7 @@ import { GiftImagesPanel } from '../../components/editor/GiftImagesPanel';
 import { GiftLayersPanel } from '../../components/editor/GiftLayersPanel';
 import type { GiftMediaLibraryHandle } from '../../components/editor/GiftMediaLibrary';
 import { GiftMetadataPanel, type GiftMetadataDraft } from '../../components/editor/GiftMetadataPanel';
+import { GiftPageBackgroundPanel } from '../../components/editor/GiftPageBackgroundPanel';
 import { GiftPagePreview } from '../../components/editor/GiftPagePreview';
 import { GiftPageSidebar } from '../../components/editor/GiftPageSidebar';
 import {
@@ -59,6 +60,7 @@ import {
     toggleLocked,
     type LayerAction,
 } from '../../components/editor/layerUtils';
+import { isDecorativeAsset } from '../../components/editor/pageBackgroundAssets';
 import { useEditorHistory } from '../../components/editor/useEditorHistory';
 import {
     AutosaveRequestError,
@@ -115,7 +117,15 @@ type AssetIndexResponse = {
     success: boolean;
 };
 
+type PageBackgroundIndexResponse = {
+    data: {
+        pageBackgrounds: EditorAsset[];
+    };
+    success: boolean;
+};
+
 type AssetLibraryStatus = 'loading' | 'ready' | 'error';
+type PageBackgroundLibraryStatus = 'loading' | 'ready' | 'error';
 
 type ImageUploadResponse = {
     data?: EditorMediaItem;
@@ -216,9 +226,14 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     const [metadataStatus, setMetadataStatus] = useState<SaveStatus>(recoveredMetadataDraft ? 'dirty' : 'idle');
     const [metadataErrors, setMetadataErrors] = useState<Partial<Record<keyof GiftMetadataDraft, string>>>({});
     const [assetCategories, setAssetCategories] = useState<EditorAssetCategory[]>([]);
-    const [assets, setAssets] = useState<EditorAsset[]>(initialAssets);
+    const [renderAssets, setRenderAssets] = useState<EditorAsset[]>(initialAssets);
+    const [assets, setAssets] = useState<EditorAsset[]>(() => initialAssets.filter(isDecorativeAsset));
+    const [pageBackgrounds, setPageBackgrounds] = useState<EditorAsset[]>([]);
     const [assetLibraryStatus, setAssetLibraryStatus] = useState<AssetLibraryStatus>('loading');
     const [assetLibraryError, setAssetLibraryError] = useState<string | null>(null);
+    const [pageBackgroundLibraryStatus, setPageBackgroundLibraryStatus] =
+        useState<PageBackgroundLibraryStatus>('loading');
+    const [pageBackgroundLibraryError, setPageBackgroundLibraryError] = useState<string | null>(null);
     const [localDraftNotice, setLocalDraftNotice] = useState(
         () => Boolean(recoveredMetadataDraft) || Object.keys(recoveredPageDrafts).length > 0,
     );
@@ -286,8 +301,13 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                 throw new Error('Não foi possível carregar os adesivos.');
             }
 
+            const loadedAssets = Array.isArray(payload.data.assets)
+                ? payload.data.assets.filter(isDecorativeAsset)
+                : [];
+
             setAssetCategories(Array.isArray(payload.data.categories) ? payload.data.categories : []);
-            setAssets(Array.isArray(payload.data.assets) ? payload.data.assets : []);
+            setAssets(loadedAssets);
+            setRenderAssets((current) => mergeAssets(current, loadedAssets));
             setAssetLibraryStatus('ready');
         } catch (error) {
             setAssetLibraryError(error instanceof Error ? error.message : 'Não foi possível carregar os adesivos.');
@@ -295,9 +315,46 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
         }
     }, [canEditGift, gift.assets_index_url]);
 
+    const loadPageBackgrounds = useCallback(async () => {
+        if (!canEditGift) {
+            setPageBackgroundLibraryStatus('ready');
+            setPageBackgroundLibraryError(null);
+
+            return;
+        }
+
+        setPageBackgroundLibraryStatus('loading');
+        setPageBackgroundLibraryError(null);
+
+        try {
+            const response = await fetch(gift.page_backgrounds_index_url, {
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const payload = (await response.json().catch(() => null)) as PageBackgroundIndexResponse | null;
+
+            if (!response.ok || !payload?.success) {
+                throw new Error('Não foi possível carregar os papéis.');
+            }
+
+            const loadedBackgrounds = Array.isArray(payload.data.pageBackgrounds) ? payload.data.pageBackgrounds : [];
+
+            setPageBackgrounds(loadedBackgrounds);
+            setRenderAssets((current) => mergeAssets(current, loadedBackgrounds));
+            setPageBackgroundLibraryStatus('ready');
+        } catch (error) {
+            setPageBackgroundLibraryError(error instanceof Error ? error.message : 'Não foi possível carregar os papéis.');
+            setPageBackgroundLibraryStatus('error');
+        }
+    }, [canEditGift, gift.page_backgrounds_index_url]);
+
     useEffect(() => {
         void loadAssets();
-    }, [loadAssets]);
+        void loadPageBackgrounds();
+    }, [loadAssets, loadPageBackgrounds]);
 
     const selectedPageIndex = editorPages.findIndex((page) => page.id === selectedPageId);
     const selectedPage = selectedPageIndex >= 0 ? editorPages[selectedPageIndex] : null;
@@ -345,7 +402,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     const selectedPageError = selectedPage ? (pageErrors[selectedPage.id] ?? null) : null;
     const textElements =
         selectedCanvas && selectedPage ? textElementsFromCanvas(selectedCanvas, selectedPage.text_max_length) : [];
-    const assetMap = useMemo(() => assetMapFromList(assets), [assets]);
+    const assetMap = useMemo(() => assetMapFromList(renderAssets), [renderAssets]);
     const appTextureStyle = firstTextureLayerStyle(normalizedTheme, assetMap, ['fabricBackground', 'appBackground']);
     const editorDisabled = Boolean(selectedPage?.locked || !canEditGift);
     const selectedPageHistory = editorHistory.availability(selectedPage?.id);
@@ -883,6 +940,54 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
         selection.selectElement(elementId);
     }
 
+    function applyPageBackgroundToCurrentPage(asset: EditorAsset) {
+        if (!selectedPage || !selectedCanvas || editorDisabled) {
+            return;
+        }
+
+        setRenderAssets((current) => mergeAssets(current, [asset]));
+        selection.clearSelection();
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => ({
+                ...canvas,
+                artboard: {
+                    ...canvas.artboard,
+                    background: {
+                        type: 'asset',
+                        assetId: asset.id,
+                        fit: 'cover',
+                        opacity: 1,
+                    },
+                },
+            }),
+            {
+                label: 'Trocar papel da página',
+            },
+        );
+    }
+
+    function useThemePageBackground() {
+        if (!selectedPage || !selectedCanvas || editorDisabled) {
+            return;
+        }
+
+        selection.clearSelection();
+        updatePageCanvas(
+            selectedPage.id,
+            (canvas) => ({
+                ...canvas,
+                artboard: {
+                    ...canvas.artboard,
+                    background: { type: 'theme' },
+                },
+            }),
+            {
+                label: 'Usar papel do tema',
+            },
+        );
+    }
+
     function changeMetadata(field: keyof GiftMetadataDraft, value: string) {
         if (!canEditGift) {
             return;
@@ -1276,6 +1381,20 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                             theme={gift.theme?.config}
                                         />
                                     ) : null}
+                                    {activeTab === 'page' ? (
+                                        <GiftPageBackgroundPanel
+                                            backgrounds={pageBackgrounds}
+                                            canvas={selectedCanvas}
+                                            disabled={editorDisabled || !selectedPage || !selectedCanvas}
+                                            error={pageBackgroundLibraryError}
+                                            onApplyAsset={applyPageBackgroundToCurrentPage}
+                                            onRetry={loadPageBackgrounds}
+                                            onUseTheme={useThemePageBackground}
+                                            saveStatus={selectedPageSaveStatus}
+                                            status={pageBackgroundLibraryStatus}
+                                            theme={gift.theme?.config}
+                                        />
+                                    ) : null}
                                     {activeTab === 'gift' ? (
                                         <GiftMetadataPanel
                                             disabled={!canEditGift}
@@ -1583,6 +1702,20 @@ function defaultAssetSize(asset: EditorAsset, canvas: Canvas): { h: number; w: n
 
 function defaultAssetRotation(asset: EditorAsset): number {
     return resolveAssetDefaultTransform(asset).rotation;
+}
+
+function mergeAssets(current: EditorAsset[], incoming: EditorAsset[]): EditorAsset[] {
+    const merged = new Map<string, EditorAsset>();
+
+    for (const asset of current) {
+        merged.set(String(asset.id), asset);
+    }
+
+    for (const asset of incoming) {
+        merged.set(String(asset.id), asset);
+    }
+
+    return [...merged.values()];
 }
 
 function canModifyElement(element: CanvasElement | null | undefined): element is CanvasElement {
