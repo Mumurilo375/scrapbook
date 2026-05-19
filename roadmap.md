@@ -23,8 +23,11 @@
 - Histórico local/desfazer/refazer implementado no editor.
 - Editor estabilizado como base atual para avançar para entrega do presente.
 - QR Code e cartão compartilhável para Gifts publicados implementados.
-- Fase atual: refinamento do viewer público e preview privado como experiência final do presente.
-- Próxima fase possível: beta QA completo ou landing final com exemplos reais.
+- Viewer público e preview privado refinados como experiência final do presente.
+- Admin real de assets visuais implementado, com upload, preview seguro, categorias, tipos, vínculo com tema e metadata física.
+- Fase atual: renderização premium/física de stickers/assets no editor, preview privado e viewer público.
+- Próxima fase: texturas reais de papel/tema ou book mode, conforme decisão explícita.
+- Depois: templates premium com assets reais e composição visual mais autoral.
 - Gateway externo real fica para etapa futura antes de produção; Pix, pagamento externo, demo pública refinada e landing final não fazem parte desta fase.
 
 ## Nota técnica de ambiente
@@ -260,12 +263,12 @@ Não continuar refinando landing, demo pública ou front avançado sem solicita�
 
 ## Fase 7 - Sistema de assets visuais
 
-Status: implementada como base inicial. A base usa `Asset`, `AssetCategory`, assets globais e vínculo `theme_asset` por `ThemeVersion`. O editor lista assets ativos por `GET /app/gifts/{gift}/assets` e cria stickers com `assetId`, sem URL arbitrária no canvas.
+Status: implementada como base operacional. A base usa `Asset`, `AssetCategory`, assets globais e vínculo `theme_asset` por `ThemeVersion`. O editor lista assets ativos por `GET /app/gifts/{gift}/assets` e cria stickers com `assetId`, sem URL arbitrária no canvas. O admin real já aceita upload PNG/WebP/JPG, preview seguro, metadados de dimensões/MIME/tamanho, categorias ampliadas, tipos visuais completos e metadata `renderStyle`/`physical`/`defaultTransform`.
 
 165. Definir tipos de asset: sticker, texture, frame, tape, paper, envelope, doodle.
 166. Definir formato aceito para assets do sistema.
-167. Criar upload admin de assets. Pendente; MVP aceita assets controlados por seed/config e campos básicos no admin.
-168. Criar thumbnails de assets. Parcial; `previewUrl` seguro é suportado, e placeholders shape são renderizados por config.
+167. Criar upload admin de assets. Implementado para PNG, WebP e JPG/JPEG com validação real, nome seguro e preenchimento de metadados.
+168. Criar thumbnails/previews de assets. Implementado como `previewUrl` seguro por rota controlada; placeholders shape continuam renderizados por config.
 169. Permitir tags nos assets. Parcial via `metadata.editor.keywords`.
 170. Permitir associar assets a packs. Pendente; packs/marketplace ficam fora desta fase.
 171. Permitir associar packs a temas. Pendente; usar `theme_asset` direto no MVP.
@@ -316,7 +319,7 @@ Status: templates e temas versionados já existem e os seeds iniciais devem mant
 
 ## Fase 10 - Renderer do scrapbook
 
-Status: renderer compartilhado já alimenta editor, preview privado e viewer público. A etapa atual aprofunda `ScrapbookStage`, `ScrapbookPageFrame`, `PageSurface`, `ThemedArtboard` e `CanvasElementLayer` para que a folha pareça papel/caderno artesanal, com textura, grão, manchas, desgaste de borda, encadernação e tokens reais de tema. Os seeds comparáveis atuais são `Kraft Vintage`, `Romance Delicado` e `Aniversário Fofo`, aplicados aos templates `Amor / Namoro`, `Feliz Aniversário` e `Melhor Amiga`.
+Status: renderer compartilhado já alimenta editor, preview privado e viewer público. A base visual aprofunda `ScrapbookStage`, `ScrapbookPageFrame`, `PageSurface`, `ThemedArtboard` e `CanvasElementLayer` para que a folha pareça papel/caderno artesanal, com textura, grão, manchas, desgaste de borda, encadernação e tokens reais de tema. A fase atual adiciona renderização física de assets com `renderStyle`, `physical` e `defaultTransform`, para stickers, fitas, papéis, molduras, etiquetas, selos, flores, texturas e fundos não parecerem imagens planas. Os seeds comparáveis atuais são `Kraft Vintage`, `Romance Delicado` e `Aniversário Fofo`, aplicados aos templates `Amor / Namoro`, `Feliz Aniversário` e `Melhor Amiga`.
 
 208. Criar componente `ScrapbookRenderer`.
 209. Criar componente `PageRenderer`.
@@ -382,7 +385,7 @@ Controles de camadas atuais: lista de camadas da página, seleção por camada, 
 
 Histórico local atual: undo/redo por página no editor, limite de 40 entradas por página, botões na topbar, atalhos `Ctrl/Cmd + Z`, `Ctrl/Cmd + Shift + Z` e `Ctrl/Cmd + Y`, coalescing para texto/propriedades e uma única entrada ao finalizar mover/redimensionar/rotacionar. Undo/redo não é salvo como versionamento no banco; ele altera o canvas local, preserva o rascunho local e deixa o autosave persistir pelo endpoint existente.
 
-Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável já foram implementados. Fase atual: refinamento do viewer público e preview privado; depois, beta QA completo ou landing final com exemplos reais. Gateway externo real continua etapa futura antes de produção.
+Fase de polimento e QA do editor estabilizada o suficiente para avançar. QR Code/cartão compartilhável, viewer público, preview privado e admin real de assets visuais já foram implementados/refinados. Fase atual: renderização premium/física de stickers/assets. Gateway externo real continua etapa futura antes de produção.
 
 ## Fase 12 - Upload e processamento de fotos
 
@@ -531,7 +534,7 @@ Status: primeira versão implementada. O QR Code é gerado on-demand com `chille
 
 ## Fase 18.1 - Refinamento do viewer público
 
-Status: fase atual. O objetivo é fazer `/p/{slug}-{public_code}` parecer um presente digital mobile-first, preservando segurança, renderer compartilhado, QR Code/cartão e regras de pagamento/publicação existentes.
+Status: refinado como base atual. O objetivo desta fase foi fazer `/p/{slug}-{public_code}` parecer um presente digital mobile-first, preservando segurança, renderer compartilhado, QR Code/cartão e regras de pagamento/publicação existentes. A prioridade atual saiu desta fase e está na renderização premium/física de assets.
 
 379.1. Criar tela de abertura com título, destinatário/remetente e botão “Abrir presente”.
 379.2. Melhorar navegação por páginas com anterior/próxima, teclado, swipe simples no mobile, indicador e progresso discreto.
