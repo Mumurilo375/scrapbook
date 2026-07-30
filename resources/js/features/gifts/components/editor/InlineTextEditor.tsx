@@ -68,7 +68,7 @@ export function InlineTextEditor({
         <div className="absolute" style={style}>
             <textarea
                 aria-label="Editar texto na página"
-                className="h-full w-full resize-none overflow-hidden rounded-[6px] border-2 border-[#D93632] bg-[#FFF8EF]/95 px-2 py-1 text-inherit outline-none shadow-[0_0_0_2px_rgba(255,248,239,0.95),0_10px_26px_rgba(31,21,10,0.18)] focus:ring-2 focus:ring-[#D9363226]"
+                className="h-full w-full resize-none overflow-hidden rounded-[5px] border-2 border-[#FF765B] bg-[#FBFAF6]/95 px-2 py-1 text-inherit outline-none shadow-[0_10px_26px_rgba(33,22,45,0.2)] focus:ring-2 focus:ring-[#FF765B]/30"
                 maxLength={maxLength}
                 onBlur={onClose}
                 onChange={(event) => {

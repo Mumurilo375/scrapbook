@@ -17,7 +17,8 @@ export function ScrapbookStage({ assets, children, className = '', context = 'pr
     const normalizedTheme = useMemo(() => normalizeThemeConfig(theme), [theme]);
     const isEditor = context === 'editor';
     const appTextureStyle = useMemo(
-        () => (isEditor ? null : firstTextureLayerStyle(normalizedTheme, assets, ['fabricBackground', 'appBackground'])),
+        () =>
+            isEditor ? null : firstTextureLayerStyle(normalizedTheme, assets, ['fabricBackground', 'appBackground']),
         [assets, isEditor, normalizedTheme],
     );
     const bookTextureStyle = useMemo(
@@ -32,7 +33,8 @@ export function ScrapbookStage({ assets, children, className = '', context = 'pr
 
     return (
         <div
-            className={`relative mx-auto w-full ${isEditor ? 'max-w-[775px]' : 'max-w-[850px]'} ${className}`}
+            className={`relative mx-auto w-full ${isEditor ? 'max-w-[980px]' : 'max-w-[850px]'} ${className}`}
+            data-context={context}
             style={style}
         >
             {appTextureStyle ? (

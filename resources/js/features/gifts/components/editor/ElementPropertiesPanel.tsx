@@ -41,7 +41,7 @@ export function ElementPropertiesPanel({
 }: ElementPropertiesPanelProps) {
     if (!element) {
         return (
-            <section className="mb-4 rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-3 text-sm text-[#6F5A4A]">
+            <section className="mb-5 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm text-[#342E38]">
                 Selecione um texto, imagem ou adesivo na página.
             </section>
         );
@@ -53,27 +53,27 @@ export function ElementPropertiesPanel({
     const label = elementLabel(element);
 
     return (
-        <section className="mb-4 grid min-w-0 gap-4 overflow-hidden rounded-[8px] border border-[#D8B991] bg-[#FFFBF6] p-3 text-[#1F150A]">
-            <div className="flex items-start justify-between gap-3">
+        <section className="mb-5 grid min-w-0 gap-4 overflow-hidden border-b border-[#C9C1CD] pb-5 text-[#342E38]">
+            <div className="flex items-start justify-between gap-3 rounded-[7px] bg-[#21162D] px-3 py-2.5 text-white">
                 <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase text-[#7A2634]">Item selecionado</p>
-                    <h2 className="mt-1 truncate text-base font-semibold">{label}</h2>
-                    <p className="mt-1 text-xs font-semibold uppercase text-[#6F5A4A]">{typeLabel(element.type)}</p>
+                    <p className="text-[11px] font-bold tracking-[0.04em] text-[#FF9A86] uppercase">Item selecionado</p>
+                    <h2 className="font-display mt-1 truncate text-base font-bold tracking-[-0.02em]">{label}</h2>
+                    <p className="mt-0.5 text-xs font-semibold text-[#D8D2DE]">{typeLabel(element.type)}</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    {hidden ? <EyeOff aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" /> : null}
-                    {disabled || elementLocked ? <Lock aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" /> : null}
+                <div className="mt-1 flex shrink-0 items-center gap-2 text-[#D8D2DE]">
+                    {hidden ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : null}
+                    {disabled || elementLocked ? <Lock aria-hidden="true" className="h-4 w-4" /> : null}
                 </div>
             </div>
 
             {hidden ? (
-                <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
+                <p className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] px-3 py-2 text-sm font-semibold text-[#342E38]">
                     Item oculto.
                 </p>
             ) : null}
 
             {elementLocked ? (
-                <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
+                <p className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] px-3 py-2 text-sm font-semibold text-[#342E38]">
                     Item bloqueado. Desbloqueie em Camadas para editar.
                 </p>
             ) : null}
@@ -126,7 +126,7 @@ export function ElementPropertiesPanel({
                     </div>
 
                     <div className="grid gap-2">
-                        <p className="text-xs font-semibold uppercase text-[#7A2634]">Camadas</p>
+                        <p className="text-xs font-bold text-[#21162D]">Ordem da camada</p>
                         <LayerControls disabled={locked} onAction={onLayerAction} />
                     </div>
 
@@ -154,7 +154,7 @@ export function ElementPropertiesPanel({
                     ) : null}
                 </>
             ) : (
-                <p className="rounded-[6px] border border-[#D8B991] bg-white px-3 py-2 text-sm font-semibold text-[#6F5A4A]">
+                <p className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] px-3 py-2 text-sm font-semibold text-[#342E38]">
                     Item preservado.
                 </p>
             )}
@@ -181,37 +181,37 @@ function EnvelopeControls({ disabled, element, onPatchElement }: EnvelopeControl
 
     return (
         <div className="grid min-w-0 gap-3">
-            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+            <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span className="inline-flex items-center gap-2">
-                    <Mail aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                    <Mail aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
                     Título do envelope
                 </span>
                 <input
-                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={120}
                     onChange={(event) => onPatchElement({ title: event.target.value })}
                     value={title}
                 />
-                <span className="text-right text-xs text-[#6F5A4A]">{title.length}/120</span>
+                <span className="text-right text-xs font-medium text-[#746D78]">{title.length}/120</span>
             </label>
 
-            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+            <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span>Conteúdo da carta</span>
                 <textarea
-                    className="min-h-32 w-full min-w-0 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="min-h-32 w-full min-w-0 resize-y rounded-[6px] border border-[#978E9C] bg-white p-3 text-sm font-normal leading-6 text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={1000}
                     onChange={(event) => onPatchElement({ content: event.target.value })}
                     value={content}
                 />
-                <span className="text-right text-xs text-[#6F5A4A]">{content.length}/1000</span>
+                <span className="text-right text-xs font-medium text-[#746D78]">{content.length}/1000</span>
             </label>
 
-            <label className="grid gap-1 text-xs font-semibold uppercase text-[#6F5A4A]">
+            <label className="grid gap-1.5 text-xs font-bold text-[#342E38]">
                 <span>Estilo</span>
                 <select
-                    className="h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="h-10 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-semibold text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     onChange={(event) => onPatchElement({ style: { ...elementStyle, variant: event.target.value } })}
                     value={variant}
@@ -243,19 +243,19 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
 
     return (
         <div className="grid min-w-0 gap-3">
-            <div className="grid gap-2 rounded-[6px] border border-[#CBA980] bg-white p-3">
+            <div className="grid gap-2 rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] p-3">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#1F150A]">
-                        <ImageIcon aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                    <span className="inline-flex items-center gap-2 text-sm font-bold text-[#21162D]">
+                        <ImageIcon aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
                         Foto da frente
                     </span>
-                    <span className="text-xs font-semibold uppercase text-[#6F5A4A]">
+                    <span className="text-xs font-semibold text-[#645D68]">
                         {hasPhoto ? 'Com foto' : 'Placeholder'}
                     </span>
                 </div>
                 {onReplacePhoto ? (
                     <button
-                        className="min-h-10 rounded-[6px] border border-[#7A2634] bg-[#FFF0EC] px-3 text-sm font-semibold text-[#7A2634] transition hover:bg-[#F9DDD6] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="min-h-10 rounded-[6px] border border-[#C94F39] bg-[#FF765B] px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#FF8B74] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#E1DCE5] disabled:text-[#746D78]"
                         disabled={disabled}
                         onClick={() => onReplacePhoto(element)}
                         type="button"
@@ -265,22 +265,22 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
                 ) : null}
             </div>
 
-            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+            <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span>Legenda da frente</span>
                 <input
-                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={120}
                     onChange={(event) => onPatchElement({ front: { ...front, caption: event.target.value } })}
                     value={caption}
                 />
-                <span className="text-right text-xs text-[#6F5A4A]">{caption.length}/120</span>
+                <span className="text-right text-xs font-medium text-[#746D78]">{caption.length}/120</span>
             </label>
 
-            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+            <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span>Placeholder sem foto</span>
                 <input
-                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={120}
                     onChange={(event) => onPatchElement({ front: { ...front, placeholderLabel: event.target.value } })}
@@ -288,19 +288,19 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
                 />
             </label>
 
-            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+            <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span className="inline-flex items-center gap-2">
-                    <Rotate3D aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                    <Rotate3D aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
                     Texto do verso
                 </span>
                 <textarea
-                    className="min-h-28 w-full min-w-0 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="min-h-28 w-full min-w-0 resize-y rounded-[6px] border border-[#978E9C] bg-white p-3 text-sm font-normal leading-6 text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={500}
                     onChange={(event) => onPatchElement({ back: { ...back, text: event.target.value } })}
                     value={backText}
                 />
-                <span className="text-right text-xs text-[#6F5A4A]">{backText.length}/500</span>
+                <span className="text-right text-xs font-medium text-[#746D78]">{backText.length}/500</span>
             </label>
         </div>
     );
@@ -322,19 +322,19 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
 
     return (
         <div className="grid min-w-0 gap-3">
-            <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+            <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span className="inline-flex items-center gap-2">
-                    <Type aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                    <Type aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
                     {element.type === 'sticker' ? 'Texto do adesivo' : 'Texto'}
                 </span>
                 <textarea
-                    className="min-h-24 w-full min-w-0 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                    className="min-h-24 w-full min-w-0 resize-y rounded-[6px] border border-[#978E9C] bg-white p-3 text-sm font-normal leading-6 text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={maxTextLength}
                     onChange={(event) => onChangeText(element, event.target.value)}
                     value={value}
                 />
-                <span className="text-right text-xs text-[#6F5A4A]">
+                <span className="text-right text-xs font-medium text-[#746D78]">
                     {value.length}/{maxTextLength}
                 </span>
             </label>
@@ -347,13 +347,13 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
                     onChange={(nextValue) => onPatchStyle({ fontSize: nextValue })}
                     value={fontSize}
                 />
-                <label className="grid min-w-0 gap-1 text-xs font-semibold uppercase text-[#6F5A4A]">
+                <label className="grid min-w-0 gap-1.5 text-xs font-bold text-[#342E38]">
                     <span>Cor</span>
-                    <span className="inline-flex h-10 items-center justify-center rounded-[6px] border border-[#CBA980] bg-white px-2">
-                        <Palette aria-hidden="true" className="mr-2 h-4 w-4 text-[#7A2634]" />
+                    <span className="inline-flex h-10 items-center justify-center rounded-[6px] border border-[#978E9C] bg-white px-2">
+                        <Palette aria-hidden="true" className="mr-2 h-4 w-4 text-[#FF765B]" />
                         <input
                             aria-label="Cor do texto"
-                            className="h-7 w-7 cursor-pointer rounded border-0 bg-transparent p-0 disabled:cursor-not-allowed"
+                            className="h-7 w-7 cursor-pointer rounded-[3px] border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-[#21162D] disabled:cursor-not-allowed"
                             disabled={disabled}
                             onChange={(event) => onPatchStyle({ color: event.target.value })}
                             type="color"
@@ -366,10 +366,10 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
                 {(['left', 'center', 'right'] as const).map((value) => (
                     <button
-                        className={`min-h-9 rounded-[6px] border px-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`min-h-10 rounded-[5px] border px-2 text-sm font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#EFEBF3] disabled:text-[#746D78] disabled:opacity-60 ${
                             align === value
-                                ? 'border-[#7A2634] bg-[#FFF0EC] text-[#7A2634]'
-                                : 'border-[#CBA980] bg-white text-[#42291D] hover:bg-[#F6E4CF]'
+                                ? 'border-[#C94F39] bg-[#FF765B] text-[#21162D]'
+                                : 'border-[#978E9C] bg-white text-[#342E38] hover:border-[#21162D] hover:bg-[#EFEBF3]'
                         }`}
                         disabled={disabled}
                         key={value}
@@ -394,10 +394,10 @@ type NumberInputProps = {
 
 function NumberInput({ disabled, label, min, onChange, value }: NumberInputProps) {
     return (
-        <label className="grid min-w-0 gap-1 text-xs font-semibold uppercase text-[#6F5A4A]">
+        <label className="grid min-w-0 gap-1.5 text-xs font-bold text-[#342E38]">
             <span>{label}</span>
             <input
-                className="h-10 w-full min-w-0 rounded-[6px] border border-[#CBA980] bg-white px-2 text-sm font-semibold text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-2 text-sm font-semibold text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                 disabled={disabled}
                 inputMode="decimal"
                 min={min}
@@ -423,8 +423,8 @@ type FieldGroupProps = {
 
 function FieldGroup({ children, title }: FieldGroupProps) {
     return (
-        <div className="grid min-w-0 gap-2">
-            <p className="text-xs font-semibold uppercase text-[#7A2634]">{title}</p>
+        <div className="grid min-w-0 gap-2 border-t border-[#D8D2DE] pt-3">
+            <p className="text-xs font-bold text-[#21162D]">{title}</p>
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">{children}</div>
         </div>
     );
@@ -455,7 +455,7 @@ function typeLabel(type: string): string {
 }
 
 function colorInputValue(color: string | null): string {
-    return color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#3A2418';
+    return color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#342E38';
 }
 
 function alignLabel(value: 'left' | 'center' | 'right'): string {

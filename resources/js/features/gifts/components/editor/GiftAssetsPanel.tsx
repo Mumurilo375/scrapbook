@@ -54,21 +54,24 @@ export function GiftAssetsPanel({
     const hasMoreAssets = visibleLimit < filteredAssets.length;
 
     return (
-        <section className="grid min-w-0 gap-4">
+        <section className="grid min-w-0 gap-4 text-[#342E38]">
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h2 className="text-base font-semibold text-[#1F150A]">Adesivos</h2>
-                    <p className="text-xs font-semibold uppercase text-[#7A2634]">{statusLabel(status, saveStatus)}</p>
+                    <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">Adesivos</h2>
+                    <p className="mt-1 text-xs font-semibold text-[#746D78]">{statusLabel(status, saveStatus)}</p>
                 </div>
-                <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0 text-[#7A2634]" />
+                <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0 text-[#FF765B]" />
             </div>
-            <p className="text-sm font-semibold text-[#5F4636]">Clique em um adesivo para adicionar à página.</p>
+            <p className="text-sm leading-5 text-[#746D78]">Clique em um adesivo para adicionar à página.</p>
 
             <label className="relative block">
                 <span className="sr-only">Buscar adesivo</span>
-                <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#7A5A43]" />
+                <Search
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#746D78]"
+                />
                 <input
-                    className="h-10 w-full rounded-[6px] border border-[#CBA980] bg-white pr-3 pl-9 text-sm font-semibold text-[#1F150A] outline-none transition placeholder:text-[#8E735F] focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226]"
+                    className="h-10 w-full rounded-[6px] border border-[#978E9C] bg-white pr-3 pl-9 text-sm font-medium text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3]"
                     disabled={status === 'loading'}
                     onChange={(event) => {
                         setQuery(event.target.value);
@@ -104,7 +107,7 @@ export function GiftAssetsPanel({
 
             {status === 'loading' ? (
                 <div
-                    className="inline-flex items-center gap-2 rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-4 text-sm font-semibold text-[#6F5A4A]"
+                    className="inline-flex items-center gap-2 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm font-semibold text-[#342E38]"
                     role="status"
                 >
                     <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -114,12 +117,12 @@ export function GiftAssetsPanel({
 
             {status === 'error' ? (
                 <div
-                    className="grid gap-3 rounded-[8px] border border-[#E2A08E] bg-[#FFF5F0] p-4 text-sm font-semibold text-[#7A2634]"
+                    className="grid gap-3 rounded-[6px] border border-[#C85B47] bg-[#FFF2EF] p-4 text-sm font-semibold text-[#7C3024]"
                     role="alert"
                 >
                     <p>{error ?? 'Não foi possível carregar os adesivos.'}</p>
                     <button
-                        className="inline-flex min-h-9 w-fit items-center rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D]"
+                        className="inline-flex min-h-10 w-fit items-center rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
                         onClick={onRetry}
                         type="button"
                     >
@@ -129,11 +132,11 @@ export function GiftAssetsPanel({
             ) : null}
 
             {status === 'ready' && filteredAssets.length === 0 ? (
-                <div className="grid gap-3 rounded-[8px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-4 text-sm font-semibold text-[#6F5A4A]">
+                <div className="grid gap-3 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm font-semibold text-[#342E38]">
                     <p>{emptyMessage(assets.length, query, categorySlug)}</p>
                     {query.trim() !== '' || categorySlug ? (
                         <button
-                            className="min-h-9 w-fit rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#F6E4CF]"
+                            className="min-h-10 w-fit rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#F8F6FA] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
                             onClick={() => {
                                 setQuery('');
                                 setCategorySlug(null);
@@ -153,19 +156,23 @@ export function GiftAssetsPanel({
                         {visibleAssets.map((asset) => (
                             <button
                                 aria-label={`Adicionar adesivo ${asset.name}`}
-                                className="group grid min-h-[122px] gap-2 rounded-[8px] border border-[#D8B991] bg-[#FFFBF6] p-2 text-left transition hover:border-[#B87358] hover:bg-white disabled:cursor-not-allowed disabled:opacity-55"
+                                className="group grid min-h-[122px] gap-2 rounded-[7px] border border-[#978E9C] bg-white p-2 text-left outline-none transition hover:border-[#21162D] hover:bg-[#F8F6FA] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:opacity-60"
                                 disabled={disabled}
                                 key={asset.id}
                                 onClick={() => onAddAsset(asset)}
                                 type="button"
                             >
-                                <span className="flex aspect-square items-center justify-center rounded-[6px] bg-[#FFF8EF] p-2">
+                                <span className="flex aspect-square items-center justify-center rounded-[5px] bg-[#FBFAF6] p-2 transition group-hover:bg-[#EFEBF3]">
                                     <AssetVisual asset={asset} theme={normalizedTheme} />
                                 </span>
                                 <span className="min-w-0">
-                                    <span className="block truncate text-xs font-semibold text-[#1F150A]">{asset.name}</span>
-                                    <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase text-[#7A5A43]">
-                                        {asset.isThemeAsset ? 'Do tema' : asset.category?.name ?? assetTypeLabel(asset.type)}
+                                    <span className="block truncate text-xs font-bold text-[#21162D]">
+                                        {asset.name}
+                                    </span>
+                                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-[#746D78]">
+                                        {asset.isThemeAsset
+                                            ? 'Do tema'
+                                            : (asset.category?.name ?? assetTypeLabel(asset.type))}
                                     </span>
                                 </span>
                             </button>
@@ -173,7 +180,7 @@ export function GiftAssetsPanel({
                     </div>
                     {hasMoreAssets ? (
                         <button
-                            className="min-h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] transition hover:bg-[#F6E4CF]"
+                            className="min-h-10 rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
                             onClick={() => setVisibleLimit((current) => current + ASSET_PREVIEW_BATCH_SIZE)}
                             type="button"
                         >
@@ -196,10 +203,10 @@ function CategoryButton({ active, label, onClick }: CategoryButtonProps) {
     return (
         <button
             aria-pressed={active}
-            className={`h-9 shrink-0 rounded-[999px] border px-3 text-xs font-semibold transition ${
+            className={`h-10 shrink-0 rounded-[5px] border px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 ${
                 active
-                    ? 'border-[#7A2634] bg-[#FFF0EC] text-[#7A2634]'
-                    : 'border-[#CBA980] bg-white text-[#42291D] hover:bg-[#F6E4CF]'
+                    ? 'border-[#C94F39] bg-[#FF765B] text-[#21162D]'
+                    : 'border-[#978E9C] bg-white text-[#342E38] hover:border-[#21162D] hover:bg-[#EFEBF3]'
             }`}
             onClick={onClick}
             type="button"

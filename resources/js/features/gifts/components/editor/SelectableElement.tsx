@@ -54,17 +54,17 @@ export function SelectableElement({
             <span
                 className={`pointer-events-none absolute inset-0 rounded-[6px] ${
                     selected
-                        ? 'border-2 border-[#7A2634] shadow-[0_0_0_2px_rgba(255,248,239,0.95),0_8px_24px_rgba(31,21,10,0.18)]'
-                        : 'border border-transparent hover:border-[#7A2634]/45'
+                        ? 'border-2 border-[#FF765B] shadow-[0_8px_24px_rgba(33,22,45,0.2)]'
+                        : 'border border-transparent hover:border-[#FF765B]/55'
                 }`}
             />
             {selected ? (
                 <>
-                    <span className="pointer-events-none absolute -top-7 left-0 max-w-full truncate rounded-[5px] bg-[#1F150A] px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    <span className="pointer-events-none absolute -top-7 left-0 max-w-full truncate rounded-[4px] bg-[#21162D] px-2 py-1 text-[11px] font-bold text-[#FBFAF6] shadow-[0_4px_10px_rgba(33,22,45,0.24)]">
                         {label}
                     </span>
                     {locked ? (
-                        <span className="pointer-events-none absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#1F150A] text-white shadow-sm">
+                        <span className="pointer-events-none absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#21162D] text-white shadow-sm">
                             <Lock aria-hidden="true" className="h-3.5 w-3.5" />
                         </span>
                     ) : (

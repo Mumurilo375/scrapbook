@@ -8,22 +8,22 @@ type GiftDebugPanelProps = {
 export function GiftDebugPanel({ canvas, pageId }: GiftDebugPanelProps) {
     if (!canvas) {
         return (
-            <section className="rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-3 text-sm text-[#6F5A4A]">
+            <section className="rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm text-[#342E38]">
                 Nenhum canvas selecionado.
             </section>
         );
     }
 
     return (
-        <section className="grid gap-3 text-[#1F150A]">
+        <section className="grid gap-4 text-[#342E38]">
             <div>
-                <h2 className="text-base font-semibold">Debug</h2>
-                <p className="mt-1 text-sm text-[#6F5A4A]">Visível apenas em ambiente local/dev.</p>
+                <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">Debug</h2>
+                <p className="mt-1 text-sm text-[#746D78]">Visível apenas em ambiente local/dev.</p>
             </div>
-            <div className="rounded-[6px] border border-[#E5D0B8] bg-[#FFFBF6] p-3 text-xs font-semibold text-[#6F5A4A]">
-                Página: <span className="text-[#42291D]">{pageId ?? 'sem seleção'}</span>
+            <div className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] p-3 text-xs font-semibold text-[#342E38]">
+                Página: <span className="text-[#21162D]">{pageId ?? 'sem seleção'}</span>
             </div>
-            <pre className="max-h-[520px] overflow-auto rounded-[6px] border border-[#E5D0B8] bg-[#FFFBF6] p-3 text-xs leading-5 text-[#42291D]">
+            <pre className="max-h-[520px] overflow-auto rounded-[6px] bg-[#21162D] p-3 text-xs leading-5 text-[#F5F1F7]">
                 {JSON.stringify(canvas, null, 2)}
             </pre>
         </section>

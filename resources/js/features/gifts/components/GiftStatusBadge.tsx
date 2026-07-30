@@ -5,17 +5,17 @@ type GiftStatusBadgeProps = {
 };
 
 const statusClasses: Record<string, string> = {
-    draft: 'border-[#BD8558] bg-[#EBC493] text-[#42291D]',
-    pending_payment: 'border-[#B78D5C] bg-[#EAD2B8] text-[#42291D]',
-    published: 'border-[#7E8F68] bg-[#E7EBD8] text-[#48573A]',
-    expired: 'border-[#8d8d8d] bg-[#E8DFD6] text-[#5B4B42]',
-    disabled: 'border-[#D93632] bg-[#F8D8D3] text-[#D93632]',
+    draft: 'border-[#C88743] bg-[#FFF1DF] text-[#6E3C12]',
+    pending_payment: 'border-[#C9C1CD] bg-[#F0EBF4] text-[#342E38]',
+    published: 'border-[#78A697] bg-[#E8F3EE] text-[#285B4E]',
+    expired: 'border-[#B9B3BC] bg-[#EFEDF0] text-[#5C5660]',
+    disabled: 'border-[#DE9E99] bg-[#FFF0F0] text-[#7E272E]',
 };
 
 export function GiftStatusBadge({ status }: GiftStatusBadgeProps) {
     return (
         <span
-            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+            className={`inline-flex items-center rounded-[4px] border px-2 py-0.5 text-[11px] font-bold ${
                 statusClasses[status] ?? statusClasses.draft
             }`}
         >

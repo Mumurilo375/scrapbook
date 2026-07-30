@@ -20,7 +20,8 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
     const safeArea = canvas.artboard.safeArea;
     const showSafeArea = context === 'editor';
     const pagePaperTextureStyle = useMemo(
-        () => (background.kind === 'theme' ? firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']) : null),
+        () =>
+            background.kind === 'theme' ? firstTextureLayerStyle(theme, assets, ['pagePaper', 'kraftSurface']) : null,
         [assets, background.kind, theme],
     );
     const pageOverlayTextureStyle = useMemo(
@@ -29,29 +30,37 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
     );
     const stainTextureStyle = useMemo(() => buildTextureLayerStyle(theme, assets, 'stainOverlay'), [assets, theme]);
     const edgeTextureStyle = useMemo(() => buildTextureLayerStyle(theme, assets, 'edgeOverlay'), [assets, theme]);
-    const style = useMemo(() => ({
-        backgroundColor: background.color,
-        backgroundImage: background.kind === 'theme' ? surfaceTexture(theme) : undefined,
-        backgroundPosition: background.kind === 'theme' ? undefined : 'center',
-        backgroundRepeat: background.kind === 'theme' ? undefined : 'no-repeat',
-        backgroundSize: background.kind === 'theme' ? undefined : 'cover',
-        borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 42%, transparent)`,
-        borderRadius: radiusFor(radius, theme.page.edge),
-        boxShadow: shadowFor(theme.page.shadow, theme.tokens.colors.shadow),
-        containerType: 'inline-size',
-        '--scrap-paper': background.color,
-        '--scrap-paper-alt': theme.tokens.colors.paperAlt,
-        '--scrap-ink': theme.tokens.colors.ink,
-        '--scrap-accent': theme.tokens.colors.accent,
-        '--scrap-accent-soft': theme.tokens.colors.accentSoft,
-        '--scrap-muted': theme.tokens.colors.muted,
-        '--scrap-muted-ink': theme.tokens.colors.mutedInk,
-        '--scrap-leaf': theme.tokens.colors.leaf,
-        '--scrap-shadow': theme.tokens.colors.shadow,
-    }) as CSSProperties, [background.color, background.kind, radius, theme]);
+    const style = useMemo(
+        () =>
+            ({
+                backgroundColor: background.color,
+                backgroundImage: background.kind === 'theme' ? surfaceTexture(theme) : undefined,
+                backgroundPosition: background.kind === 'theme' ? undefined : 'center',
+                backgroundRepeat: background.kind === 'theme' ? undefined : 'no-repeat',
+                backgroundSize: background.kind === 'theme' ? undefined : 'cover',
+                borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 42%, transparent)`,
+                borderRadius: radiusFor(radius, theme.page.edge),
+                boxShadow: shadowFor(theme.page.shadow, theme.tokens.colors.shadow),
+                containerType: 'inline-size',
+                '--scrap-paper': background.color,
+                '--scrap-paper-alt': theme.tokens.colors.paperAlt,
+                '--scrap-ink': theme.tokens.colors.ink,
+                '--scrap-accent': theme.tokens.colors.accent,
+                '--scrap-accent-soft': theme.tokens.colors.accentSoft,
+                '--scrap-muted': theme.tokens.colors.muted,
+                '--scrap-muted-ink': theme.tokens.colors.mutedInk,
+                '--scrap-leaf': theme.tokens.colors.leaf,
+                '--scrap-shadow': theme.tokens.colors.shadow,
+            }) as CSSProperties,
+        [background.color, background.kind, radius, theme],
+    );
 
     return (
-        <div className="relative h-full w-full overflow-hidden border" style={style}>
+        <div
+            className="scrapbook-page-surface relative h-full w-full overflow-hidden border"
+            data-context={context}
+            style={style}
+        >
             {background.assetStyle ? (
                 <div
                     aria-hidden="true"

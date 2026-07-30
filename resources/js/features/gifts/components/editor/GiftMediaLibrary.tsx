@@ -94,15 +94,15 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
     }
 
     return (
-        <section className="grid gap-3 text-[#1F150A]">
+        <section className="grid gap-4 text-[#342E38]">
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <h3 className="text-sm font-semibold text-[#7A2634]">Biblioteca do presente</h3>
-                    <p className="mt-1 text-sm text-[#6F5A4A]">{imageCountLabel(mediaItems.length)}</p>
+                <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-[#21162D]">Fotos do presente</h3>
+                    <p className="mt-1 text-sm text-[#746D78]">{imageCountLabel(mediaItems.length)}</p>
                 </div>
                 <button
                     aria-label={uploading ? 'Enviando imagem' : 'Enviar imagem'}
-                    className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] shadow-sm transition hover:bg-[#F6E4CF] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#C94F39] bg-[#FF765B] px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#FF8B74] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled || uploading}
                     onClick={openLibraryUpload}
                     type="button"
@@ -126,7 +126,7 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
 
             {error ? (
                 <p
-                    className="mt-3 rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]"
+                    className="rounded-[6px] border border-[#C85B47] bg-[#FFF2EF] px-3 py-2.5 text-sm font-semibold text-[#7C3024]"
                     role="alert"
                 >
                     {error}
@@ -138,10 +138,10 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                     {mediaItems.map((mediaItem) => (
                         <button
                             aria-label={`Selecionar ${mediaItem.originalFilename ?? 'imagem enviada'}`}
-                            className={`aspect-square overflow-hidden rounded-[6px] border bg-[#EAD2B8] text-left shadow-sm transition disabled:cursor-not-allowed ${
+                            className={`aspect-square overflow-hidden rounded-[6px] border bg-[#EFEBF3] text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
                                 selectedMediaId === mediaItem.id
-                                    ? 'border-[#7A2634] ring-2 ring-[#7A26344D]'
-                                    : 'border-[#D8B991] hover:border-[#A86F55]'
+                                    ? 'border-[#C94F39] ring-2 ring-[#FF765B66]'
+                                    : 'border-[#978E9C] hover:border-[#21162D]'
                             }`}
                             disabled={disabled}
                             key={mediaItem.id}
@@ -158,7 +158,7 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                                     src={mediaItem.thumbnailUrl ?? mediaItem.url}
                                 />
                             ) : (
-                                <span className="flex h-full w-full items-center justify-center text-[#7A5A43]">
+                                <span className="flex h-full w-full items-center justify-center text-[#746D78]">
                                     <ImageIcon aria-hidden="true" className="h-6 w-6" />
                                 </span>
                             )}
@@ -166,10 +166,12 @@ export const GiftMediaLibrary = forwardRef<GiftMediaLibraryHandle, GiftMediaLibr
                     ))}
                 </div>
             ) : (
-                <div className="grid min-h-32 place-items-center gap-2 rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] px-4 py-5 text-center text-sm font-semibold text-[#6F5A4A]">
-                    <ImageIcon aria-hidden="true" className="h-6 w-6 text-[#7A5A43]" />
+                <div className="grid min-h-32 place-items-center gap-2 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] px-4 py-5 text-center text-sm font-semibold text-[#342E38]">
+                    <ImageIcon aria-hidden="true" className="h-6 w-6 text-[#746D78]" />
                     <span>Nenhuma imagem enviada ainda.</span>
-                    <span className="text-xs font-medium">Use Enviar imagem para guardar fotos neste presente.</span>
+                    <span className="text-xs font-medium text-[#645D68]">
+                        Use Enviar imagem para guardar fotos neste presente.
+                    </span>
                 </div>
             )}
         </section>

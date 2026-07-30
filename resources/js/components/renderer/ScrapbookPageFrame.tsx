@@ -33,7 +33,7 @@ export function ScrapbookPageFrame({ assets, canvas, children, context = 'previe
     } as CSSProperties;
 
     return (
-        <div className="relative w-full px-[1.2%] py-[1.4%]" style={style}>
+        <div className="scrapbook-page-frame relative w-full px-[1.2%] py-[1.4%]" data-context={context} style={style}>
             <div
                 className="absolute inset-[0.2%] rotate-[-1.4deg] rounded-[var(--scrap-frame-radius)] opacity-45"
                 style={{

@@ -12,22 +12,24 @@ type GiftContentPanelProps = {
 
 export function GiftContentPanel({ disabled, elements, error, onChangeText, saveStatus }: GiftContentPanelProps) {
     return (
-        <section className="grid gap-4">
+        <section className="grid gap-5 text-[#342E38]">
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <h2 className="text-base font-semibold text-[#1F150A]">Conteúdo da página</h2>
-                    <p className="mt-1 text-sm text-[#6F5A4A]">{contentStatusLabel(elements.length, saveStatus)}</p>
+                <div className="min-w-0">
+                    <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">
+                        Conteúdo da página
+                    </h2>
+                    <p className="mt-1 text-sm text-[#746D78]">{contentStatusLabel(elements.length, saveStatus)}</p>
                 </div>
                 {disabled ? (
-                    <Lock aria-hidden="true" className="h-4 w-4 text-[#7A5A43]" />
+                    <Lock aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[#746D78]" />
                 ) : (
-                    <Type aria-hidden="true" className="h-4 w-4 text-[#D93632]" />
+                    <Type aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[#FF765B]" />
                 )}
             </div>
 
             {error ? (
                 <p
-                    className="rounded-[6px] border border-[#D99A8B] bg-[#FFF0EC] px-3 py-2 text-sm font-semibold text-[#8A2E21]"
+                    className="rounded-[6px] border border-[#C85B47] bg-[#FFF2EF] px-3 py-2.5 text-sm font-semibold text-[#7C3024]"
                     role="alert"
                 >
                     {error}
@@ -37,23 +39,23 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
             {elements.length > 0 ? (
                 <div className="grid gap-4">
                     {elements.map((element) => (
-                        <label className="grid gap-2 text-sm font-semibold text-[#1F150A]" key={element.id}>
+                        <label className="grid gap-2 text-sm font-semibold text-[#342E38]" key={element.id}>
                             <span className="capitalize">{element.label}</span>
                             <textarea
-                                className="min-h-28 resize-y rounded-[6px] border border-[#CBA980] bg-white p-3 text-sm font-normal leading-6 text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-65"
+                                className="min-h-28 resize-y rounded-[6px] border border-[#978E9C] bg-white p-3 text-sm font-normal leading-6 text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                                 disabled={disabled}
                                 maxLength={element.maxLength}
                                 onChange={(event) => onChangeText(element, event.target.value)}
                                 value={element.value}
                             />
-                            <span className="text-right text-xs text-[#6F5A4A]">
+                            <span className="text-right text-xs font-medium text-[#746D78]">
                                 {element.value.length}/{element.maxLength}
                             </span>
                         </label>
                     ))}
                 </div>
             ) : (
-                <p className="rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-3 text-sm text-[#6F5A4A]">
+                <p className="rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm text-[#342E38]">
                     Esta página ainda não possui textos editáveis.
                 </p>
             )}

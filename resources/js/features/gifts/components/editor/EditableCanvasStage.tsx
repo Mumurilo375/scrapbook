@@ -144,7 +144,7 @@ function ImageReplaceButton({ canvas, disabled, element, onClick }: ImageReplace
 
     return (
         <button
-            className="absolute z-[3400] inline-flex min-h-10 -translate-x-1/2 items-center justify-center rounded-[6px] border border-[#7A2634] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#7A2634] shadow-[0_8px_22px_rgba(31,21,10,0.18)] transition hover:bg-[#FFF0EC] disabled:cursor-not-allowed disabled:opacity-60"
+            className="absolute z-[3400] inline-flex min-h-10 -translate-x-1/2 items-center justify-center rounded-[6px] border border-[#21162D] bg-[#21162D] px-3 text-sm font-bold text-[#FBFAF6] shadow-[0_8px_22px_rgba(33,22,45,0.2)] transition hover:border-[#FF765B] hover:bg-[#342343] disabled:cursor-not-allowed disabled:opacity-60"
             disabled={disabled}
             onClick={(event) => {
                 event.preventDefault();

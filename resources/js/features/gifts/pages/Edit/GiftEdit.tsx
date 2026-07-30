@@ -1,12 +1,14 @@
+/*
+THESIS: O presente é o objeto; a interface recusa o construtor de três colunas com cartões equivalentes.
+OWN-WORLD: Bancada lavanda, fichário berinjela, etiquetas coral e papel físico com bordas, fibra e volume.
+STORY: A pessoa escolhe uma página, preenche memórias, decora, ajusta e revisa sem precisar saber design.
+FIRST VIEWPORT: Fita de páginas à esquerda, scrapbook dominante no centro, ferramentas contextuais à direita e conclusão no topo.
+FORM: Álbum de Figurinhas de Afeto, terceira direção aterrissada; objeto carregado entre ambientes; seed 508e06e0.
+*/
 import { Head } from '@inertiajs/react';
-import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-    assetMapFromList,
-    normalizeThemeConfig,
-    resolveAssetDefaultTransform,
-} from '../../../../components/renderer';
+import { assetMapFromList, resolveAssetDefaultTransform } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import { ElementPropertiesPanel } from '../../components/editor/ElementPropertiesPanel';
 import { EditorTabs } from '../../components/editor/EditorTabs';
@@ -152,7 +154,6 @@ type TransformHistorySession = {
 };
 
 export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gift, media, pages }: GiftEditProps) {
-    const normalizedTheme = useMemo(() => normalizeThemeConfig(gift.theme?.config), [gift.theme?.config]);
     const editorPages = useMemo<EditorPage[]>(
         () =>
             pages.map((page) => ({
@@ -207,6 +208,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     const recoveredPageDrafts = localDraftRecovery.pageDrafts;
 
     const [selectedPageId, setSelectedPageId] = useState<string | null>(editorPages[0]?.id ?? null);
+    const [pageDirection, setPageDirection] = useState<'next' | 'previous'>('next');
     const [activeTab, setActiveTab] = useState<EditorTab>('content');
     const [pageCanvases, setPageCanvases] = useState<Record<string, Canvas>>(() =>
         Object.fromEntries(
@@ -349,7 +351,9 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
             setRenderAssets((current) => mergeAssets(current, loadedBackgrounds));
             setPageBackgroundLibraryStatus('ready');
         } catch (error) {
-            setPageBackgroundLibraryError(error instanceof Error ? error.message : 'Não foi possível carregar os papéis.');
+            setPageBackgroundLibraryError(
+                error instanceof Error ? error.message : 'Não foi possível carregar os papéis.',
+            );
             setPageBackgroundLibraryStatus('error');
         }
     }, [canEditGift, gift.page_backgrounds_index_url]);
@@ -511,7 +515,8 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                 if (!pageBackgroundsAreEqual(snapshot.artboard.background, savedCanvasFromServer.artboard.background)) {
                     setPageErrors((current) => ({
                         ...current,
-                        [pageId]: 'O servidor não confirmou o papel escolhido. A alteração local foi mantida para tentar salvar novamente.',
+                        [pageId]:
+                            'O servidor não confirmou o papel escolhido. A alteração local foi mantida para tentar salvar novamente.',
                     }));
                     setPageSaveStates((current) => ({ ...current, [pageId]: 'error' }));
                     debugAutosave('page-save-background-mismatch', { pageId });
@@ -581,7 +586,10 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     });
 
     function selectPage(pageId: string) {
+        const nextPageIndex = editorPages.findIndex((page) => page.id === pageId);
+
         editorHistory.flushPending(selectedPageId);
+        setPageDirection(nextPageIndex < selectedPageIndex ? 'previous' : 'next');
         setSelectedPageId(pageId);
         selection.clearSelection();
     }
@@ -1284,16 +1292,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     return (
         <>
             <Head title={`Editar ${metadata.title}`} />
-            <main
-                className="relative min-h-screen overflow-hidden"
-                style={
-                    {
-                        backgroundColor: normalizedTheme.tokens.colors.appBackground,
-                        backgroundImage: `radial-gradient(circle at 18% 8%, color-mix(in srgb, ${normalizedTheme.tokens.colors.bookBackground} 36%, transparent), transparent 26%), linear-gradient(180deg, ${normalizedTheme.tokens.colors.appBackground}, color-mix(in srgb, ${normalizedTheme.tokens.colors.bookBackground} 20%, ${normalizedTheme.tokens.colors.appBackground}))`,
-                        color: normalizedTheme.tokens.colors.ink,
-                    } as CSSProperties
-                }
-            >
+            <main className="gift-editor-root relative min-h-dvh overflow-x-clip text-[#342E38]">
                 <div className="relative z-10">
                     <GiftEditorTopBar
                         canRedo={selectedPageHistory.canRedo}
@@ -1314,6 +1313,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                     <input
                         ref={directImageInputRef}
                         accept="image/jpeg,image/png,image/webp"
+                        aria-label="Enviar imagem para o item selecionado"
                         className="sr-only"
                         disabled={editorDisabled || directImageUploading}
                         onChange={(event) => {
@@ -1353,6 +1353,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                     canGoNext={selectedPageIndex < editorPages.length - 1}
                                     canGoPrevious={selectedPageIndex > 0}
                                     canvas={selectedCanvas}
+                                    direction={pageDirection}
                                     disabled={editorDisabled}
                                     imageReplacing={directImageUploading}
                                     maxTextLength={selectedPage?.text_max_length ?? 1000}
@@ -1366,25 +1367,46 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                     onTransformEnd={endElementTransform}
                                     onTransformStart={beginElementTransform}
                                     page={selectedPage}
+                                    pageNumber={selectedPageIndex + 1}
                                     selectedElementId={selection.selectedElementId}
                                     theme={gift.theme?.config}
                                 />
                             </div>
                         }
                         right={
-                            <div className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE]/95 p-2 shadow-sm sm:p-3">
-                                <ElementPropertiesPanel
-                                    disabled={editorDisabled}
-                                    element={selection.selectedElement}
-                                    maxTextLength={selectedPage?.text_max_length ?? 1000}
-                                    onChangeText={changeSelectedElementText}
-                                    onLayerAction={changeSelectedElementLayer}
-                                    onPatchElement={patchSelectedElement}
-                                    onPatchStyle={patchSelectedElementStyle}
-                                    onReplacePhoto={openImageUpload}
-                                />
+                            <div className="gift-editor-toolbook">
+                                <div className="gift-editor-toolbook-heading">
+                                    <div>
+                                        <p className="font-display text-lg font-bold text-[#FBFAF6]">
+                                            Oficina da página
+                                        </p>
+                                        <p className="mt-0.5 truncate text-xs font-medium text-[#C9C1CD]">
+                                            {selectedPage?.name ?? 'Nenhuma página selecionada'}
+                                        </p>
+                                    </div>
+                                    <span className="gift-editor-toolbook-page">
+                                        {String(selectedPageIndex + 1).padStart(2, '0')}
+                                    </span>
+                                </div>
                                 <EditorTabs activeTab={activeTab} onChange={setActiveTab} showDebug={debugEnabled} />
-                                <div className="mt-5">
+                                <div
+                                    aria-labelledby={`editor-tab-${activeTab}`}
+                                    className="gift-editor-tool-panel"
+                                    id="editor-active-panel"
+                                    role="tabpanel"
+                                >
+                                    {selection.selectedElement ? (
+                                        <ElementPropertiesPanel
+                                            disabled={editorDisabled}
+                                            element={selection.selectedElement}
+                                            maxTextLength={selectedPage?.text_max_length ?? 1000}
+                                            onChangeText={changeSelectedElementText}
+                                            onLayerAction={changeSelectedElementLayer}
+                                            onPatchElement={patchSelectedElement}
+                                            onPatchStyle={patchSelectedElementStyle}
+                                            onReplacePhoto={openImageUpload}
+                                        />
+                                    ) : null}
                                     {activeTab === 'content' ? (
                                         <GiftContentPanel
                                             disabled={editorDisabled}
@@ -1481,15 +1503,11 @@ type LocalDraftNoticeProps = {
 
 function LocalDraftNotice({ onDismiss }: LocalDraftNoticeProps) {
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-[#CBA980] bg-[#FFF7EE] px-4 py-3 text-sm text-[#42291D] shadow-sm">
+        <div className="editor-notice editor-notice--recovered flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
             <span className="font-semibold">
                 Rascunho local recuperado. Ele será sincronizado automaticamente quando o salvamento terminar.
             </span>
-            <button
-                className="min-h-9 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#F6E4CF]"
-                onClick={onDismiss}
-                type="button"
-            >
+            <button className="editor-notice-action" onClick={onDismiss} type="button">
                 Entendi
             </button>
         </div>
@@ -1503,10 +1521,7 @@ type LocalDraftErrorNoticeProps = {
 
 function LocalDraftErrorNotice({ errors, onDismiss }: LocalDraftErrorNoticeProps) {
     return (
-        <div
-            className="grid gap-3 rounded-[8px] border border-[#D99A8B] bg-[#FFF0EC] px-4 py-3 text-sm text-[#8A2E21] shadow-sm"
-            role="alert"
-        >
+        <div className="editor-notice editor-notice--error grid gap-3 px-4 py-3 text-sm" role="alert">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="grid gap-1">
                     <p className="font-semibold">Algum rascunho local não pôde ser recuperado.</p>
@@ -1516,11 +1531,7 @@ function LocalDraftErrorNotice({ errors, onDismiss }: LocalDraftErrorNoticeProps
                         </p>
                     ))}
                 </div>
-                <button
-                    className="min-h-9 rounded-[6px] border border-[#D99A8B] bg-white px-3 text-sm font-semibold text-[#8A2E21] hover:bg-[#F9DDD6]"
-                    onClick={onDismiss}
-                    type="button"
-                >
+                <button className="editor-notice-action" onClick={onDismiss} type="button">
                     Fechar
                 </button>
             </div>
@@ -1535,10 +1546,7 @@ type EditorAlertProps = {
 
 function EditorAlert({ message, title }: EditorAlertProps) {
     return (
-        <div
-            className="rounded-[8px] border border-[#D99A8B] bg-[#FFF0EC] px-4 py-3 text-sm text-[#8A2E21] shadow-sm"
-            role="alert"
-        >
+        <div className="editor-notice editor-notice--error px-4 py-3 text-sm" role="alert">
             <p className="font-semibold">{title}</p>
             <p className="mt-1 font-medium">{message}</p>
         </div>

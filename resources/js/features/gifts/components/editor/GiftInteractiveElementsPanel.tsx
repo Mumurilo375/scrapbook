@@ -28,11 +28,20 @@ const ELEMENTS: Array<{
     },
 ];
 
-export function GiftInteractiveElementsPanel({ disabled, onAddElement, saveStatus }: GiftInteractiveElementsPanelProps) {
+export function GiftInteractiveElementsPanel({
+    disabled,
+    onAddElement,
+    saveStatus,
+}: GiftInteractiveElementsPanelProps) {
     return (
-        <section className="grid gap-3 text-[#1F150A]">
+        <section className="grid gap-4 text-[#342E38]">
             <div>
-                <h2 className="text-sm font-semibold uppercase text-[#7A2634]">Elementos</h2>
+                <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">
+                    Elementos interativos
+                </h2>
+                <p className="mt-1.5 text-sm leading-5 text-[#746D78]">
+                    Acrescente surpresas que a pessoa pode abrir e virar.
+                </p>
             </div>
 
             <div className="grid gap-2">
@@ -41,18 +50,18 @@ export function GiftInteractiveElementsPanel({ disabled, onAddElement, saveStatu
 
                     return (
                         <button
-                            className="grid min-h-24 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 rounded-[8px] border border-[#D8B991] bg-[#FFFBF6] p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#7A2634] hover:bg-[#FFF0EC] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                            className="group grid min-h-20 grid-cols-[40px_minmax(0,1fr)] items-center gap-3 rounded-[7px] border border-[#978E9C] bg-white p-3 text-left outline-none transition hover:border-[#21162D] hover:bg-[#F8F6FA] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:opacity-60"
                             disabled={disabled}
                             key={item.kind}
                             onClick={() => onAddElement(item.kind)}
                             type="button"
                         >
-                            <span className="inline-flex h-11 w-11 items-center justify-center rounded-[7px] border border-[#CBA980] bg-white text-[#7A2634]">
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[5px] bg-[#EFEBF3] text-[#21162D] transition group-hover:bg-[#FF765B]">
                                 <Icon aria-hidden="true" className="h-5 w-5" />
                             </span>
                             <span className="min-w-0">
-                                <span className="block text-sm font-semibold text-[#1F150A]">{item.title}</span>
-                                <span className="mt-1 block text-xs font-medium leading-5 text-[#6F5A4A]">
+                                <span className="block text-sm font-bold text-[#21162D]">{item.title}</span>
+                                <span className="mt-0.5 block text-xs font-medium leading-5 text-[#746D78]">
                                     {item.detail}
                                 </span>
                             </span>
@@ -61,7 +70,7 @@ export function GiftInteractiveElementsPanel({ disabled, onAddElement, saveStatu
                 })}
             </div>
 
-            <p className="text-xs font-semibold uppercase text-[#6F5A4A]">
+            <p className="text-xs font-semibold text-[#746D78]">
                 {saveStatus === 'saving' ? 'Salvando página' : 'Entra no centro da página'}
             </p>
         </section>

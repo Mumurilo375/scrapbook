@@ -13,14 +13,15 @@ export function EditorSaveStatus({ detail, status }: EditorSaveStatusProps) {
 
     return (
         <div
+            aria-atomic="true"
             aria-live="polite"
-            className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-[6px] border px-3 text-sm font-semibold ${meta.className}`}
+            className={`inline-flex min-h-10 shrink-0 snap-start items-center gap-2 whitespace-nowrap px-1 text-xs font-bold ${meta.className}`}
             role="status"
         >
-            <Icon aria-hidden="true" className={`h-4 w-4 ${status === 'saving' ? 'animate-spin' : ''}`} />
+            <Icon aria-hidden="true" className={`h-4 w-4 ${status === 'saving' ? 'motion-safe:animate-spin' : ''}`} />
             <span>{meta.label}</span>
             {detail ? (
-                <span className="hidden max-w-52 truncate text-xs font-medium opacity-80 lg:inline">{detail}</span>
+                <span className="hidden max-w-52 truncate font-medium opacity-70 2xl:inline">{detail}</span>
             ) : null}
         </div>
     );
@@ -29,7 +30,7 @@ export function EditorSaveStatus({ detail, status }: EditorSaveStatusProps) {
 function statusMeta(status: SaveStatus) {
     if (status === 'dirty') {
         return {
-            className: 'border-[#D8B991] bg-[#FFF7EE] text-[#6F4F22]',
+            className: 'text-[#F0B875]',
             icon: Clock3,
             label: 'Alterações pendentes',
         };
@@ -37,7 +38,7 @@ function statusMeta(status: SaveStatus) {
 
     if (status === 'saving') {
         return {
-            className: 'border-[#CBA980] bg-[#FFF7EE] text-[#42291D]',
+            className: 'text-[#D9CFE0]',
             icon: LoaderCircle,
             label: 'Salvando...',
         };
@@ -45,7 +46,7 @@ function statusMeta(status: SaveStatus) {
 
     if (status === 'error') {
         return {
-            className: 'border-[#D99A8B] bg-[#FFF0EC] text-[#8A2E21]',
+            className: 'text-[#FF9C8A]',
             icon: AlertCircle,
             label: 'Erro ao salvar',
         };
@@ -53,14 +54,14 @@ function statusMeta(status: SaveStatus) {
 
     if (status === 'offline') {
         return {
-            className: 'border-[#B9A894] bg-[#F3E9DA] text-[#5B4A3A]',
+            className: 'text-[#CFC3D7]',
             icon: CloudOff,
             label: 'Sem conexão',
         };
     }
 
     return {
-        className: 'border-[#C7D2AE] bg-[#F4F8EC] text-[#50623C]',
+        className: 'text-[#8CD7C1]',
         icon: CheckCircle2,
         label: 'Salvo',
     };

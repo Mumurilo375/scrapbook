@@ -13,14 +13,22 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600, 700],
+                bunny('Atkinson Hyperlegible', {
+                    weights: [400, 700],
+                    styles: ['normal', 'italic'],
+                    preload: [{ weight: 400 }],
+                }),
+                bunny('Bricolage Grotesque', {
+                    weights: [500, 600, 700, 800],
+                    preload: [{ weight: 700 }],
                 }),
                 bunny('Caveat', {
-                    weights: [600, 700],
+                    weights: [500, 600, 700],
+                    preload: false,
                 }),
                 bunny('Fraunces', {
                     weights: [600, 700],
+                    preload: false,
                 }),
             ],
         }),

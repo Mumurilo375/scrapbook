@@ -13,10 +13,10 @@ type GiftMetadataPanelProps = {
 
 export function GiftMetadataPanel({ disabled, errors, metadata, onChange }: GiftMetadataPanelProps) {
     return (
-        <section className="grid gap-4">
+        <section className="grid gap-5 text-[#342E38]">
             <div>
-                <h2 className="text-base font-semibold text-[#1F150A]">Presente</h2>
-                <p className="mt-1 text-sm text-[#6F5A4A]">
+                <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">Presente</h2>
+                <p className="mt-1.5 text-sm leading-5 text-[#746D78]">
                     Esses dados aparecem no painel, revisão e experiência final.
                 </p>
             </div>
@@ -62,10 +62,15 @@ type FieldProps = {
 
 function Field({ disabled, error, label, maxLength, onChange, value }: FieldProps) {
     return (
-        <label className="grid gap-2 text-sm font-semibold text-[#1F150A]">
+        <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
             {label}
             <input
-                className="min-h-10 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-normal text-[#1F150A] outline-none transition focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226]"
+                aria-invalid={Boolean(error)}
+                className={`min-h-10 rounded-[6px] border bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:ring-2 disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78] ${
+                    error
+                        ? 'border-[#C85B47] focus:border-[#C85B47] focus:ring-[#C85B4733]'
+                        : 'border-[#978E9C] focus:border-[#21162D] focus:ring-[#FF765B66]'
+                }`}
                 disabled={disabled}
                 maxLength={maxLength}
                 onChange={(event) => onChange(event.target.value)}
@@ -73,7 +78,7 @@ function Field({ disabled, error, label, maxLength, onChange, value }: FieldProp
                 value={value}
             />
             {error && (
-                <span className="text-xs font-semibold text-[#D93632]" role="alert">
+                <span className="text-xs font-semibold text-[#7C3024]" role="alert">
                     {error}
                 </span>
             )}

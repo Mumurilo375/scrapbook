@@ -16,14 +16,14 @@ const ACTIONS: Array<{ action: LayerAction; icon: typeof ChevronsUp; label: stri
 
 export function LayerControls({ disabled, onAction }: LayerControlsProps) {
     return (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
             {ACTIONS.map((item) => {
                 const Icon = item.icon;
 
                 return (
                     <button
                         aria-label={item.label}
-                        className="inline-flex h-10 items-center justify-center rounded-[6px] border border-[#CBA980] bg-[#FFF8EF] text-[#42291D] transition hover:bg-[#F6E4CF] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex h-10 items-center justify-center rounded-[5px] border border-[#978E9C] bg-white text-[#342E38] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78] disabled:opacity-60"
                         disabled={disabled}
                         key={item.action}
                         onClick={() => onAction(item.action)}

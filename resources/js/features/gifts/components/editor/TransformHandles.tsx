@@ -42,7 +42,7 @@ export function TransformHandles({ disabled, element, onPointerDown }: Transform
             {RESIZE_HANDLES.map((handle) => (
                 <button
                     aria-label={handle.label}
-                    className={`absolute h-6 w-6 rounded-full border border-white bg-[#7A2634] shadow-[0_2px_6px_rgba(31,21,10,0.28)] sm:h-4 sm:w-4 ${handle.className}`}
+                    className={`absolute h-6 w-6 rounded-full border-2 border-white bg-[#21162D] shadow-[0_3px_8px_rgba(33,22,45,0.32)] sm:h-4 sm:w-4 ${handle.className}`}
                     key={handle.id}
                     onPointerDown={(event) => onPointerDown(event, element, handle.id)}
                     title={handle.label}
@@ -51,12 +51,12 @@ export function TransformHandles({ disabled, element, onPointerDown }: Transform
             ))}
             <button
                 aria-label="Rotacionar elemento"
-                className="absolute left-1/2 top-[-48px] h-7 w-7 -translate-x-1/2 rounded-full border border-white bg-[#D93632] shadow-[0_2px_6px_rgba(31,21,10,0.28)] sm:top-[-42px] sm:h-5 sm:w-5"
+                className="absolute left-1/2 top-[-48px] h-7 w-7 -translate-x-1/2 rounded-full border-2 border-white bg-[#FF765B] shadow-[0_3px_8px_rgba(33,22,45,0.32)] sm:top-[-42px] sm:h-5 sm:w-5"
                 onPointerDown={(event) => onPointerDown(event, element, 'rotate')}
                 title="Rotacionar"
                 type="button"
             />
-            <span className="pointer-events-none absolute left-1/2 top-[-28px] h-7 w-px -translate-x-1/2 bg-[#D93632]" />
+            <span className="pointer-events-none absolute left-1/2 top-[-28px] h-7 w-px -translate-x-1/2 bg-[#FF765B]" />
         </>
     );
 }

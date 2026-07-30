@@ -51,13 +51,13 @@ export function GiftLayersPanel({
         isElementHidden(selectedElement);
 
     return (
-        <section className="grid gap-4">
+        <section className="grid gap-4 text-[#342E38]">
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <h2 className="text-base font-semibold text-[#1F150A]">Camadas</h2>
-                    <p className="mt-1 text-sm text-[#6F5A4A]">{elementCountLabel(elements.length)}</p>
+                <div className="min-w-0">
+                    <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">Camadas</h2>
+                    <p className="mt-1 text-sm text-[#746D78]">{elementCountLabel(elements.length)}</p>
                 </div>
-                <Layers aria-hidden="true" className="h-4 w-4 text-[#7A2634]" />
+                <Layers aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-[#FF765B]" />
             </div>
 
             <LayerControls disabled={layerControlsDisabled} onAction={onLayerAction} />
@@ -81,7 +81,7 @@ export function GiftLayersPanel({
                     ))}
                 </div>
             ) : (
-                <p className="rounded-[6px] border border-dashed border-[#CBA980] bg-[#FFFBF6] p-3 text-sm text-[#6F5A4A]">
+                <p className="rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm text-[#342E38]">
                     Esta página ainda não possui itens editáveis.
                 </p>
             )}
@@ -121,28 +121,26 @@ function LayerRow({
 
     return (
         <div
-            className={`grid gap-2 rounded-[6px] border p-2 transition ${
+            className={`grid gap-2 rounded-[7px] border p-2 transition ${
                 selected
-                    ? 'border-[#7A2634] bg-[#FFF0EC] text-[#7A2634]'
+                    ? 'border-[#C94F39] bg-[#FFF2EF] text-[#21162D]'
                     : hidden
-                      ? 'border-[#D8B991] bg-white/70 text-[#6F5A4A]'
-                      : 'border-[#D8B991] bg-white text-[#42291D] hover:bg-[#FFF8EF]'
+                      ? 'border-[#C9C1CD] bg-[#EFEBF3] text-[#342E38]'
+                      : 'border-[#C9C1CD] bg-white text-[#342E38] hover:border-[#AAA1AF] hover:bg-[#F8F6FA]'
             }`}
         >
             <div className="flex min-w-0 items-start gap-2">
                 <button
-                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-[5px] px-1.5 text-left outline-none transition hover:bg-[#FFF8EF] focus-visible:ring-2 focus-visible:ring-[#D9363226]"
+                    className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-[5px] px-1 text-left outline-none transition hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-1"
                     onClick={() => onSelectElement(element.id)}
                     type="button"
                 >
-                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] bg-[#F6E7D6] text-[#7A2634]">
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px] bg-[#EFEBF3] text-[#21162D]">
                         <LayerTypeIcon type={element.type} />
                     </span>
                     <span className="min-w-0">
-                        <span className={`block truncate text-sm font-semibold ${hidden ? 'opacity-70' : ''}`}>
-                            {label}
-                        </span>
-                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold uppercase text-[#6F5A4A]">
+                        <span className="block truncate text-sm font-bold">{label}</span>
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-[#645D68]">
                             {getLayerTypeLabel(element.type)}
                             {locked ? (
                                 <span className="inline-flex items-center gap-1" title="Bloqueado">
@@ -203,7 +201,7 @@ function LayerRow({
                 Nome da camada
             </label>
             <input
-                className="h-9 min-w-0 rounded-[6px] border border-[#D8B991] bg-[#FFFBF6] px-2 text-sm font-semibold text-[#1F150A] outline-none transition placeholder:text-[#9B7B62] focus:border-[#D93632] focus:ring-2 focus:ring-[#D9363226] disabled:opacity-60"
+                className="h-10 min-w-0 rounded-[5px] border border-[#978E9C] bg-white px-2 text-sm font-semibold text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                 defaultValue={customName}
                 disabled={disabled}
                 id={`layer-name-${element.id}`}
@@ -233,10 +231,10 @@ function IconButton({ children, className = '', danger = false, disabled, label,
     return (
         <button
             aria-label={label}
-            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-[6px] border transition disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-[5px] border outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#EFEBF3] disabled:text-[#746D78] disabled:opacity-60 ${
                 danger
-                    ? 'border-[#D99A8B] bg-[#FFF0EC] text-[#8A2E21] hover:bg-[#F9DDD6]'
-                    : 'border-[#CBA980] bg-[#FFF8EF] text-[#42291D] hover:bg-[#F6E4CF]'
+                    ? 'border-[#C85B47] bg-[#FFF2EF] text-[#7C3024] hover:border-[#7C3024] hover:bg-[#FFE5DF]'
+                    : 'border-[#978E9C] bg-white text-[#342E38] hover:border-[#21162D] hover:bg-[#EFEBF3]'
             } ${className}`}
             disabled={disabled}
             onClick={onClick}

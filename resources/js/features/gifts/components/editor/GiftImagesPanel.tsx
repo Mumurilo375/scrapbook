@@ -23,10 +23,12 @@ export function GiftImagesPanel({
     uploadUrl,
 }: GiftImagesPanelProps) {
     return (
-        <section className="grid gap-5">
+        <section className="grid gap-5 text-[#342E38]">
             <div>
-                <h2 className="text-base font-semibold text-[#1F150A]">Biblioteca de imagens</h2>
-                <p className="mt-1 text-sm text-[#6F5A4A]">
+                <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">
+                    Biblioteca de imagens
+                </h2>
+                <p className="mt-1.5 text-sm leading-5 text-[#746D78]">
                     Envie imagens para sua biblioteca. Para substituir uma foto da página, selecione a imagem e use
                     Trocar foto.
                 </p>
