@@ -1,0 +1,16 @@
+{
+  "title": "Escolha o mundo visual do novo editor",
+  "question": "Esta é a direção proposta para transformar layouts prontos em um caminho rápido, bonito e compreensível para iniciantes.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Álbum de Figurinhas de Afeto",
+      "kicker": "DIREÇÃO PROPOSTA",
+      "lineage": "álbuns de figurinhas brasileiros, cadernos colecionáveis e papelaria afetiva",
+      "body": "O scrapbook permanece grande e central enquanto a pessoa percorre quatro ambientes claros: escolher layout, preencher lembranças, ajustar detalhes e revisar. Cada página pronta funciona como uma folha de álbum com espaços reconhecíveis para foto, texto, música e surpresa; completar o presente é preencher uma coleção, não desenhar do zero. No celular, os mesmos ambientes ocupam a tela inteira sem remover nenhuma função. A interação memorável é trocar o layout e ver fotos e textos se reorganizarem com segurança, sem perder conteúdo. A linguagem é tátil, gráfica e adulta: numeração editorial, recortes, envelopes de figurinhas, contornos impressos e cores próprias de cada tema — sem pontos, mascotes ou recompensas. Risco: cair no infantil; o acabamento de álbum de coleção premium e a ausência de gamificação mantêm o foco no afeto."
+    }
+  ],
+  "reroll": true,
+  "canon": true,
+  "steer": true
+}
