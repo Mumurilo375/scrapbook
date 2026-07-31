@@ -29,7 +29,7 @@ export function PhoneMockup({ compact = false }: PhoneMockupProps) {
                     </div>
                     <section className="rounded-[6px] border border-[#C9BAD8] bg-[#FBF7ED] p-4 shadow-[3px_5px_0_#CFC1AE]">
                         <div className="mb-3 flex items-center justify-between">
-                            <span className="font-editorial text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-[#FF705F]">
+                            <span className="font-editorial text-[10px] font-semibold uppercase tracking-[0.18em] text-[#FF705F]">
                                 página 01
                             </span>
                             <Heart aria-hidden="true" className="h-4 w-4 fill-[#FF705F] text-[#FF705F]" />

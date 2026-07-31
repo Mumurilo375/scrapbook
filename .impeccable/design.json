@@ -274,6 +274,10 @@
         "displayName": "Label",
         "purpose": "Etapas, números, status e metadados curtos."
       },
+      "micro": {
+        "displayName": "Micro",
+        "purpose": "Foliação, selos, progresso e legendas curtas dentro de miniaturas."
+      },
       "handwriting": {
         "displayName": "Handwriting",
         "purpose": "Voz afetiva exclusivamente dentro das páginas do scrapbook."
@@ -424,9 +428,11 @@
     "overview": "O produto acontece sobre uma bancada contemporânea de encadernação. A interface escura e precisa enquadra um álbum aberto de algodão, tecido, couro e metal; o presente é sempre o maior, mais iluminado e mais detalhado objeto da tela. O resultado deve parecer fotografável antes de parecer configurável.\n\nAs três referências aprovadas são vinculantes: barra berinjela com etapas, bancada lavanda, caderno físico aberto, faixa de páginas e inspector branco contextual. O caminho principal leva uma pessoa iniciante por Layout, Preencher, Decorar e Ajustar usando composições prontas; liberdade aparece como refinamento progressivo, não como obrigação de inventar.",
     "keyCharacteristics": [
       "Álbum aberto real, com duas folhas, pilha, lombada, ferragens, dobra e sombra de contato.",
+      "Abertura, leitura e encerramento usam o mesmo objeto físico do editor, não uma moldura genérica.",
       "Chrome sóbrio em tecido berinjela, lavanda de bancada, branco de prova e coral de conclusão.",
       "Inspetor contínuo e funcional; miniaturas mostram páginas reais, não placeholders.",
       "Materialidade concentrada no presente e em objetos que representam papel, foto ou tecido.",
+      "Templates contam uma pequena história pronta e emocional; cada página tem uma hierarquia dominante e respiro.",
       "Mesmas capacidades no desktop e no celular, reorganizadas para cada espaço."
     ],
     "rules": [
@@ -449,6 +455,16 @@
         "name": "The Honest Material Rule",
         "body": "Só algo que poderia levantar da bancada recebe sombra física.",
         "section": "elevation"
+      },
+      {
+        "name": "The Same Gift Everywhere Rule",
+        "body": "Editor, prévia privada e link publicado representam o mesmo álbum, com as mesmas proporções, materiais e páginas.",
+        "section": "components"
+      },
+      {
+        "name": "The Curated Before Creative Rule",
+        "body": "O primeiro resultado bonito vem do template; personalização é uma camada posterior, nunca um requisito para organizar a página.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -456,14 +472,18 @@
       "Do partir de layouts e temas prontos para entregar beleza imediata a iniciantes.",
       "Do mostrar páginas e estados reais em qualquer miniatura.",
       "Do preservar edição, autosave, histórico, erros, offline, teclado, toque e reduced motion.",
-      "Do usar textura em tecido, papel e fotografia, com contraste suficiente."
+      "Do usar textura em tecido, papel e fotografia, com contraste suficiente.",
+      "Do usar recortes que poderiam existir em um scrapbook real: flores prensadas, fita, bilhetes, selos, filme, clipes, tinta e papel rasgado.",
+      "Do validar abertura, páginas e encerramento nos modos privado e publicado."
     ],
     "donts": [
       "Don't voltar à folha isolada dentro de um dashboard genérico.",
       "Don't substituir o conteúdo real por uma montagem decorativa falsa.",
       "Don't transformar todo container em cartão arredondado.",
       "Don't usar papel bege como fundo universal da aplicação.",
-      "Don't esconder funções no celular; reorganize-as."
+      "Don't esconder funções no celular; reorganize-as.",
+      "Don't usar ícones vetoriais lisos como decoração final quando o elemento representa um objeto artesanal.",
+      "Don't preencher uma página com vários focos equivalentes ou textos emocionais competindo entre si."
     ]
   }
 }

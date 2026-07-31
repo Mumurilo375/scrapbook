@@ -117,7 +117,7 @@ export const DEFAULT_THEME_CONFIG: NormalizedThemeConfig = {
     book: {
         style: 'scrapbook',
         binding: 'left',
-        background: '#F3E7D3',
+        background: '#FBF7ED',
         spineColor: '#7B4F32',
         mode: 'spread',
         spineWidth: 28,

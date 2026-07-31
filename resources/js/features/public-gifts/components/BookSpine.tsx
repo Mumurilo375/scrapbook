@@ -22,16 +22,21 @@ export function BookSpine({ assets, theme }: BookSpineProps) {
     return (
         <div
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-[2.2%] left-1/2 top-[2.2%] z-30 hidden -translate-x-1/2 overflow-hidden rounded-full shadow-[inset_12px_0_20px_rgba(255,255,255,0.18),inset_-14px_0_22px_rgba(58,36,24,0.30),0_0_22px_rgba(58,36,24,0.18)] md:block"
+            className="gift-book-spine pointer-events-none absolute bottom-[2.2%] left-1/2 top-[2.2%] z-30 hidden -translate-x-1/2 md:block"
             style={{
                 ...style,
-                background:
-                    'linear-gradient(90deg, rgba(58,36,24,0.34), var(--book-spine-color) 46%, rgba(255,255,255,0.22))',
                 width: 'var(--book-spine-width)',
             }}
         >
-            {spineTextureStyle ? <span className="absolute inset-0" style={spineTextureStyle} /> : null}
-            <span className="absolute inset-y-0 left-1/2 w-px bg-[rgba(255,255,255,0.22)]" />
+            <span
+                className="gift-book-spine__crease absolute inset-y-0 left-1/2 -translate-x-1/2"
+                style={spineTextureStyle ?? undefined}
+            />
+            {[18, 39, 61, 82].map((top) => (
+                <span className="gift-book-spine__ring" key={top} style={{ top: `${top}%` }}>
+                    <span />
+                </span>
+            ))}
         </div>
     );
 }

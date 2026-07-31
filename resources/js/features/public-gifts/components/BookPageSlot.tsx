@@ -44,9 +44,10 @@ export function BookPageSlot({ assets, context, isSpread, page, referenceCanvas,
     } as CSSProperties;
 
     return (
-        <div className={`relative min-w-0 overflow-visible ${sideClass}`} style={style}>
+        <div className={`gift-book-page relative min-w-0 overflow-visible ${sideClass}`} data-side={side} style={style}>
+            <div aria-hidden="true" className="gift-book-page__underlay" />
             <div
-                className="relative h-full w-full overflow-hidden border border-[rgba(58,36,24,0.16)] bg-[var(--book-page-bg)]"
+                className="gift-book-page__content relative h-full w-full overflow-hidden border border-[rgba(58,36,24,0.16)] bg-[var(--book-page-bg)]"
                 style={{
                     borderRadius: radius,
                     boxShadow: pageShadow(side, isSpread, theme),
@@ -67,6 +68,11 @@ export function BookPageSlot({ assets, context, isSpread, page, referenceCanvas,
                     />
                 )}
             </div>
+            {page ? (
+                <span aria-hidden="true" className="gift-book-page__folio">
+                    {String(Math.max(1, Math.round(page.sort_order / 10))).padStart(2, '0')}
+                </span>
+            ) : null}
             {isSpread ? <FoldShade side={side} theme={theme} /> : null}
         </div>
     );
@@ -92,8 +98,8 @@ function FoldShade({ side, theme }: FoldShadeProps) {
             }`}
             style={{
                 backgroundImage: isLeft
-                    ? 'linear-gradient(90deg, transparent, rgba(58,36,24,0.17))'
-                    : 'linear-gradient(90deg, rgba(58,36,24,0.20), transparent)',
+                    ? 'linear-gradient(90deg, transparent, color-mix(in srgb, #CFC1AE 48%, transparent))'
+                    : 'linear-gradient(90deg, color-mix(in srgb, #CFC1AE 56%, transparent), transparent)',
                 borderRadius: isLeft ? '0 18px 18px 0' : '18px 0 0 18px',
                 mixBlendMode: 'multiply',
             }}

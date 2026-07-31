@@ -595,6 +595,517 @@ html {
     }
 }
 
+.gift-viewer-atelier::before {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    content: '';
+    background:
+        radial-gradient(circle at 18% 32%, rgba(55, 37, 64, 0.08) 0 1px, transparent 2px),
+        radial-gradient(circle at 83% 68%, rgba(55, 37, 64, 0.07) 0 1.5px, transparent 2.5px),
+        linear-gradient(112deg, transparent 0 47%, rgba(255, 255, 255, 0.14) 48%, transparent 49%);
+    background-size:
+        71px 63px,
+        89px 77px,
+        100% 100%;
+    mix-blend-mode: multiply;
+    opacity: 0.7;
+}
+
+.gift-viewer-atelier__ruler {
+    position: fixed;
+    bottom: -52px;
+    left: -46px;
+    z-index: 1;
+    width: 310px;
+    height: 96px;
+    border: 1px solid rgba(63, 46, 70, 0.35);
+    background:
+        repeating-linear-gradient(90deg, rgba(50, 39, 56, 0.5) 0 1px, transparent 1px 16px), rgba(246, 241, 232, 0.38);
+    box-shadow: 0 12px 30px rgba(35, 22, 42, 0.14);
+    transform: rotate(14deg);
+}
+
+.gift-viewer-atelier__paper-scrap {
+    position: fixed;
+    right: -22px;
+    bottom: 22px;
+    z-index: 1;
+    width: 126px;
+    padding: 18px 18px 16px;
+    color: #b55146;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1.05;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    border: 2px solid rgba(181, 81, 70, 0.5);
+    background:
+        url('/materials/cotton-paper-fibers-v2.webp') center / 300px 300px,
+        #e8d5bd;
+    box-shadow: 0 10px 22px rgba(35, 22, 42, 0.13);
+    clip-path: polygon(
+        2% 4%,
+        18% 0,
+        35% 3%,
+        52% 0,
+        69% 4%,
+        86% 1%,
+        99% 5%,
+        97% 94%,
+        82% 100%,
+        65% 97%,
+        48% 100%,
+        31% 97%,
+        14% 100%,
+        1% 95%
+    );
+    transform: rotate(7deg);
+}
+
+.gift-viewer-topbar {
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+    background:
+        linear-gradient(100deg, rgba(255, 255, 255, 0.025), transparent 30%, rgba(255, 118, 91, 0.05)),
+        url('/materials/bookcloth-aubergine.webp') center / 540px 540px,
+        #1d1428;
+    box-shadow: 0 8px 24px rgba(31, 20, 40, 0.2);
+}
+
+.gift-viewer-topbar__brand {
+    min-height: 34px;
+    padding-right: 20px;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    color: #eee8f0;
+}
+
+.gift-viewer-topbar__back,
+.gift-viewer-topbar__icon {
+    color: #f6f1f7;
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.gift-viewer-topbar__primary {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 5px 0 rgba(67, 31, 33, 0.66);
+}
+
+.gift-viewer-page-label {
+    min-height: 42px;
+    padding-inline: clamp(10px, 1.4vw, 22px);
+}
+
+.gift-viewer-controls {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.8fr) minmax(320px, 1.2fr);
+    align-items: center;
+    width: min(100%, 1340px);
+    gap: clamp(18px, 3vw, 52px);
+    margin: -2px auto 0;
+    padding: 13px clamp(16px, 2vw, 28px);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    color: #fff;
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent 36%, rgba(255, 118, 91, 0.035)),
+        url('/materials/bookcloth-aubergine.webp') center / 540px 540px,
+        #21162d;
+    box-shadow: 0 13px 28px rgba(35, 22, 42, 0.2);
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+}
+
+.gift-viewer-progress,
+.gift-viewer-navigation {
+    max-width: none;
+}
+
+.gift-viewer-navigation__button {
+    border-radius: 2px;
+}
+
+.gift-viewer-keepsake-cta {
+    border-radius: 2px;
+    background-image: url('/materials/cotton-paper-fibers-v2.webp');
+    background-size: 320px 320px;
+    box-shadow: 0 8px 18px rgba(35, 22, 42, 0.13);
+    clip-path: polygon(
+        1% 5%,
+        14% 1%,
+        28% 4%,
+        43% 0,
+        57% 4%,
+        72% 1%,
+        86% 5%,
+        99% 1%,
+        98% 94%,
+        84% 99%,
+        69% 95%,
+        53% 100%,
+        37% 95%,
+        22% 100%,
+        1% 95%
+    );
+    transform: rotate(-0.5deg);
+}
+
+.gift-opening-scene {
+    position: relative;
+    width: min(92vw, 720px);
+    margin-inline: auto;
+    padding: 24px 18px 34px;
+}
+
+.gift-opening-scene__shadow {
+    position: absolute;
+    right: 8%;
+    bottom: 4%;
+    left: 8%;
+    height: 20%;
+    border-radius: 50%;
+    background: rgba(34, 20, 39, 0.34);
+    filter: blur(26px);
+}
+
+.gift-opening-book {
+    width: min(100%, 650px);
+    aspect-ratio: 1.48;
+    transform: perspective(1400px) rotateX(7deg) rotateZ(-1.5deg);
+    transform-origin: center bottom;
+}
+
+.gift-opening-book__pages {
+    position: absolute;
+    inset: 4% -0.5% -2% 3%;
+    border: 1px solid rgba(90, 66, 50, 0.25);
+    border-radius: 14px 24px 24px 14px;
+    background: repeating-linear-gradient(0deg, #e7dccb 0 2px, #cdbda8 2px 3px, #eee5d7 3px 6px), #e8dfd1;
+    box-shadow:
+        0 8px 0 #b9aa96,
+        0 22px 36px rgba(39, 25, 44, 0.28);
+}
+
+.gift-opening-book__cover {
+    position: absolute;
+    inset: 0 1.5% 1% 0;
+    overflow: visible;
+    border: 1px solid rgba(20, 11, 23, 0.72);
+    border-radius: 18px 25px 25px 18px;
+    background:
+        linear-gradient(110deg, rgba(255, 255, 255, 0.08), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.18)),
+        url('/materials/bookcloth-aubergine.webp') center / 520px 520px,
+        #43283d;
+    box-shadow:
+        inset 0 0 0 4px rgba(255, 255, 255, 0.035),
+        0 28px 50px rgba(35, 22, 42, 0.25);
+}
+
+.gift-opening-book__spine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 5%;
+    width: 8%;
+    border-inline: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.16), transparent 36%, rgba(255, 255, 255, 0.06));
+    box-shadow: inset -10px 0 16px rgba(17, 8, 20, 0.2);
+}
+
+.gift-opening-book__label {
+    position: absolute;
+    top: 15%;
+    right: 15%;
+    bottom: 15%;
+    left: 24%;
+    display: grid;
+    place-content: center;
+    padding: 8% 10%;
+    border: 1px solid rgba(85, 62, 47, 0.24);
+    background:
+        url('/materials/cotton-paper-fibers-v2.webp') center / 480px 480px,
+        #f4eadb;
+    box-shadow:
+        0 4px 4px rgba(34, 21, 20, 0.18),
+        0 16px 26px rgba(34, 21, 20, 0.2);
+    clip-path: polygon(
+        1% 1%,
+        17% 0,
+        34% 1.4%,
+        51% 0,
+        68% 1.3%,
+        84% 0,
+        99% 1%,
+        100% 24%,
+        99% 49%,
+        100% 75%,
+        99% 99%,
+        83% 98.6%,
+        66% 100%,
+        49% 98.5%,
+        32% 100%,
+        16% 98.7%,
+        1% 100%,
+        2% 74%,
+        0 48%,
+        2% 23%
+    );
+}
+
+.gift-opening-book__tape {
+    position: absolute;
+    top: -3%;
+    left: 34%;
+    width: 34%;
+    height: 10%;
+    background: rgba(221, 193, 146, 0.82);
+    box-shadow: 0 3px 7px rgba(59, 40, 31, 0.16);
+    clip-path: polygon(
+        2% 8%,
+        15% 2%,
+        29% 7%,
+        43% 1%,
+        57% 6%,
+        72% 2%,
+        86% 8%,
+        98% 3%,
+        97% 92%,
+        84% 98%,
+        69% 94%,
+        53% 99%,
+        37% 94%,
+        21% 99%,
+        3% 93%
+    );
+    transform: rotate(-3deg);
+}
+
+.gift-opening-book__corner {
+    position: absolute;
+    right: 3.5%;
+    width: 9%;
+    height: 13%;
+    border-right: 3px solid rgba(192, 159, 87, 0.66);
+}
+
+.gift-opening-book__corner--top {
+    top: 4%;
+    border-top: 3px solid rgba(192, 159, 87, 0.66);
+}
+
+.gift-opening-book__corner--bottom {
+    bottom: 4%;
+    border-bottom: 3px solid rgba(192, 159, 87, 0.66);
+}
+
+.gift-opening-book__pressed-flower {
+    position: absolute;
+    right: 7%;
+    bottom: 13%;
+    width: 17%;
+    height: 32%;
+    transform: rotate(8deg);
+}
+
+.gift-opening-book__pressed-flower::before {
+    position: absolute;
+    bottom: 0;
+    left: 49%;
+    width: 2px;
+    height: 100%;
+    content: '';
+    background: #7b805f;
+    transform: rotate(-8deg);
+}
+
+.gift-opening-book__pressed-flower i {
+    position: absolute;
+    width: 32%;
+    height: 28%;
+    border: 1px solid #6f7658;
+    border-radius: 90% 10% 90% 10%;
+    background: #a7a377;
+}
+
+.gift-opening-book__pressed-flower i:nth-child(1) {
+    top: 14%;
+    left: 17%;
+    transform: rotate(-36deg);
+}
+
+.gift-opening-book__pressed-flower i:nth-child(2) {
+    top: 31%;
+    right: 11%;
+    transform: rotate(31deg);
+}
+
+.gift-opening-book__pressed-flower i:nth-child(3) {
+    top: 48%;
+    left: 12%;
+    transform: rotate(-32deg);
+}
+
+.gift-opening-book__pressed-flower i:nth-child(4) {
+    top: 61%;
+    right: 13%;
+    transform: rotate(34deg);
+}
+
+.gift-opening-book__ticket {
+    position: absolute;
+    bottom: 9%;
+    left: 16%;
+    padding: 7px 12px;
+    color: #332539;
+    font-family: var(--font-display);
+    font-size: clamp(0.52rem, 1vw, 0.72rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px dashed #6b546e;
+    background: #c9add0;
+    transform: rotate(3deg);
+}
+
+.gift-opening-book__clasp {
+    position: absolute;
+    top: 39%;
+    right: -4%;
+    width: 9%;
+    height: 24%;
+    border: 1px solid #251322;
+    border-radius: 4px 14px 14px 4px;
+    background:
+        url('/materials/bookcloth-aubergine.webp') center / 420px 420px,
+        #2c172a;
+    box-shadow: 5px 9px 18px rgba(29, 13, 28, 0.34);
+}
+
+.gift-opening-action {
+    border-radius: 2px;
+    clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
+}
+
+.gift-ending-book {
+    max-width: 820px;
+    aspect-ratio: 1.65;
+    filter: drop-shadow(0 32px 35px rgba(35, 22, 42, 0.28));
+    transform: rotate(-0.7deg);
+}
+
+.gift-ending-book__pages {
+    position: absolute;
+    inset: 3% -0.5% -2% 2%;
+    border-radius: 12px 24px 24px 12px;
+    background: repeating-linear-gradient(0deg, #eee5d7 0 4px, #c9baa6 4px 5px, #e4d9c8 5px 8px);
+    box-shadow: 0 8px 0 #b9aa96;
+}
+
+.gift-ending-book__cover {
+    position: absolute;
+    inset: 0 1% 0 0;
+    display: grid;
+    place-items: center;
+    overflow: visible;
+    padding: 8% 13% 8% 18%;
+    border: 1px solid #211220;
+    border-radius: 18px 25px 25px 18px;
+    background:
+        linear-gradient(110deg, rgba(255, 255, 255, 0.07), transparent 24%, transparent 75%, rgba(0, 0, 0, 0.17)),
+        url('/materials/bookcloth-aubergine.webp') center / 540px 540px,
+        #43283d;
+}
+
+.gift-ending-book__spine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 5%;
+    width: 9%;
+    border-inline: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    box-shadow: inset -12px 0 18px rgba(18, 8, 18, 0.22);
+}
+
+.gift-ending-book__note {
+    width: min(100%, 610px);
+    padding: clamp(24px, 5vw, 52px);
+    background:
+        url('/materials/cotton-paper-fibers-v2.webp') center / 520px 520px,
+        #f7eddf;
+    box-shadow: 0 18px 26px rgba(30, 16, 27, 0.28);
+    clip-path: polygon(
+        1% 2%,
+        14% 0,
+        28% 1.4%,
+        42% 0,
+        57% 1.6%,
+        71% 0,
+        85% 1.4%,
+        99% 0.7%,
+        100% 25%,
+        99% 51%,
+        100% 77%,
+        98% 100%,
+        83% 98.6%,
+        67% 100%,
+        51% 98.4%,
+        35% 100%,
+        19% 98.6%,
+        1% 100%,
+        2% 74%,
+        0 49%,
+        2% 24%
+    );
+}
+
+.gift-ending-book__tape {
+    position: absolute;
+    top: -4%;
+    left: 35%;
+    width: 30%;
+    height: 11%;
+    background: rgba(215, 189, 148, 0.8);
+    clip-path: polygon(
+        2% 8%,
+        15% 2%,
+        29% 7%,
+        43% 1%,
+        57% 6%,
+        72% 2%,
+        86% 8%,
+        98% 3%,
+        97% 92%,
+        84% 98%,
+        69% 94%,
+        53% 99%,
+        37% 94%,
+        21% 99%,
+        3% 93%
+    );
+    transform: rotate(-3deg);
+}
+
+.gift-ending-book__seal {
+    position: absolute;
+    right: 11%;
+    bottom: 12%;
+    display: grid;
+    width: 52px;
+    aspect-ratio: 1;
+    place-items: center;
+    color: #f6dfd7;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.35), transparent 18%), #a94351;
+    box-shadow:
+        0 5px 10px rgba(31, 17, 25, 0.25),
+        inset 0 0 0 4px #7e2c38;
+}
+
 .gift-viewer-opening-transition {
     animation: gift-viewer-opening 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -708,6 +1219,304 @@ html {
     transition-duration: 1ms;
 }
 
+.gift-book-shell {
+    position: relative;
+    padding: clamp(14px, 1.35vw, 22px);
+    isolation: isolate;
+    perspective: 1800px;
+    filter: drop-shadow(0 28px 28px rgba(35, 22, 42, 0.2));
+}
+
+.gift-book-shell__cover {
+    position: absolute;
+    inset: 1.2% 0.2% -1%;
+    z-index: -4;
+    border: 1px solid rgba(31, 16, 29, 0.58);
+    border-radius: 30px 24px 28px 32px;
+    background-color: #43283d;
+    background-image:
+        linear-gradient(100deg, rgba(255, 255, 255, 0.08), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.17)),
+        url('/materials/bookcloth-aubergine.webp');
+    background-position: center;
+    background-size:
+        100% 100%,
+        560px 560px;
+    box-shadow:
+        0 34px 72px rgba(35, 22, 42, 0.32),
+        inset 0 0 0 3px rgba(255, 255, 255, 0.045);
+}
+
+.gift-book-shell__stack {
+    position: absolute;
+    z-index: -3;
+    border: 1px solid rgba(88, 68, 51, 0.2);
+    border-radius: 22px 17px 20px 24px;
+    background:
+        url('/materials/cotton-paper-fibers-v2.webp') center / 720px 720px,
+        #e9dfcf;
+    box-shadow:
+        0 5px 0 #d9ccb9,
+        0 10px 0 #c8b79f;
+}
+
+.gift-book-shell__stack--back {
+    inset: 3.1% 1.8% 0.2%;
+    transform: rotate(-0.28deg);
+}
+
+.gift-book-shell__stack--middle {
+    inset: 2.3% 1.1% 1.1%;
+    transform: rotate(0.22deg);
+}
+
+.gift-book-shell__spread {
+    gap: 0;
+    align-items: stretch;
+}
+
+.gift-book-page {
+    transform-style: preserve-3d;
+}
+
+.gift-book-shell[data-spread='true'] .gift-book-page[data-side='left'] {
+    transform: perspective(1800px) rotateY(1.35deg);
+    transform-origin: right center;
+}
+
+.gift-book-shell[data-spread='true'] .gift-book-page[data-side='right'] {
+    transform: perspective(1800px) rotateY(-1.35deg);
+    transform-origin: left center;
+}
+
+.gift-book-page__underlay {
+    position: absolute;
+    inset: 0.7% 0.4% -1.6%;
+    z-index: -1;
+    border: 1px solid rgba(108, 82, 57, 0.2);
+    background:
+        url('/materials/cotton-paper-fibers-v2.webp') center / 680px 680px,
+        #e6dac8;
+    box-shadow:
+        0 5px 0 #d7cab7,
+        0 10px 0 #c8b79f,
+        0 16px 24px rgba(55, 37, 31, 0.18);
+    clip-path: polygon(
+        0.5% 0.4%,
+        13% 0,
+        26% 0.5%,
+        41% 0.1%,
+        57% 0.55%,
+        73% 0.08%,
+        88% 0.45%,
+        99.6% 0.15%,
+        100% 99.2%,
+        87% 99.8%,
+        71% 99.35%,
+        56% 99.85%,
+        38% 99.3%,
+        22% 99.9%,
+        0.4% 99.45%
+    );
+}
+
+.gift-book-page[data-side='left'] .gift-book-page__underlay {
+    left: 1.1%;
+    border-radius: 22px 4px 5px 20px;
+}
+
+.gift-book-page[data-side='right'] .gift-book-page__underlay {
+    right: 1.1%;
+    border-radius: 4px 22px 20px 5px;
+}
+
+.gift-book-page__content {
+    border-radius: 3px !important;
+    background:
+        url('/materials/cotton-paper-fibers-v2.webp') center / 720px 720px,
+        var(--book-page-bg) !important;
+}
+
+.gift-book-page[data-side='left'] .gift-book-page__content {
+    box-shadow:
+        -17px 20px 46px rgba(58, 36, 24, 0.14),
+        inset -30px 0 38px rgba(73, 50, 38, 0.13) !important;
+    clip-path: polygon(
+        0.7% 0.7%,
+        10% 0.2%,
+        21% 0.6%,
+        34% 0.1%,
+        48% 0.55%,
+        61% 0.1%,
+        76% 0.5%,
+        89% 0.08%,
+        99.8% 0,
+        100% 99.5%,
+        86% 99.85%,
+        71% 99.4%,
+        55% 99.9%,
+        39% 99.35%,
+        22% 99.86%,
+        0.6% 99.45%
+    );
+}
+
+.gift-book-page[data-side='right'] .gift-book-page__content {
+    box-shadow:
+        17px 20px 46px rgba(58, 36, 24, 0.14),
+        inset 30px 0 38px rgba(73, 50, 38, 0.13) !important;
+    clip-path: polygon(
+        0.2% 0,
+        11% 0.5%,
+        24% 0.1%,
+        39% 0.55%,
+        53% 0.1%,
+        67% 0.5%,
+        80% 0.08%,
+        91% 0.55%,
+        99.3% 0.7%,
+        100% 99.45%,
+        84% 99.88%,
+        69% 99.38%,
+        52% 99.9%,
+        35% 99.34%,
+        18% 99.82%,
+        0 99.8%
+    );
+}
+
+.gift-book-page[data-side='single'] .gift-book-page__content {
+    border-radius: 5px !important;
+    box-shadow:
+        0 24px 54px rgba(58, 36, 24, 0.2),
+        inset 20px 0 28px rgba(73, 50, 38, 0.08) !important;
+    clip-path: polygon(
+        0.8% 0.6%,
+        15% 0,
+        31% 0.55%,
+        48% 0.1%,
+        65% 0.5%,
+        82% 0,
+        99.2% 0.7%,
+        100% 99.3%,
+        83% 99.9%,
+        66% 99.35%,
+        48% 99.9%,
+        31% 99.4%,
+        14% 99.85%,
+        0.6% 99.3%
+    );
+}
+
+.gift-book-page__content > .scrapbook-page-surface {
+    position: absolute;
+    inset: 1%;
+    width: auto;
+    height: auto;
+    border: 0;
+    border-radius: 2px !important;
+    box-shadow: none !important;
+}
+
+.gift-book-page__content::after {
+    position: absolute;
+    inset: 0;
+    z-index: 38;
+    pointer-events: none;
+    content: '';
+    background: url('/materials/cotton-paper-fibers-v2.webp') center / 760px 760px;
+    mix-blend-mode: multiply;
+    opacity: 0.2;
+}
+
+.gift-book-page__folio {
+    position: absolute;
+    right: 5%;
+    bottom: 3.2%;
+    z-index: 42;
+    color: rgba(47, 38, 44, 0.68);
+    font-family: var(--font-display);
+    font-size: clamp(0.625rem, 0.85vw, 0.875rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.gift-book-page[data-side='left'] .gift-book-page__folio {
+    right: auto;
+    left: 5%;
+}
+
+.gift-book-spine {
+    width: clamp(30px, 3.5vw, 48px) !important;
+}
+
+.gift-book-spine__crease {
+    width: clamp(34px, 4.4vw, 64px);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(69, 45, 37, 0.16) 32%,
+        rgba(40, 24, 25, 0.23) 50%,
+        rgba(69, 45, 37, 0.13) 68%,
+        transparent
+    );
+    mix-blend-mode: multiply;
+}
+
+.gift-book-spine__ring {
+    position: absolute;
+    left: 50%;
+    width: 34px;
+    height: 15px;
+    border: 2px solid #957960;
+    border-right-color: #dac5a7;
+    border-left-color: #684e3d;
+    border-radius: 50%;
+    box-shadow:
+        0 2px 3px rgba(49, 31, 27, 0.32),
+        inset 0 1px 1px rgba(255, 255, 255, 0.64);
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.gift-book-spine__ring span {
+    position: absolute;
+    inset: 2px 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.76);
+    border-radius: 50%;
+}
+
+.gift-book-shell__curl {
+    position: absolute;
+    right: 2.1%;
+    bottom: 2.5%;
+    z-index: 44;
+    width: clamp(38px, 6vw, 92px);
+    aspect-ratio: 1;
+    pointer-events: none;
+    background: linear-gradient(135deg, #cfc2b1 0 48%, #fffdf7 50% 100%);
+    box-shadow: -10px -8px 20px rgba(59, 38, 31, 0.16);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    opacity: 0.94;
+}
+
+.scrapbook-photo {
+    border-radius: 1px;
+}
+
+.scrapbook-photo[data-frame='polaroid']::after {
+    position: absolute;
+    inset: 4.4% 4.4% 12%;
+    z-index: 2;
+    pointer-events: none;
+    content: '';
+    border: 1px solid rgba(46, 35, 29, 0.16);
+    box-shadow: inset 0 0 18px rgba(45, 31, 24, 0.12);
+}
+
+.scrapbook-envelope__letter,
+.scrapbook-envelope__body {
+    border-radius: 2px;
+}
+
 .gift-book-motion-shadow {
     background:
         linear-gradient(90deg, transparent 34%, rgba(58, 36, 24, 0.16) 50%, transparent 66%),
@@ -722,6 +1531,83 @@ html {
 
 .gift-book-motion-shadow[data-direction='previous'] {
     transform: scaleX(-1);
+}
+
+@media (max-width: 767px) {
+    .gift-viewer-atelier__ruler,
+    .gift-viewer-atelier__paper-scrap {
+        display: none;
+    }
+
+    .gift-viewer-topbar__brand {
+        display: none;
+    }
+
+    .gift-viewer-page-label {
+        padding-inline: 6px;
+    }
+
+    .gift-viewer-controls {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .gift-viewer-progress {
+        order: 2;
+    }
+
+    .gift-book-shell {
+        padding: 12px;
+    }
+
+    .gift-book-shell__cover {
+        border-radius: 18px 15px 17px 20px;
+    }
+
+    .gift-book-shell__stack {
+        border-radius: 14px;
+    }
+
+    .gift-book-shell__curl {
+        right: 3%;
+        bottom: 3%;
+    }
+
+    .gift-opening-scene {
+        width: min(96vw, 590px);
+        padding-inline: 4px;
+    }
+
+    .gift-opening-book__label {
+        right: 12%;
+        left: 22%;
+        padding: 7% 8%;
+    }
+
+    .gift-opening-book__ticket,
+    .gift-opening-book__pressed-flower {
+        display: none;
+    }
+
+    .gift-ending-book {
+        min-height: 490px;
+        aspect-ratio: auto;
+    }
+
+    .gift-ending-book__cover {
+        padding: 12% 8% 12% 14%;
+    }
+
+    .gift-ending-book__note {
+        padding: 28px 20px;
+    }
+
+    .gift-ending-book__seal {
+        right: 6%;
+        bottom: 5%;
+        width: 42px;
+    }
 }
 
 @keyframes gift-viewer-opening {
@@ -1405,9 +2291,9 @@ html {
 
 .editor-open-book {
     position: relative;
-    width: min(100%, 1240px);
+    width: min(100%, 1380px);
     margin-inline: auto;
-    padding: clamp(14px, 1.35vw, 22px);
+    padding: clamp(13px, 1.2vw, 20px);
     isolation: isolate;
     perspective: 1800px;
     filter: drop-shadow(0 28px 28px rgba(35, 22, 42, 0.18));
@@ -1434,7 +2320,7 @@ html {
     border: 1px solid rgba(88, 68, 51, 0.2);
     border-radius: 20px 16px 18px 22px;
     background:
-        url('/materials/cotton-paper.webp') center / 520px 520px,
+        url('/materials/cotton-paper-fibers-v2.webp') center / 720px 720px,
         #e8dfcf;
     box-shadow: 0 8px 0 #cdbfa9;
 }
@@ -1495,7 +2381,7 @@ html {
     content: '';
     border: 1px solid rgba(108, 82, 57, 0.2);
     background:
-        url('/materials/cotton-paper.webp') center / 460px 460px,
+        url('/materials/cotton-paper-fibers-v2.webp') center / 680px 680px,
         #eee4d4;
     clip-path: polygon(
         0.5% 0.4%,
@@ -1540,7 +2426,7 @@ html {
     overflow: hidden;
     border: 1px solid rgba(87, 65, 49, 0.2);
     background:
-        url('/materials/cotton-paper.webp') center / 520px 520px,
+        url('/materials/cotton-paper-fibers-v2.webp') center / 720px 720px,
         var(--editor-paper);
 }
 
@@ -1626,7 +2512,7 @@ html {
     z-index: 38;
     pointer-events: none;
     content: '';
-    background: url('/materials/cotton-paper.webp') center / 560px 560px;
+    background: url('/materials/cotton-paper-fibers-v2.webp') center / 760px 760px;
     mix-blend-mode: multiply;
     opacity: 0.2;
 }
@@ -2009,7 +2895,7 @@ html {
     }
 
     .editor-open-book {
-        width: min(100%, 1320px, calc(162dvh - 460px));
+        width: min(100%, 1400px, calc(166dvh - 448px));
     }
 
     .gift-editor-canvas-footer {

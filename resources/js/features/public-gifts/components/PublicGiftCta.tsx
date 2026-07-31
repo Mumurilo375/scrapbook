@@ -15,13 +15,13 @@ export function PublicGiftCta({ compact = false, createUrl, theme }: PublicGiftC
 
     return (
         <Link
-            className={`gift-viewer-action inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold ${
+            className={`gift-viewer-action gift-viewer-keepsake-cta inline-flex min-h-10 items-center justify-center gap-2 border px-4 text-sm font-semibold ${
                 compact ? 'mx-auto' : ''
             }`}
             href={createUrl}
             onClick={() => trackEvent('create_my_own_clicked')}
             style={{
-                backgroundColor: compact ? 'transparent' : theme.tokens.colors.paper,
+                backgroundColor: theme.tokens.colors.paper,
                 borderColor: theme.tokens.colors.muted,
                 color: theme.tokens.colors.ink,
                 boxShadow: compact ? undefined : `0 10px 24px ${theme.tokens.colors.shadow}`,

@@ -457,7 +457,7 @@ function typeLabel(type: string): string {
 }
 
 function colorInputValue(color: string | null): string {
-    return color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#342E38';
+    return color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#292331';
 }
 
 function alignLabel(value: 'left' | 'center' | 'right'): string {

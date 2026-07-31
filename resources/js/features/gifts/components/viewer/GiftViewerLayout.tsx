@@ -17,17 +17,29 @@ export function GiftViewerLayout({ assets, children, theme }: GiftViewerLayoutPr
     const normalizedTheme = normalizeThemeConfig(theme);
     const appTextureStyle = firstTextureLayerStyle(normalizedTheme, assets, ['fabricBackground', 'appBackground']);
     const style = {
-        backgroundColor: normalizedTheme.tokens.colors.appBackground,
-        backgroundImage: `radial-gradient(circle at 12% 10%, color-mix(in srgb, ${normalizedTheme.tokens.colors.bookBackground} 42%, transparent), transparent 25%), radial-gradient(circle at 88% 18%, color-mix(in srgb, ${normalizedTheme.tokens.colors.accentSoft} 30%, transparent), transparent 22%), linear-gradient(180deg, ${normalizedTheme.tokens.colors.appBackground}, color-mix(in srgb, ${normalizedTheme.tokens.colors.bookBackground} 24%, ${normalizedTheme.tokens.colors.appBackground}))`,
+        backgroundColor: '#E5DDED',
+        backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.24) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px), radial-gradient(circle at 14% 18%, rgba(255,255,255,0.5), transparent 27%), radial-gradient(circle at 84% 72%, color-mix(in srgb, #4B3D59 13%, transparent), transparent 28%), linear-gradient(135deg, #E5DDED, #C9BAD8)',
+        backgroundSize: '54px 54px, 54px 54px, 100% 100%, 100% 100%, 100% 100%',
         color: normalizedTheme.tokens.colors.ink,
     } as CSSProperties;
 
     return (
-        <main className="relative min-h-screen overflow-hidden" style={style}>
+        <main className="gift-viewer-atelier relative min-h-screen overflow-hidden" style={style}>
             {appTextureStyle ? (
-                <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0" style={appTextureStyle} />
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none fixed inset-0 z-0 opacity-20 mix-blend-multiply"
+                    style={appTextureStyle}
+                />
             ) : null}
-            <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1180px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+            <div aria-hidden="true" className="gift-viewer-atelier__ruler" />
+            <div aria-hidden="true" className="gift-viewer-atelier__paper-scrap">
+                edição
+                <br />
+                única
+            </div>
+            <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 pb-4 sm:px-5 lg:px-7">
                 {children}
             </div>
         </main>

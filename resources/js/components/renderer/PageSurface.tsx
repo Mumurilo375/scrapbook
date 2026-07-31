@@ -34,10 +34,13 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
         () =>
             ({
                 backgroundColor: background.color,
-                backgroundImage: background.kind === 'theme' ? surfaceTexture(theme) : undefined,
+                backgroundImage:
+                    background.kind === 'theme'
+                        ? `url('/materials/cotton-paper-fibers-v2.webp'), ${surfaceTexture(theme)}`
+                        : undefined,
                 backgroundPosition: background.kind === 'theme' ? undefined : 'center',
                 backgroundRepeat: background.kind === 'theme' ? undefined : 'no-repeat',
-                backgroundSize: background.kind === 'theme' ? undefined : 'cover',
+                backgroundSize: background.kind === 'theme' ? '720px 720px, 100% 100%' : 'cover',
                 borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 42%, transparent)`,
                 borderRadius: radiusFor(radius, theme.page.edge),
                 boxShadow: shadowFor(theme.page.shadow, theme.tokens.colors.shadow),
@@ -122,7 +125,7 @@ export function PageSurface({ assets, canvas, children, context = 'preview', the
                     className="pointer-events-none absolute inset-0"
                     style={{
                         backgroundImage:
-                            'linear-gradient(90deg, rgba(58,36,24,0.13), transparent 2.2%, transparent 97%, rgba(58,36,24,0.10)), linear-gradient(180deg, rgba(58,36,24,0.09), transparent 2.5%, transparent 96%, rgba(58,36,24,0.14))',
+                            'linear-gradient(90deg, color-mix(in srgb, var(--scrap-shadow) 52%, transparent), transparent 2.2%, transparent 97%, color-mix(in srgb, var(--scrap-shadow) 42%, transparent)), linear-gradient(180deg, color-mix(in srgb, var(--scrap-shadow) 38%, transparent), transparent 2.5%, transparent 96%, color-mix(in srgb, var(--scrap-shadow) 56%, transparent))',
                         opacity: 0.42,
                     }}
                 />
@@ -245,14 +248,14 @@ function surfaceTexture(theme: NormalizedThemeConfig): string {
     }
 
     if (theme.page.texture === 'vintage-stains') {
-        return 'radial-gradient(circle at 18% 22%, rgba(255,255,255,0.32), transparent 20%), radial-gradient(circle at 82% 74%, rgba(123,90,67,0.16), transparent 18%), linear-gradient(135deg, rgba(142,47,47,0.07), transparent 34%, rgba(110,124,79,0.08))';
+        return 'radial-gradient(circle at 18% 22%, rgba(255,255,255,0.32), transparent 20%), radial-gradient(circle at 82% 74%, color-mix(in srgb, var(--scrap-muted) 24%, transparent), transparent 18%), linear-gradient(135deg, color-mix(in srgb, var(--scrap-accent) 9%, transparent), transparent 34%, color-mix(in srgb, var(--scrap-leaf) 11%, transparent))';
     }
 
     if (theme.page.texture === 'botanical-fiber') {
-        return 'radial-gradient(circle at 24% 16%, rgba(255,255,255,0.36), transparent 18%), linear-gradient(135deg, rgba(110,124,79,0.10), transparent 38%, rgba(217,166,161,0.08)), linear-gradient(90deg, rgba(58,36,24,0.035) 1px, transparent 1px)';
+        return 'radial-gradient(circle at 24% 16%, rgba(255,255,255,0.36), transparent 18%), linear-gradient(135deg, color-mix(in srgb, var(--scrap-leaf) 14%, transparent), transparent 38%, color-mix(in srgb, var(--scrap-accent-soft) 12%, transparent)), linear-gradient(90deg, color-mix(in srgb, var(--scrap-shadow) 16%, transparent) 1px, transparent 1px)';
     }
 
-    return 'radial-gradient(circle at 20% 18%, rgba(255,255,255,0.38), transparent 18%), linear-gradient(135deg, rgba(142,47,47,0.08), transparent 34%, rgba(110,124,79,0.09)), linear-gradient(90deg, rgba(58,36,24,0.035) 1px, transparent 1px)';
+    return 'radial-gradient(circle at 20% 18%, rgba(255,255,255,0.38), transparent 18%), linear-gradient(135deg, color-mix(in srgb, var(--scrap-accent) 10%, transparent), transparent 34%, color-mix(in srgb, var(--scrap-leaf) 12%, transparent)), linear-gradient(90deg, color-mix(in srgb, var(--scrap-shadow) 16%, transparent) 1px, transparent 1px)';
 }
 
 function subtleOverlay(theme: NormalizedThemeConfig): string {
@@ -261,10 +264,10 @@ function subtleOverlay(theme: NormalizedThemeConfig): string {
     }
 
     if (theme.page.texture === 'soft-petal') {
-        return 'radial-gradient(ellipse at 22% 20%, color-mix(in srgb, var(--scrap-accent-soft) 24%, transparent) 0 9%, transparent 24%), radial-gradient(ellipse at 78% 74%, color-mix(in srgb, var(--scrap-accent) 12%, transparent) 0 7%, transparent 22%), radial-gradient(ellipse at 44% 92%, rgba(76,38,48,0.07) 0 4%, transparent 18%)';
+        return 'radial-gradient(ellipse at 22% 20%, color-mix(in srgb, var(--scrap-accent-soft) 24%, transparent) 0 9%, transparent 24%), radial-gradient(ellipse at 78% 74%, color-mix(in srgb, var(--scrap-accent) 12%, transparent) 0 7%, transparent 22%), radial-gradient(ellipse at 44% 92%, color-mix(in srgb, var(--scrap-accent) 9%, transparent) 0 4%, transparent 18%)';
     }
 
-    return 'radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--scrap-accent-soft) 30%, transparent) 0 9%, transparent 22%), radial-gradient(circle at 78% 70%, color-mix(in srgb, var(--scrap-muted) 22%, transparent) 0 7%, transparent 21%), radial-gradient(ellipse at 42% 92%, rgba(58,36,24,0.10) 0 4%, transparent 18%)';
+    return 'radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--scrap-accent-soft) 30%, transparent) 0 9%, transparent 22%), radial-gradient(circle at 78% 70%, color-mix(in srgb, var(--scrap-muted) 22%, transparent) 0 7%, transparent 21%), radial-gradient(ellipse at 42% 92%, color-mix(in srgb, var(--scrap-shadow) 42%, transparent) 0 4%, transparent 18%)';
 }
 
 function grainTexture(theme: NormalizedThemeConfig): string {

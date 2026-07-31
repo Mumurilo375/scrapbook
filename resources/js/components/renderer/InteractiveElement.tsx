@@ -48,7 +48,12 @@ export function InteractiveElement({ context = 'preview', element, style, theme 
     );
 }
 
-function InteractiveEnvelopeElement({ context, element, style, theme }: InteractiveElementProps & { context: RendererContext }) {
+function InteractiveEnvelopeElement({
+    context,
+    element,
+    style,
+    theme,
+}: InteractiveElementProps & { context: RendererContext }) {
     const reducedMotion = usePrefersReducedMotion();
     const { trackEvent } = useAnalytics();
     const record = element as CanvasElement & Record<string, unknown>;
@@ -72,25 +77,27 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
 
     const body = (
         <div
-            className={`relative h-full w-full overflow-visible ${openClass}`}
+            className={`scrapbook-envelope relative h-full w-full overflow-visible ${openClass}`}
             style={{
-                filter: `drop-shadow(0 17px 22px ${theme.tokens.colors.shadow})`,
+                filter: `drop-shadow(0 4px 3px rgba(58,36,24,0.16)) drop-shadow(0 18px 24px ${theme.tokens.colors.shadow})`,
             }}
         >
             <div
-                className={`absolute left-[8%] right-[8%] top-[5%] h-[62%] rounded-[6px] border px-[7%] py-[5%] ${motionClass}`}
+                className={`scrapbook-envelope__letter absolute left-[8%] right-[8%] top-[2%] h-[69%] border px-[8%] py-[7%] ${motionClass}`}
                 style={{
                     backgroundColor: palette.letter,
                     backgroundImage:
-                        'linear-gradient(90deg, rgba(58,36,24,0.045) 1px, transparent 1px), linear-gradient(180deg, rgba(255,255,255,0.28), transparent 44%)',
-                    backgroundSize: '100% 24%, 100% 100%',
+                        "url('/materials/cotton-paper-fibers-v2.webp'), repeating-linear-gradient(0deg, transparent 0 17%, color-mix(in srgb, var(--scrap-muted-ink) 9%, transparent) 17.2% 17.7%, transparent 18% 34%)",
+                    backgroundSize: '360px 360px, 100% 100%',
                     borderColor: palette.edge,
-                    boxShadow: `0 10px 18px rgba(58,36,24,0.16)`,
+                    boxShadow: `0 3px 3px rgba(58,36,24,0.14), 0 13px 20px rgba(58,36,24,0.12)`,
+                    clipPath:
+                        'polygon(1% 2%, 14% 0, 27% 1.4%, 40% 0, 53% 1.6%, 67% 0, 81% 1.5%, 99% 0.5%, 100% 25%, 99% 51%, 100% 76%, 98% 100%, 83% 98.7%, 68% 100%, 52% 98.5%, 36% 100%, 20% 98.6%, 1% 100%, 2% 73%, 0 48%, 2% 25%)',
                     transform: open
-                        ? 'translateY(-22%) rotateX(0deg)'
+                        ? 'translateY(-35%) rotate(-1.2deg) rotateX(0deg)'
                         : reducedMotion
                           ? 'translateY(8%)'
-                          : 'translateY(32%) rotateX(7deg)',
+                          : 'translateY(31%) rotate(-1.2deg) rotateX(7deg)',
                     opacity: open || context === 'editor' ? 1 : 0.64,
                 }}
             >
@@ -98,8 +105,9 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
                     className="line-clamp-2 font-semibold leading-tight"
                     style={{
                         color: theme.tokens.colors.accent,
-                        fontFamily: 'var(--font-serif, Georgia, serif)',
-                        fontSize: title.length > 42 ? '3.2cqw' : '3.7cqw',
+                        fontFamily: 'var(--font-handwritten, cursive)',
+                        fontSize: title.length > 42 ? '3.1cqw' : '3.65cqw',
+                        fontWeight: 500,
                     }}
                 >
                     {title}
@@ -114,16 +122,30 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
                 >
                     {open || context === 'editor' ? content : content.slice(0, 80)}
                 </p>
+                <span
+                    aria-hidden="true"
+                    className="absolute -top-[4%] left-[38%] h-[10%] w-[28%] rotate-[-4deg]"
+                    style={{
+                        background: `color-mix(in srgb, ${theme.tokens.colors.tape} 68%, white)`,
+                        clipPath:
+                            'polygon(2% 8%, 14% 2%, 27% 7%, 39% 1%, 51% 6%, 65% 2%, 78% 8%, 98% 3%, 96% 93%, 82% 98%, 68% 94%, 53% 99%, 39% 94%, 24% 99%, 3% 93%)',
+                        opacity: 0.78,
+                    }}
+                />
             </div>
 
             <div
-                className="absolute inset-x-0 bottom-0 h-[58%] overflow-hidden rounded-[7px] border"
+                className="scrapbook-envelope__body absolute inset-x-0 bottom-0 h-[60%] overflow-hidden border"
                 style={{
                     backgroundColor: palette.base,
                     borderColor: palette.edge,
                     backgroundImage:
-                        'radial-gradient(circle at 24% 22%, rgba(255,255,255,0.22), transparent 24%), radial-gradient(circle at 72% 72%, rgba(58,36,24,0.08), transparent 28%)',
+                        "url('/materials/cotton-paper-fibers-v2.webp'), radial-gradient(circle at 24% 22%, rgba(255,255,255,0.2), transparent 24%), radial-gradient(circle at 72% 72%, color-mix(in srgb, var(--scrap-shadow) 42%, transparent), transparent 28%)",
+                    backgroundBlendMode: 'multiply, normal, normal',
+                    backgroundSize: '360px 360px, 100% 100%, 100% 100%',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.38), inset 0 -14px 22px rgba(58,36,24,0.10)',
+                    clipPath:
+                        'polygon(1% 3%, 15% 0, 30% 2%, 45% 0, 61% 2%, 77% 0, 99% 3%, 100% 94%, 83% 98%, 67% 96%, 50% 100%, 34% 97%, 17% 99%, 0 95%)',
                 }}
             >
                 <div
@@ -149,25 +171,32 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
                 />
                 <span
                     aria-hidden="true"
-                    className="absolute left-1/2 top-[52%] h-[10%] w-[10%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    className="scrapbook-envelope__seal absolute left-1/2 top-[52%] grid aspect-square w-[15%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
                     style={{
-                        backgroundColor: theme.tokens.colors.accentSoft,
-                        boxShadow: `0 3px 8px ${theme.tokens.colors.shadow}`,
+                        background: `radial-gradient(circle at 36% 30%, rgba(255,255,255,0.42), transparent 17%), ${theme.tokens.colors.accent}`,
+                        boxShadow: `0 3px 8px ${theme.tokens.colors.shadow}, inset 0 0 0 3px color-mix(in srgb, ${theme.tokens.colors.accent} 70%, black)`,
+                        color: palette.letter,
                     }}
-                />
+                >
+                    <span className="font-hand text-[4cqw] leading-none">♥</span>
+                </span>
             </div>
 
             <span
-                className="absolute bottom-[6%] left-1/2 -translate-x-1/2 rounded-full border px-[4%] py-[1.5%] text-center font-semibold"
+                className="absolute -bottom-[7%] left-1/2 -translate-x-1/2 rotate-[-1deg] border px-[5%] py-[1.8%] text-center font-semibold whitespace-nowrap"
                 style={{
-                    backgroundColor: 'rgba(255,248,236,0.88)',
+                    backgroundImage: "url('/materials/cotton-paper-fibers-v2.webp')",
+                    backgroundSize: '280px 280px',
+                    backgroundColor: 'rgba(255,248,236,0.94)',
                     borderColor: palette.edge,
                     color: theme.tokens.colors.mutedInk,
                     fontSize: '2.1cqw',
                     opacity: interactive ? 1 : 0.75,
+                    clipPath:
+                        'polygon(2% 8%, 13% 2%, 25% 7%, 38% 1%, 52% 6%, 66% 2%, 80% 7%, 98% 3%, 97% 92%, 83% 98%, 69% 93%, 54% 99%, 39% 94%, 24% 99%, 3% 93%)',
                 }}
             >
-                {open ? 'Clique para fechar' : 'Clique para abrir'}
+                {open ? 'fechar a cartinha' : 'abrir a cartinha'}
             </span>
         </div>
     );
@@ -209,14 +238,20 @@ function InteractiveEnvelopeElement({ context, element, style, theme }: Interact
     );
 }
 
-function FlipPolaroidElement({ context, element, style, theme }: InteractiveElementProps & { context: RendererContext }) {
+function FlipPolaroidElement({
+    context,
+    element,
+    style,
+    theme,
+}: InteractiveElementProps & { context: RendererContext }) {
     const reducedMotion = usePrefersReducedMotion();
     const { trackEvent } = useAnalytics();
     const record = element as CanvasElement & Record<string, unknown>;
     const front = isRecord(record.front) ? record.front : {};
     const back = isRecord(record.back) ? record.back : {};
     const [flipped, setFlipped] = useState(false);
-    const src = typeof front.src === 'string' && front.src.startsWith('/') && !front.src.startsWith('//') ? front.src : null;
+    const src =
+        typeof front.src === 'string' && front.src.startsWith('/') && !front.src.startsWith('//') ? front.src : null;
     const placeholder = textValue(front.placeholderLabel, 'Sua foto aqui');
     const caption = textValue(front.caption, 'Nosso momento');
     const backText = textValue(back.text, 'Escreva uma mensagem para o verso.');
@@ -234,10 +269,10 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
     };
 
     const body = (
-        <div className="relative h-full w-full" style={flipStyle}>
+        <div className="scrapbook-flip-polaroid relative h-full w-full" style={flipStyle}>
             <PolaroidFace flipped={false} theme={theme}>
                 <div
-                    className="relative h-[75%] overflow-hidden rounded-[4px] border"
+                    className="relative h-[75%] overflow-hidden border"
                     style={{
                         backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 78%, white)`,
                         borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 42%, transparent)`,
@@ -257,7 +292,7 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
                             className="flex h-full w-full items-center justify-center px-[8%] text-center font-semibold uppercase leading-tight"
                             style={{
                                 backgroundImage:
-                                    'linear-gradient(135deg, rgba(255,255,255,0.36), transparent 34%), radial-gradient(circle at 50% 45%, rgba(58,36,24,0.08), transparent 30%)',
+                                    'linear-gradient(135deg, rgba(255,255,255,0.36), transparent 34%), radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--scrap-shadow) 35%, transparent), transparent 30%)',
                                 color: theme.tokens.colors.mutedInk,
                                 fontSize: placeholder.length > 24 ? '2.15cqw' : '2.65cqw',
                             }}
@@ -277,7 +312,7 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
                     {caption}
                 </p>
                 <span
-                    className="absolute right-[6%] top-[5%] rounded-full border px-[3%] py-[1.2%] font-semibold"
+                    className="absolute -right-[2%] -top-[2%] rotate-[4deg] border px-[3%] py-[1.2%] font-semibold"
                     style={{
                         backgroundColor: 'rgba(255,255,255,0.82)',
                         borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 36%, transparent)`,
@@ -295,7 +330,7 @@ function FlipPolaroidElement({ context, element, style, theme }: InteractiveElem
                     style={{
                         backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 84%, white)`,
                         backgroundImage:
-                            'repeating-linear-gradient(0deg, rgba(58,36,24,0.055) 0 1px, transparent 1px 22px), radial-gradient(circle at 18% 20%, rgba(255,255,255,0.42), transparent 28%)',
+                            'repeating-linear-gradient(0deg, color-mix(in srgb, var(--scrap-muted-ink) 8%, transparent) 0 1px, transparent 1px 22px), radial-gradient(circle at 18% 20%, rgba(255,255,255,0.42), transparent 28%)',
                         borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 42%, transparent)`,
                         transform: reducedMotion ? undefined : 'rotateY(180deg)',
                     }}
@@ -383,12 +418,17 @@ function PolaroidFace({
 }) {
     return (
         <div
-            className="absolute inset-0 overflow-hidden rounded-[7px] p-[5%] pb-[7%]"
+            className="absolute inset-0 overflow-hidden p-[5%] pb-[7%]"
             style={{
                 backfaceVisibility: 'hidden',
                 backgroundColor: '#FFFDF8',
+                backgroundImage:
+                    "url('/materials/cotton-paper-fibers-v2.webp'), linear-gradient(155deg, rgba(255,255,255,0.5), transparent 50%, rgba(58,36,24,0.06))",
+                backgroundSize: '380px 380px, 100% 100%',
                 border: `1px solid color-mix(in srgb, ${theme.tokens.colors.muted} 30%, transparent)`,
                 boxShadow: `0 18px 30px ${theme.tokens.colors.shadow}, inset 0 1px 0 rgba(255,255,255,0.72)`,
+                clipPath:
+                    'polygon(1% 1%, 24% 0, 49% 0.7%, 73% 0.1%, 99% 1%, 100% 31%, 99.5% 62%, 100% 99%, 75% 100%, 51% 99.4%, 26% 100%, 0.8% 99%, 0 68%, 0.5% 34%)',
                 transform: flipped ? 'rotateY(180deg)' : undefined,
             }}
         >

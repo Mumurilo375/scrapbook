@@ -15,9 +15,7 @@ createInertiaApp({
     title: (title) => (title ? `${title} - Scrapbook` : 'Scrapbook'),
     resolve: (name) => {
         const page =
-            pages[`./pages/${name}.tsx`] ??
-            featurePages[`./features/${name}.tsx`] ??
-            featurePageFromName(name);
+            pages[`./pages/${name}.tsx`] ?? featurePages[`./features/${name}.tsx`] ?? featurePageFromName(name);
 
         if (!page) {
             throw new Error(`Inertia page not found: ${name}`);
@@ -29,7 +27,7 @@ createInertiaApp({
         createRoot(el).render(<App {...props} />);
     },
     progress: {
-        color: '#D93632',
+        color: '#C8444B',
     },
 });
 

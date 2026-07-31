@@ -37,7 +37,7 @@ export function ScrapbookPageFrame({ assets, canvas, children, context = 'previe
             <div
                 className="absolute inset-[0.2%] rotate-[-1.4deg] rounded-[var(--scrap-frame-radius)] opacity-45"
                 style={{
-                    backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 72%, #8B5E3C)`,
+                    backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 72%, #43283D)`,
                     boxShadow: `0 28px 72px ${theme.tokens.colors.shadow}`,
                 }}
             />
@@ -45,14 +45,14 @@ export function ScrapbookPageFrame({ assets, canvas, children, context = 'previe
                 className="absolute inset-[1.2%] rotate-[0.9deg] rounded-[var(--scrap-frame-radius)] opacity-80"
                 style={{
                     backgroundColor: `color-mix(in srgb, ${theme.tokens.colors.bookBackground} 82%, white)`,
-                    boxShadow: '0 14px 28px rgba(58,36,24,0.12)',
+                    boxShadow: '0 14px 28px color-mix(in srgb, var(--scrap-shadow) 46%, transparent)',
                 }}
             />
             <div
-                className="absolute inset-[2.1%] rounded-[var(--scrap-frame-radius)] border border-[rgba(58,36,24,0.12)]"
+                className="absolute inset-[2.1%] rounded-[var(--scrap-frame-radius)] border border-[#CFC1AE]/50"
                 style={{
                     backgroundImage:
-                        'linear-gradient(90deg,rgba(58,36,24,0.10),transparent 7%,transparent 93%,rgba(255,255,255,0.18))',
+                        'linear-gradient(90deg,color-mix(in srgb, var(--scrap-shadow) 42%, transparent),transparent 7%,transparent 93%,rgba(255,255,255,0.18))',
                 }}
             >
                 {bookTextureStyle ? (

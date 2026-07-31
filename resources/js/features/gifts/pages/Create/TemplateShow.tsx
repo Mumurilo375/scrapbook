@@ -161,7 +161,7 @@ export default function TemplateShow({
                                     >
                                         <span className="block h-8 border border-[#D6CFDD] bg-[#EFE9F3]" />
                                         <p className="mt-3 text-sm font-bold text-[#181024]">{page.name}</p>
-                                        <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[#D95045]">
+                                        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#D95045]">
                                             {page.page_type}
                                         </p>
                                     </div>

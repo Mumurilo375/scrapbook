@@ -27,23 +27,22 @@ export function PublicGiftNavigation({
     onPrevious,
     pageCount,
     previousLabel = 'Anterior',
-    theme,
 }: PublicGiftNavigationProps) {
     const canGoPrevious = canGoPreviousOverride ?? (isEnding || activePageIndex > 0);
     const canGoNext = canGoNextOverride ?? (pageCount > 0 && !isEnding);
     const resolvedNextLabel = nextLabel ?? (activePageIndex >= pageCount - 1 ? 'Final' : 'Próxima');
 
     return (
-        <div className="mx-auto flex w-full max-w-[920px] items-center justify-between gap-3">
+        <div className="gift-viewer-navigation mx-auto flex w-full items-center justify-between gap-3">
             <button
                 aria-label="Página anterior"
-                className="gift-viewer-action inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                className="gift-viewer-action gift-viewer-navigation__button inline-flex h-11 min-w-11 items-center justify-center gap-2 border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={!canGoPrevious}
                 onClick={onPrevious}
                 style={{
-                    backgroundColor: theme.tokens.colors.paper,
-                    borderColor: theme.tokens.colors.muted,
-                    color: theme.tokens.colors.ink,
+                    backgroundColor: 'rgba(255,253,247,0.08)',
+                    borderColor: 'rgba(255,255,255,0.28)',
+                    color: '#FBF7ED',
                 }}
                 type="button"
             >
@@ -51,7 +50,7 @@ export function PublicGiftNavigation({
                 <span className="hidden sm:inline">{previousLabel}</span>
             </button>
 
-            <p className="min-w-24 text-center text-sm font-semibold" style={{ color: theme.tokens.colors.ink }}>
+            <p className="min-w-24 text-center font-hand text-lg text-[#F0E8F2]">
                 {pageCount > 0
                     ? isEnding
                         ? 'Final'
@@ -61,13 +60,13 @@ export function PublicGiftNavigation({
 
             <button
                 aria-label={resolvedNextLabel === 'Final' ? 'Ver final' : 'Próxima página'}
-                className="gift-viewer-action inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-[6px] border px-3 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                className="gift-viewer-action gift-viewer-navigation__button inline-flex h-11 min-w-11 items-center justify-center gap-2 border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={!canGoNext}
                 onClick={onNext}
                 style={{
-                    backgroundColor: theme.tokens.colors.paper,
-                    borderColor: theme.tokens.colors.muted,
-                    color: theme.tokens.colors.ink,
+                    backgroundColor: 'rgba(255,253,247,0.08)',
+                    borderColor: 'rgba(255,255,255,0.28)',
+                    color: '#FBF7ED',
                 }}
                 type="button"
             >

@@ -37,11 +37,18 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
     const framed = frame === 'polaroid';
     const frameStyle = framed
         ? {
-              backgroundColor: theme.tokens.colors.paper,
-              borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 44%, transparent)`,
-              boxShadow: theme.elements.image.shadow ? `0 14px 28px ${theme.tokens.colors.shadow}` : undefined,
-              padding: '3.8%',
-              paddingBottom: '10%',
+              backgroundColor: '#FFFDF7',
+              backgroundImage:
+                  "url('/materials/cotton-paper-fibers-v2.webp'), linear-gradient(155deg, rgba(255,255,255,0.54), transparent 44%, rgba(75,50,35,0.05))",
+              backgroundSize: '420px 420px, 100% 100%',
+              borderColor: 'rgba(83,61,45,0.22)',
+              boxShadow: theme.elements.image.shadow
+                  ? `0 3px 3px rgba(52,34,25,0.16), 0 18px 30px ${theme.tokens.colors.shadow}, inset 0 0 0 1px rgba(255,255,255,0.7)`
+                  : undefined,
+              clipPath:
+                  'polygon(0.8% 0.7%, 24% 0, 48% 0.6%, 72% 0.1%, 99.2% 0.8%, 100% 29%, 99.5% 58%, 100% 99.2%, 74% 100%, 51% 99.4%, 26% 100%, 0.6% 99.2%, 0 69%, 0.5% 36%)',
+              padding: '4.4%',
+              paddingBottom: '12%',
           }
         : {};
     const dropHandlers = onDropMedia
@@ -61,7 +68,7 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
                 ? theme.tokens.colors.paper
                 : `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 74%, white)`,
             backgroundImage:
-                'linear-gradient(135deg, rgba(255,255,255,0.34), transparent 32%), radial-gradient(circle at 50% 42%, rgba(58,36,24,0.08), transparent 28%)',
+                'linear-gradient(135deg, rgba(255,255,255,0.34), transparent 32%), radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--scrap-shadow) 35%, transparent), transparent 28%)',
             borderColor: `color-mix(in srgb, ${theme.tokens.colors.muted} 56%, transparent)`,
             color: theme.tokens.colors.mutedInk,
             fontSize: placeholderFontSize,
@@ -70,7 +77,8 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         if (!onClick) {
             return (
                 <div
-                    className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center leading-tight font-semibold break-words uppercase ${selectedClass} ${dragOverClass}`}
+                    className={`scrapbook-photo absolute flex items-center justify-center border px-2 text-center font-semibold break-words ${selectedClass} ${dragOverClass}`}
+                    data-frame={framed ? 'polaroid' : 'plain'}
                     style={placeholderStyle}
                     {...dropHandlers}
                 >
@@ -82,7 +90,8 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         return (
             <button
                 aria-label="Selecionar espaço de imagem"
-                className={`absolute flex items-center justify-center rounded-[8px] border border-dashed px-2 text-center leading-tight font-semibold break-words uppercase ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+                className={`scrapbook-photo absolute flex items-center justify-center border px-2 text-center font-semibold break-words ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+                data-frame={framed ? 'polaroid' : 'plain'}
                 onClick={onClick}
                 style={placeholderStyle}
                 type="button"
@@ -102,13 +111,14 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
     if (!onClick) {
         return (
             <div
-                className={`absolute overflow-hidden rounded-[8px] border ${selectedClass} ${dragOverClass}`}
+                className={`scrapbook-photo absolute overflow-hidden border ${selectedClass} ${dragOverClass}`}
+                data-frame={framed ? 'polaroid' : 'plain'}
                 style={imageFrameStyle}
                 {...dropHandlers}
             >
                 <img
                     alt={alt}
-                    className="h-full w-full rounded-[4px] object-cover"
+                    className="h-full w-full object-cover"
                     decoding="async"
                     draggable={false}
                     loading="lazy"
@@ -122,7 +132,8 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
     return (
         <button
             aria-label={alt !== '' ? `Selecionar imagem ${alt}` : 'Selecionar imagem'}
-            className={`absolute overflow-hidden rounded-[8px] border ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+            className={`scrapbook-photo absolute overflow-hidden border ${interactiveClass} ${selectedClass} ${dragOverClass}`}
+            data-frame={framed ? 'polaroid' : 'plain'}
             onClick={onClick}
             style={imageFrameStyle}
             type="button"
@@ -130,7 +141,7 @@ export function ImageElement({ element, onClick, onDropMedia, selected = false, 
         >
             <img
                 alt={alt}
-                className="h-full w-full rounded-[4px] object-cover"
+                className="h-full w-full object-cover"
                 decoding="async"
                 draggable={false}
                 loading="lazy"

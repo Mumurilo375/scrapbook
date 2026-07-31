@@ -44,6 +44,12 @@ typography:
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "0.1em"
+  micro:
+    fontFamily: "Atkinson Hyperlegible, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.625rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "0.12em"
   handwriting:
     fontFamily: "Caveat, cursive"
     fontSize: "1rem"
@@ -113,9 +119,11 @@ As três referências aprovadas são vinculantes: barra berinjela com etapas, ba
 **Key Characteristics:**
 
 - Álbum aberto real, com duas folhas, pilha, lombada, ferragens, dobra e sombra de contato.
+- Abertura, leitura e encerramento usam o mesmo objeto físico do editor, não uma moldura genérica.
 - Chrome sóbrio em tecido berinjela, lavanda de bancada, branco de prova e coral de conclusão.
 - Inspetor contínuo e funcional; miniaturas mostram páginas reais, não placeholders.
 - Materialidade concentrada no presente e em objetos que representam papel, foto ou tecido.
+- Templates contam uma pequena história pronta e emocional; cada página tem uma hierarquia dominante e respiro.
 - Mesmas capacidades no desktop e no celular, reorganizadas para cada espaço.
 
 ## Colors
@@ -166,6 +174,7 @@ A paleta cria contraste entre a oficina fria e o presente quente sem competir co
 - **Title** (700, 18px, 1.2): projeto, painel e grupo principal.
 - **Body** (400–700, 14px, 1.5): instrução, edição e feedback.
 - **Label** (700, 11px, 0.1em): etapas, números, status e metadados curtos.
+- **Micro** (700, 10px, 0.12em): foliação, selo, progresso e legenda dentro de miniaturas; nunca texto de ação.
 - **Handwriting** (600, theme-controlled): voz afetiva dentro das páginas.
 
 ### Named Rules
@@ -195,6 +204,10 @@ Profundidade é física. A capa recebe tecido e sombra ampla; as folhas têm pil
 ### Named Rules
 
 **The Honest Material Rule.** Só algo que poderia levantar da bancada recebe sombra física.
+
+**The Same Gift Everywhere Rule.** Editor, prévia privada e link publicado representam o mesmo álbum, com as mesmas proporções, materiais e páginas.
+
+**The Curated Before Creative Rule.** O primeiro resultado bonito vem do template; personalização é uma camada posterior, nunca um requisito para organizar a página.
 
 ## Shapes
 
@@ -227,6 +240,18 @@ O produto não é uma grade de cartões flutuantes. Inspector, faixa, palco e ba
 
 O álbum mostra a página ativa e a vizinha real. Clicar na vizinha a seleciona. Capa de tecido, duas pilhas de papel, sombra de lombada, quatro argolas, foliação e canto virado permanecem decorativos e não bloqueiam elementos editáveis.
 
+### Scrapbook Materials
+
+As folhas usam a textura raster `cotton-paper-fibers-v2.webp` como base de baixo contraste. Fotos recebem moldura de algodão irregular; bilhetes e etiquetas usam rasgo ou corte imperfeito; fita é translúcida ou kraft; metal tem brilho local; flores e tinta não recebem containers artificiais. Recortes podem girar poucos graus, mas não usam rotação aleatória que prejudique composição ou leitura.
+
+### Ready-made Templates
+
+Cada template entregue deve funcionar antes do usuário trocar qualquer conteúdo. A sequência mínima é começo, lembrança íntima, galeria, declaração e encerramento. Uma página tem no máximo um foco tipográfico, um foco fotográfico e dois ou três apoios materiais. Texto emocional curto substitui blocos genéricos, e elementos repetidos mantêm um vocabulário visual coerente.
+
+### Gift Viewer
+
+O presente publicado e a prévia privada compartilham capa fechada, álbum aberto, miolo, lombada, argolas, folhas empilhadas, foliação e encerramento. A bancada envolve o objeto sem disputar atenção. No celular, o spread vira uma página por vez e preserva proporção, textura, controles, teclado, toque e progresso.
+
 ### Mobile Tool Drawer
 
 Fechada, a gaveta ocupa 58px e expõe nome e `aria-expanded`. Aberta, alcança no máximo 82dvh, tem rolagem própria, abas horizontais e todas as capacidades do desktop.
@@ -240,6 +265,8 @@ Fechada, a gaveta ocupa 58px e expõe nome e `aria-expanded`. Aberta, alcança n
 - **Do** mostrar páginas e estados reais em qualquer miniatura.
 - **Do** preservar edição, autosave, histórico, erros, offline, teclado, toque e reduced motion.
 - **Do** usar textura em tecido, papel e fotografia, com contraste suficiente.
+- **Do** usar recortes que poderiam existir em um scrapbook real: flores prensadas, fita, bilhetes, selos, filme, clipes, tinta e papel rasgado.
+- **Do** validar abertura, páginas e encerramento nos modos privado e publicado.
 
 ### Don't:
 
@@ -248,3 +275,5 @@ Fechada, a gaveta ocupa 58px e expõe nome e `aria-expanded`. Aberta, alcança n
 - **Don't** transformar todo container em cartão arredondado.
 - **Don't** usar papel bege como fundo universal da aplicação.
 - **Don't** esconder funções no celular; reorganize-as.
+- **Don't** usar ícones vetoriais lisos como decoração final quando o elemento representa um objeto artesanal.
+- **Don't** preencher uma página com vários focos equivalentes ou textos emocionais competindo entre si.

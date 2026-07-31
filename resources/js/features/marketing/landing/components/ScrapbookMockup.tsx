@@ -39,7 +39,7 @@ export function ScrapbookMockup() {
                     className="relative overflow-hidden rounded-l-[20px] border border-r-0 border-[#CFC1AE] bg-[#FBF7ED] px-[8%] py-[7%] shadow-[inset_-24px_0_34px_rgba(73,50,38,0.12)] [clip-path:polygon(1%_0,100%_0,100%_100%,1.5%_99.5%,0_69%,1%_36%)]"
                     style={paperTexture}
                 >
-                    <p className="font-display text-[0.5rem] font-extrabold uppercase tracking-[0.14em] text-[#FF705F] sm:text-[0.66rem]">
+                    <p className="font-display text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#FF705F]">
                         capítulo 01
                     </p>
                     <h2 className="mt-[5%] max-w-[12ch] font-display text-[clamp(1.15rem,3.1vw,2.25rem)] font-bold leading-[0.92] tracking-[-0.03em] text-[#181024]">
@@ -89,7 +89,7 @@ export function ScrapbookMockup() {
 
                     <div className="absolute bottom-[9%] right-[8%] flex items-center gap-2 bg-[#281D36] px-[5%] py-[3%] text-[#FBF7ED] shadow-[0_7px_14px_#18102426]">
                         <Music aria-hidden="true" className="h-4 w-4 text-[#FF705F]" />
-                        <span className="hidden text-[0.62rem] font-bold uppercase tracking-[0.12em] sm:inline">
+                        <span className="hidden text-[10px] font-bold uppercase tracking-[0.12em] sm:inline">
                             nossa música
                         </span>
                     </div>
@@ -128,7 +128,7 @@ export function ScrapbookMockup() {
                 </span>
                 <div className="min-w-0">
                     <p className="truncate font-hand text-xl leading-none sm:text-2xl">abre quando sentir saudade</p>
-                    <p className="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-[#CFC2D8] sm:text-[0.66rem]">
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#CFC2D8]">
                         envelope digital
                     </p>
                 </div>

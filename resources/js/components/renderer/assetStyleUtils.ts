@@ -77,8 +77,15 @@ export function resolveAssetRenderStyle(asset: RendererAsset): AssetRenderStyle 
     return renderStyleForType(asset.type);
 }
 
-export function resolveAssetPhysicalConfig(asset: RendererAsset, renderStyle = resolveAssetRenderStyle(asset)): AssetPhysicalConfig {
-    const rawPhysical = isRecord(asset.physical) ? asset.physical : isRecord(asset.config?.physical) ? asset.config.physical : {};
+export function resolveAssetPhysicalConfig(
+    asset: RendererAsset,
+    renderStyle = resolveAssetRenderStyle(asset),
+): AssetPhysicalConfig {
+    const rawPhysical = isRecord(asset.physical)
+        ? asset.physical
+        : isRecord(asset.config?.physical)
+          ? asset.config.physical
+          : {};
     const defaults = physicalDefaults(renderStyle);
 
     return {
@@ -94,7 +101,10 @@ export function resolveAssetPhysicalConfig(asset: RendererAsset, renderStyle = r
     };
 }
 
-export function resolveAssetDefaultTransform(asset: RendererAsset, options: DefaultTransformOptions = {}): AssetDefaultTransform {
+export function resolveAssetDefaultTransform(
+    asset: RendererAsset,
+    options: DefaultTransformOptions = {},
+): AssetDefaultTransform {
     const renderStyle = resolveAssetRenderStyle(asset);
     const defaultTransform = isRecord(asset.defaultTransform)
         ? asset.defaultTransform
@@ -141,7 +151,8 @@ export function resolveAssetFrameStyles(
             filter: contentFilter || undefined,
             height: '100%',
             opacity: physical.opacity,
-            overflow: renderStyle === 'paper' || renderStyle === 'label' || renderStyle === 'tape' ? 'hidden' : 'visible',
+            overflow:
+                renderStyle === 'paper' || renderStyle === 'label' || renderStyle === 'tape' ? 'hidden' : 'visible',
             position: 'relative',
             width: '100%',
             zIndex: 2,
@@ -327,8 +338,15 @@ function physicalDefaults(renderStyle: AssetRenderStyle): AssetPhysicalConfig {
     };
 }
 
-function defaultSizeForRenderStyle(renderStyle: AssetRenderStyle, options: DefaultTransformOptions): AssetDefaultTransform {
-    if ((renderStyle === 'background' || renderStyle === 'texture') && options.artboardWidth && options.artboardHeight) {
+function defaultSizeForRenderStyle(
+    renderStyle: AssetRenderStyle,
+    options: DefaultTransformOptions,
+): AssetDefaultTransform {
+    if (
+        (renderStyle === 'background' || renderStyle === 'texture') &&
+        options.artboardWidth &&
+        options.artboardHeight
+    ) {
         return { h: options.artboardHeight, rotation: 0, w: options.artboardWidth };
     }
 
@@ -400,12 +418,17 @@ function assetShadowFilter(physical: AssetPhysicalConfig, theme: NormalizedTheme
 
 const backingStyles = new Set<AssetRenderStyle>(['label', 'paper', 'stamp', 'tape']);
 
-function backingStyleFor(renderStyle: AssetRenderStyle, theme: NormalizedThemeConfig, physical: AssetPhysicalConfig): CSSProperties {
+function backingStyleFor(
+    renderStyle: AssetRenderStyle,
+    theme: NormalizedThemeConfig,
+    physical: AssetPhysicalConfig,
+): CSSProperties {
     if (renderStyle === 'tape') {
         return {
-            background: `linear-gradient(90deg, transparent 0 5%, color-mix(in srgb, ${theme.tokens.colors.tape} 66%, white) 5% 95%, transparent 95%), linear-gradient(135deg, rgba(255,255,255,0.42), transparent 42%, rgba(58,36,24,0.08))`,
-            borderRadius: '5px 9px 6px 8px',
-            boxShadow: `0 3px 8px rgba(58,36,24,0.14), inset 0 0 0 1px rgba(255,255,255,0.32)`,
+            background: `url('/materials/cotton-paper-fibers-v2.webp') center / 320px 320px, linear-gradient(90deg, transparent 0 3%, color-mix(in srgb, ${theme.tokens.colors.tape} 68%, white) 3% 97%, transparent 97%)`,
+            boxShadow: `0 3px 7px rgba(58,36,24,0.16), inset 0 0 0 1px rgba(255,255,255,0.24)`,
+            clipPath:
+                'polygon(2% 8%, 8% 3%, 14% 8%, 21% 2%, 28% 7%, 35% 1%, 43% 6%, 51% 1%, 59% 7%, 67% 2%, 74% 6%, 82% 1%, 90% 7%, 98% 3%, 97% 93%, 89% 98%, 81% 93%, 73% 99%, 64% 94%, 56% 99%, 47% 93%, 39% 98%, 30% 92%, 21% 98%, 13% 92%, 3% 97%)',
             opacity: physical.opacity,
             zIndex: 1,
         };
@@ -413,19 +436,25 @@ function backingStyleFor(renderStyle: AssetRenderStyle, theme: NormalizedThemeCo
 
     if (renderStyle === 'stamp') {
         return {
-            background: `color-mix(in srgb, ${theme.tokens.colors.paperAlt} 78%, white)`,
-            border: `1px dashed color-mix(in srgb, ${theme.tokens.colors.accent} 44%, transparent)`,
-            borderRadius: '12px',
+            background: `url('/materials/cotton-paper-fibers-v2.webp') center / 340px 340px, color-mix(in srgb, ${theme.tokens.colors.paperAlt} 78%, white)`,
+            clipPath:
+                'polygon(7% 0, 14% 4%, 21% 0, 28% 4%, 35% 0, 42% 4%, 49% 0, 56% 4%, 63% 0, 70% 4%, 77% 0, 84% 4%, 93% 0, 96% 7%, 100% 14%, 96% 21%, 100% 28%, 96% 35%, 100% 42%, 96% 49%, 100% 56%, 96% 63%, 100% 70%, 96% 77%, 100% 84%, 96% 93%, 91% 100%, 84% 96%, 77% 100%, 70% 96%, 63% 100%, 56% 96%, 49% 100%, 42% 96%, 35% 100%, 28% 96%, 21% 100%, 14% 96%, 7% 100%, 4% 93%, 0 84%, 4% 77%, 0 70%, 4% 63%, 0 56%, 4% 49%, 0 42%, 4% 35%, 0 28%, 4% 21%, 0 14%, 4% 7%)',
             boxShadow: `0 2px 7px rgba(58,36,24,0.12)`,
-            opacity: 0.7,
+            opacity: 0.82,
             zIndex: 1,
         };
     }
 
     return {
-        background: `linear-gradient(135deg, rgba(255,255,255,0.52), transparent 34%), color-mix(in srgb, ${theme.tokens.colors.paperAlt} 78%, white)`,
-        border: renderStyle === 'label' ? `1px solid color-mix(in srgb, ${theme.tokens.colors.muted} 46%, transparent)` : undefined,
-        borderRadius: renderStyle === 'paper' ? '18px 12px 22px 14px' : '12px',
+        background: `url('/materials/cotton-paper-fibers-v2.webp') center / 360px 360px, linear-gradient(135deg, rgba(255,255,255,0.38), transparent 34%), color-mix(in srgb, ${theme.tokens.colors.paperAlt} 78%, white)`,
+        border:
+            renderStyle === 'label'
+                ? `1px solid color-mix(in srgb, ${theme.tokens.colors.muted} 46%, transparent)`
+                : undefined,
+        clipPath:
+            renderStyle === 'paper'
+                ? 'polygon(1% 2%, 9% 0, 18% 1.5%, 27% 0, 38% 1.8%, 48% 0, 59% 1.6%, 70% 0, 81% 1.8%, 91% 0, 99% 2%, 100% 17%, 99% 32%, 100% 49%, 99% 65%, 100% 82%, 98% 99%, 87% 98%, 76% 100%, 64% 98%, 52% 100%, 40% 98%, 28% 100%, 17% 98%, 1% 100%, 2% 83%, 0 68%, 2% 51%, 0 36%, 2% 19%)'
+                : 'polygon(2% 6%, 10% 2%, 20% 5%, 31% 1%, 43% 4%, 56% 1%, 68% 5%, 79% 2%, 90% 5%, 98% 2%, 97% 93%, 88% 98%, 76% 94%, 64% 99%, 51% 95%, 38% 99%, 25% 94%, 13% 98%, 2% 94%)',
         boxShadow: `0 ${Math.max(4, physical.lift)}px ${Math.max(12, physical.lift * 2)}px ${theme.tokens.colors.shadow}, inset 0 0 0 1px rgba(255,255,255,0.44)`,
         opacity: 0.92,
         zIndex: 1,
@@ -436,7 +465,8 @@ function highlightStyleFor(renderStyle: AssetRenderStyle): CSSProperties {
     const radius = contentRadiusFor(renderStyle);
 
     return {
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.46), transparent 30%, transparent 70%, rgba(58,36,24,0.10))',
+        background:
+            'linear-gradient(135deg, rgba(255,255,255,0.46), transparent 30%, transparent 70%, rgba(58,36,24,0.10))',
         borderRadius: radius,
         boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.28)',
         mixBlendMode: 'screen',
@@ -447,18 +477,19 @@ function highlightStyleFor(renderStyle: AssetRenderStyle): CSSProperties {
 
 function textureStyleFor(renderStyle: AssetRenderStyle, theme: NormalizedThemeConfig): CSSProperties {
     return {
-        backgroundImage: `radial-gradient(circle at 24% 28%, rgba(255,255,255,0.46) 0 1px, transparent 1.5px), radial-gradient(circle at 74% 68%, color-mix(in srgb, ${theme.tokens.colors.muted} 22%, transparent) 0 1px, transparent 1.6px), linear-gradient(90deg, rgba(58,36,24,0.035) 1px, transparent 1px)`,
-        backgroundSize: renderStyle === 'tape' ? '14px 14px, 19px 19px, 22px 22px' : '18px 18px, 26px 26px, 32px 32px',
+        backgroundImage: `url('/materials/cotton-paper-fibers-v2.webp'), radial-gradient(circle at 74% 68%, color-mix(in srgb, ${theme.tokens.colors.muted} 20%, transparent) 0 1px, transparent 1.6px)`,
+        backgroundSize: renderStyle === 'tape' ? '280px 280px, 19px 19px' : '360px 360px, 26px 26px',
         borderRadius: contentRadiusFor(renderStyle),
         mixBlendMode: 'multiply',
-        opacity: renderStyle === 'stamp' ? 0.22 : 0.3,
+        opacity: renderStyle === 'stamp' ? 0.2 : renderStyle === 'tape' ? 0.18 : 0.24,
         zIndex: 4,
     };
 }
 
 function innerTransformFor(renderStyle: AssetRenderStyle, physical: AssetPhysicalConfig): string {
     const lift = physical.lift > 0 ? `translate3d(0, -${Math.min(4, Math.round(physical.lift / 3))}px, 0)` : '';
-    const tilt = physical.slightRotation && renderStyle !== 'texture' && renderStyle !== 'background' ? 'rotate(-0.7deg)' : '';
+    const tilt =
+        physical.slightRotation && renderStyle !== 'texture' && renderStyle !== 'background' ? 'rotate(-0.7deg)' : '';
 
     return [lift, tilt].filter(Boolean).join(' ') || 'none';
 }
@@ -469,18 +500,18 @@ function contentRadiusFor(renderStyle: AssetRenderStyle): string {
     }
 
     if (renderStyle === 'paper') {
-        return '18px 12px 22px 14px';
+        return '3px';
     }
 
     if (renderStyle === 'label' || renderStyle === 'stamp') {
-        return '12px';
+        return '3px';
     }
 
     if (renderStyle === 'frame' || renderStyle === 'border') {
         return '8px';
     }
 
-    return '10px';
+    return renderStyle === 'sticker' || renderStyle === 'decoration' || renderStyle === 'flower' ? '2px' : '6px';
 }
 
 function isAssetRenderStyle(value: string): value is AssetRenderStyle {
@@ -509,7 +540,10 @@ function clampNumber(value: unknown, fallback: number, min: number, max: number)
     return Math.min(Math.max(number, min), max);
 }
 
-function shadowIntensityValue(value: unknown, fallback: AssetPhysicalConfig['shadowIntensity']): AssetPhysicalConfig['shadowIntensity'] {
+function shadowIntensityValue(
+    value: unknown,
+    fallback: AssetPhysicalConfig['shadowIntensity'],
+): AssetPhysicalConfig['shadowIntensity'] {
     if (value === 'none' || value === 'soft' || value === 'medium' || value === 'strong') {
         return value;
     }
