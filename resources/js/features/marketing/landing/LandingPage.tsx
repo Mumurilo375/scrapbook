@@ -12,7 +12,7 @@ import { TopAnnouncement } from './sections/TopAnnouncement';
 
 export function LandingPage() {
     return (
-        <div className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
+        <div className="scrapbook-background min-h-screen bg-[#E5DDED] font-sans text-[#292331]">
             <TopAnnouncement />
             <Header />
             <main>

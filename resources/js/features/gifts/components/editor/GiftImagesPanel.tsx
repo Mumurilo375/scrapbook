@@ -1,3 +1,4 @@
+import { Images } from 'lucide-react';
 import type { RefObject } from 'react';
 
 import type { EditorMediaItem, ImageUploadTarget } from './editorTypes';
@@ -23,16 +24,26 @@ export function GiftImagesPanel({
     uploadUrl,
 }: GiftImagesPanelProps) {
     return (
-        <section className="grid gap-5 text-[#342E38]">
-            <div>
-                <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">
-                    Biblioteca de imagens
-                </h2>
-                <p className="mt-1.5 text-sm leading-5 text-[#746D78]">
-                    Envie imagens para sua biblioteca. Para substituir uma foto da página, selecione a imagem e use
-                    Trocar foto.
-                </p>
-            </div>
+        <section
+            aria-labelledby="gift-images-panel-title"
+            className="gift-editor-inspector -m-4 min-w-0 overflow-hidden rounded-[16px_4px_16px_16px] bg-white text-[#342E38]"
+        >
+            <header className="gift-editor-inspector-header px-4 py-5">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <h2
+                            className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]"
+                            id="gift-images-panel-title"
+                        >
+                            Fotos
+                        </h2>
+                        <p className="mt-1 max-w-[34ch] text-sm leading-5 text-[#645D68]">
+                            Envie suas imagens e selecione uma para usar ao trocar a foto da página.
+                        </p>
+                    </div>
+                    <Images aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[#FF765B]" />
+                </div>
+            </header>
 
             <GiftMediaLibrary
                 disabled={disabled}

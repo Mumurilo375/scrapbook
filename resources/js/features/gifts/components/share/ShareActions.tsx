@@ -10,7 +10,7 @@ type ShareActionsProps = {
 };
 
 const buttonClass =
-    'inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]';
+    'inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#A98BC4] bg-white px-3 text-sm font-bold text-[#292331] hover:bg-[#F3EFF6]';
 
 export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: ShareActionsProps) {
     const { trackEvent } = useAnalytics();
@@ -19,7 +19,7 @@ export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: Sha
         <div className="flex flex-wrap gap-2">
             <CopyPublicLinkButton className={buttonClass} publicUrl={publicUrl} />
             <a
-                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#73A58E] bg-[#E8F2ED] px-3 text-sm font-bold text-[#2E6856] hover:bg-[#D5E9DF]"
                 href={publicUrl}
                 rel="noreferrer"
                 target="_blank"
@@ -28,7 +28,7 @@ export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: Sha
                 Abrir link
             </a>
             <a
-                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#A98BC4] bg-white px-3 text-sm font-bold text-[#292331] hover:bg-[#F3EFF6]"
                 download
                 href={qrCodeDownloadUrl}
                 onClick={() => trackEvent('qr_code_downloaded', { payload: { surface: 'share_page' } })}
@@ -37,7 +37,7 @@ export function ShareActions({ cardPrintUrl, publicUrl, qrCodeDownloadUrl }: Sha
                 Baixar QR
             </a>
             <a
-                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-3 text-sm font-bold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273]"
                 href={cardPrintUrl}
                 onClick={() => trackEvent('share_card_print_clicked', { payload: { surface: 'share_page' } })}
             >

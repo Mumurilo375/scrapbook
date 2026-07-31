@@ -11,29 +11,36 @@ type PlanSummaryCardProps = {
 export function PlanSummaryCard({ plan }: PlanSummaryCardProps) {
     if (!plan) {
         return (
-            <section className="rounded-[8px] border border-[#D93632] bg-[#F8D8D3] p-5 text-sm font-semibold text-[#8F211F] shadow-sm">
+            <section className="border border-[#FF705F] bg-[#FFF0ED] p-5 text-sm font-bold text-[#D95045] shadow-[4px_5px_0_#F3C7C1]">
                 Nenhum plano disponível agora.
             </section>
         );
     }
 
     return (
-        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 shadow-sm">
+        <section
+            className="rounded-[10px] border border-[#C9BAD8] bg-[#FBF7ED] p-5 shadow-[0_9px_0_#CFC1AE,0_20px_38px_#18102418]"
+            style={{
+                backgroundImage:
+                    "linear-gradient(rgba(251,247,237,.88),rgba(251,247,237,.88)),url('/materials/cotton-paper.webp')",
+                backgroundSize: 'auto, 460px 460px',
+            }}
+        >
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Plano</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-[#1F150A]">{plan.name}</h2>
-                    {plan.description ? <p className="mt-2 text-sm text-[#6F5A4A]">{plan.description}</p> : null}
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#D95045]">Plano</p>
+                    <h2 className="mt-3 font-display text-2xl font-bold text-[#181024]">{plan.name}</h2>
+                    {plan.description ? <p className="mt-2 text-sm text-[#6F6877]">{plan.description}</p> : null}
                 </div>
-                <div className="rounded-[8px] border border-[#7E8F68] bg-[#E7EBD8] px-4 py-3 text-right">
-                    <p className="text-xs font-semibold uppercase text-[#48573A]">Total</p>
-                    <p className="mt-1 text-2xl font-semibold text-[#1F150A]">
+                <div className="border border-dashed border-[#73A58E] bg-[#E8F2ED] px-4 py-3 text-right">
+                    <p className="text-xs font-semibold uppercase text-[#2E6856]">Total</p>
+                    <p className="mt-1 text-2xl font-semibold text-[#181024]">
                         {formatPrice(plan.price_cents, plan.currency)}
                     </p>
                 </div>
             </div>
 
-            <dl className="mt-5 grid gap-3 text-sm text-[#42291D] sm:grid-cols-3">
+            <dl className="mt-5 grid gap-3 text-sm text-[#6F6877] sm:grid-cols-3">
                 <Info
                     icon={<FileText aria-hidden="true" className="h-4 w-4" />}
                     label="Páginas"
@@ -51,7 +58,7 @@ export function PlanSummaryCard({ plan }: PlanSummaryCardProps) {
                 />
             </dl>
 
-            <p className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[#6F5A4A]">
+            <p className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[#6F6877]">
                 <Receipt aria-hidden="true" className="h-4 w-4" />O valor vem do plano escolhido e fica protegido pelo
                 sistema.
             </p>
@@ -67,9 +74,9 @@ type InfoProps = {
 
 function Info({ icon, label, value }: InfoProps) {
     return (
-        <div className="rounded-[6px] border border-[#E5D0B8] bg-white px-3 py-3">
-            <div className="text-[#D93632]">{icon}</div>
-            <dt className="mt-2 font-semibold text-[#1F150A]">{label}</dt>
+        <div className="border-b border-[#D6CFDD] bg-white/65 px-3 py-3 last:border-b-0">
+            <div className="text-[#FF705F]">{icon}</div>
+            <dt className="mt-2 font-semibold text-[#181024]">{label}</dt>
             <dd className="mt-0.5">{value}</dd>
         </div>
     );

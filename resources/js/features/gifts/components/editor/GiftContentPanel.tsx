@@ -12,8 +12,8 @@ type GiftContentPanelProps = {
 
 export function GiftContentPanel({ disabled, elements, error, onChangeText, saveStatus }: GiftContentPanelProps) {
     return (
-        <section className="grid gap-5 text-[#342E38]">
-            <div className="flex items-start justify-between gap-3">
+        <section className="gift-editor-inspector-section grid text-[#342E38]">
+            <header className="flex items-start justify-between gap-3 border-b border-[#D8D2DE] pb-4">
                 <div className="min-w-0">
                     <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">
                         Conteúdo da página
@@ -25,11 +25,11 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
                 ) : (
                     <Type aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[#FF765B]" />
                 )}
-            </div>
+            </header>
 
             {error ? (
                 <p
-                    className="rounded-[6px] border border-[#C85B47] bg-[#FFF2EF] px-3 py-2.5 text-sm font-semibold text-[#7C3024]"
+                    className="border-b border-[#E8B8AE] bg-[#FFF2EF] px-3 py-3 text-sm font-semibold text-[#7C3024]"
                     role="alert"
                 >
                     {error}
@@ -37,9 +37,9 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
             ) : null}
 
             {elements.length > 0 ? (
-                <div className="grid gap-4">
+                <div className="divide-y divide-[#D8D2DE]">
                     {elements.map((element) => (
-                        <label className="grid gap-2 text-sm font-semibold text-[#342E38]" key={element.id}>
+                        <label className="grid gap-2 py-4 text-sm font-semibold text-[#342E38]" key={element.id}>
                             <span className="capitalize">{element.label}</span>
                             <textarea
                                 className="min-h-28 resize-y rounded-[6px] border border-[#978E9C] bg-white p-3 text-sm font-normal leading-6 text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
@@ -55,7 +55,7 @@ export function GiftContentPanel({ disabled, elements, error, onChangeText, save
                     ))}
                 </div>
             ) : (
-                <p className="rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm text-[#342E38]">
+                <p className="border-b border-[#D8D2DE] py-5 text-sm text-[#645D68]">
                     Esta página ainda não possui textos editáveis.
                 </p>
             )}

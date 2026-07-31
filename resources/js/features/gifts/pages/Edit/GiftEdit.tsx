@@ -1,9 +1,9 @@
 /*
-THESIS: O presente é o objeto; a interface recusa o construtor de três colunas com cartões equivalentes.
-OWN-WORLD: Bancada lavanda, fichário berinjela, etiquetas coral e papel físico com bordas, fibra e volume.
-STORY: A pessoa escolhe uma página, preenche memórias, decora, ajusta e revisa sem precisar saber design.
-FIRST VIEWPORT: Fita de páginas à esquerda, scrapbook dominante no centro, ferramentas contextuais à direita e conclusão no topo.
-FORM: Álbum de Figurinhas de Afeto, terceira direção aterrissada; objeto carregado entre ambientes; seed 508e06e0.
+THESIS: O editor é uma bancada de encadernação; recusa a folha isolada dentro de um dashboard.
+OWN-WORLD: Tecido berinjela, bancada lavanda, inspector branco e álbum aberto de algodão, couro, metal e fita.
+STORY: A pessoa percorre Layout, Preencher, Decorar e Ajustar até concluir um presente bonito sem saber design.
+FIRST VIEWPORT: Barra de 72px, livro aberto ocupando o palco, páginas encaixadas e inspector contextual à direita.
+FORM: Ateliê do Álbum Aberto, composição híbrida das três referências aprovadas; seed dispensado pela direção fixada.
 */
 import { Head } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -366,6 +366,10 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
     const selectedPageIndex = editorPages.findIndex((page) => page.id === selectedPageId);
     const selectedPage = selectedPageIndex >= 0 ? editorPages[selectedPageIndex] : null;
     const selectedCanvas = selectedPage ? (pageCanvases[selectedPage.id] ?? selectedPage.canvas) : null;
+    const selectedPageSide = selectedPageIndex % 2 === 0 ? 'left' : 'right';
+    const companionPageIndex = selectedPageSide === 'left' ? selectedPageIndex + 1 : selectedPageIndex - 1;
+    const companionPage = companionPageIndex >= 0 ? (editorPages[companionPageIndex] ?? null) : null;
+    const companionCanvas = companionPage ? (pageCanvases[companionPage.id] ?? companionPage.canvas) : null;
     const selection = useCanvasSelection(selectedCanvas);
     const metadataDirty = !metadataEquals(metadata, savedMetadata);
     const dirtyPageIds = useMemo(
@@ -1295,10 +1299,12 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
             <main className="gift-editor-root relative min-h-dvh overflow-x-clip text-[#342E38]">
                 <div className="relative z-10">
                     <GiftEditorTopBar
+                        activeTab={activeTab}
                         canRedo={selectedPageHistory.canRedo}
                         canUndo={selectedPageHistory.canUndo}
                         dashboardUrl={gift.dashboard_url}
                         historyDisabled={editorDisabled}
+                        onChangeTab={setActiveTab}
                         onRedo={redoCurrentPage}
                         onUndo={undoCurrentPage}
                         orderUrl={gift.order_url}
@@ -1325,10 +1331,13 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                     <GiftEditorLayout
                         left={
                             <GiftPageSidebar
+                                assets={assetMap}
                                 onSelectPage={selectPage}
                                 pageStatuses={effectivePageStatuses}
+                                pageCanvases={pageCanvases}
                                 pages={editorPages}
                                 selectedPageId={selectedPageId}
+                                theme={gift.theme?.config}
                             />
                         }
                         center={
@@ -1349,10 +1358,14 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                     />
                                 ) : null}
                                 <GiftPagePreview
+                                    activeSide={selectedPageSide}
                                     assets={assetMap}
                                     canGoNext={selectedPageIndex < editorPages.length - 1}
                                     canGoPrevious={selectedPageIndex > 0}
                                     canvas={selectedCanvas}
+                                    companionCanvas={companionCanvas}
+                                    companionPage={companionPage}
+                                    companionPageNumber={companionPageIndex + 1}
                                     direction={pageDirection}
                                     disabled={editorDisabled}
                                     imageReplacing={directImageUploading}
@@ -1363,6 +1376,7 @@ export default function GiftEdit({ assets: initialAssets = [], debugEnabled, gif
                                     onNext={() => goToPage(1)}
                                     onPrevious={() => goToPage(-1)}
                                     onReplaceImage={openImageUpload}
+                                    onSelectCompanion={companionPage ? () => selectPage(companionPage.id) : undefined}
                                     onSelectElement={selectElementFromCanvas}
                                     onTransformEnd={endElementTransform}
                                     onTransformStart={beginElementTransform}

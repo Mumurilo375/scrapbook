@@ -39,25 +39,32 @@ export default function ShareCard({ autoPrint, card, gift }: ShareCardProps) {
     return (
         <>
             <Head title={`Cartão de ${gift.title}`} />
-            <main className="share-card-print-page min-h-screen bg-[#F4E8D9] text-[#221C19]">
-                <header className="share-card-screen-only border-b border-[#D8B991] bg-[#F4E8D9]/95 backdrop-blur">
+            <main className="share-card-print-page min-h-screen bg-[#E5DDED] font-sans text-[#292331]">
+                <header
+                    className="share-card-screen-only border-b border-[#4B3D59] bg-[#181024] text-white shadow-[0_4px_18px_#18102438]"
+                    style={{
+                        backgroundImage: "url('/materials/bookcloth-aubergine.webp')",
+                        backgroundPosition: 'center',
+                        backgroundSize: '520px 520px',
+                    }}
+                >
                     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-                        <Link className="flex items-center gap-3 text-[#1F150A]" href="/">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#B78D5C] bg-[#FFF7EE] text-[#D93632]">
+                        <Link className="flex items-center gap-3 text-white" href="/">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-[4px] border border-[#675578] bg-[#281D36] text-[#A98BC4]">
                                 <Gift aria-hidden="true" className="h-5 w-5" />
                             </span>
-                            <span className="font-editorial text-xl font-semibold">Scrapbook</span>
+                            <span className="font-display text-xl font-bold">Scrapbook</span>
                         </Link>
                         <div className="flex flex-wrap gap-2">
                             <Link
-                                className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#42291D]"
+                                className="inline-flex min-h-10 items-center gap-2 text-sm font-bold text-[#D8CFDF] hover:text-white"
                                 href={gift.urls.share}
                             >
                                 <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                                 Compartilhar
                             </Link>
                             <button
-                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-3 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273]"
                                 onClick={() => window.print()}
                                 type="button"
                             >

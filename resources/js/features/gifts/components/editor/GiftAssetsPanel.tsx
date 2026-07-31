@@ -54,141 +54,181 @@ export function GiftAssetsPanel({
     const hasMoreAssets = visibleLimit < filteredAssets.length;
 
     return (
-        <section className="grid min-w-0 gap-4 text-[#342E38]">
-            <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                    <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]">Adesivos</h2>
-                    <p className="mt-1 text-xs font-semibold text-[#746D78]">{statusLabel(status, saveStatus)}</p>
+        <section
+            aria-labelledby="gift-assets-panel-title"
+            className="gift-editor-inspector -m-4 min-w-0 overflow-hidden rounded-[16px_4px_16px_16px] bg-white text-[#342E38]"
+        >
+            <header className="gift-editor-inspector-header px-4 py-5">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <h2
+                            className="font-display text-lg font-bold tracking-[-0.02em] text-[#21162D]"
+                            id="gift-assets-panel-title"
+                        >
+                            Adesivos
+                        </h2>
+                        <p className="mt-1 max-w-[32ch] text-sm leading-5 text-[#645D68]">
+                            Escolha um recorte para adicionar à página.
+                        </p>
+                    </div>
+                    <Sparkles aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[#FF765B]" />
                 </div>
-                <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0 text-[#FF765B]" />
-            </div>
-            <p className="text-sm leading-5 text-[#746D78]">Clique em um adesivo para adicionar à página.</p>
+                <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#746D78]" role="status">
+                    <span
+                        aria-hidden="true"
+                        className={`h-2 w-2 rounded-full ${
+                            status === 'error'
+                                ? 'bg-[#C63C43]'
+                                : status === 'loading' || saveStatus === 'saving'
+                                  ? 'bg-[#B86C22]'
+                                  : 'bg-[#357263]'
+                        }`}
+                    />
+                    {statusLabel(status, saveStatus)}
+                </p>
+            </header>
 
-            <label className="relative block">
-                <span className="sr-only">Buscar adesivo</span>
-                <Search
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#746D78]"
-                />
-                <input
-                    className="h-10 w-full rounded-[6px] border border-[#978E9C] bg-white pr-3 pl-9 text-sm font-medium text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3]"
-                    disabled={status === 'loading'}
-                    onChange={(event) => {
-                        setQuery(event.target.value);
-                        setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
-                    }}
-                    placeholder="Buscar adesivo"
-                    type="search"
-                    value={query}
-                />
-            </label>
+            <div className="gift-editor-inspector-section border-t border-[#DDD7E0] px-4 py-4">
+                <label className="relative block">
+                    <span className="mb-2 block text-xs font-bold text-[#342E38]">Buscar na coleção</span>
+                    <Search
+                        aria-hidden="true"
+                        className="pointer-events-none absolute bottom-3.5 left-3.5 h-4 w-4 text-[#746D78]"
+                    />
+                    <input
+                        className="gift-editor-inspector-field h-11 w-full rounded-[6px] border border-[#978E9C] bg-white pr-3 pl-10 text-sm font-medium text-[#342E38] outline-none transition placeholder:text-[#746D78] focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3]"
+                        disabled={status === 'loading'}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
+                        }}
+                        placeholder="Nome, tipo ou tema"
+                        type="search"
+                        value={query}
+                    />
+                </label>
 
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                <CategoryButton
-                    active={categorySlug === null}
-                    label="Todos"
-                    onClick={() => {
-                        setCategorySlug(null);
-                        setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
-                    }}
-                />
-                {categories.map((category) => (
+                <div
+                    aria-label="Filtrar adesivos por categoria"
+                    className="gift-editor-inspector-filters -mx-1 mt-3 flex gap-1 overflow-x-auto px-1"
+                >
                     <CategoryButton
-                        active={categorySlug === category.slug}
-                        key={category.id}
-                        label={category.name}
+                        active={categorySlug === null}
+                        label="Todos"
                         onClick={() => {
-                            setCategorySlug(category.slug);
+                            setCategorySlug(null);
                             setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
                         }}
                     />
-                ))}
-            </div>
-
-            {status === 'loading' ? (
-                <div
-                    className="inline-flex items-center gap-2 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm font-semibold text-[#342E38]"
-                    role="status"
-                >
-                    <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
-                    Carregando adesivos...
-                </div>
-            ) : null}
-
-            {status === 'error' ? (
-                <div
-                    className="grid gap-3 rounded-[6px] border border-[#C85B47] bg-[#FFF2EF] p-4 text-sm font-semibold text-[#7C3024]"
-                    role="alert"
-                >
-                    <p>{error ?? 'Não foi possível carregar os adesivos.'}</p>
-                    <button
-                        className="inline-flex min-h-10 w-fit items-center rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
-                        onClick={onRetry}
-                        type="button"
-                    >
-                        Tentar novamente
-                    </button>
-                </div>
-            ) : null}
-
-            {status === 'ready' && filteredAssets.length === 0 ? (
-                <div className="grid gap-3 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm font-semibold text-[#342E38]">
-                    <p>{emptyMessage(assets.length, query, categorySlug)}</p>
-                    {query.trim() !== '' || categorySlug ? (
-                        <button
-                            className="min-h-10 w-fit rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#F8F6FA] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
+                    {categories.map((category) => (
+                        <CategoryButton
+                            active={categorySlug === category.slug}
+                            key={category.id}
+                            label={category.name}
                             onClick={() => {
-                                setQuery('');
-                                setCategorySlug(null);
+                                setCategorySlug(category.slug);
                                 setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
                             }}
-                            type="button"
-                        >
-                            Limpar filtros
-                        </button>
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <div className="gift-editor-inspector-section border-t border-[#DDD7E0] px-4 py-4">
+                <div className="mb-3 flex min-h-5 items-baseline justify-between gap-3">
+                    <h3 className="text-sm font-bold text-[#21162D]">Coleção disponível</h3>
+                    {status === 'ready' ? (
+                        <span className="shrink-0 text-xs font-semibold text-[#746D78]">
+                            {assetCountLabel(filteredAssets.length)}
+                        </span>
                     ) : null}
                 </div>
-            ) : null}
 
-            {status === 'ready' && filteredAssets.length > 0 ? (
-                <>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {visibleAssets.map((asset) => (
-                            <button
-                                aria-label={`Adicionar adesivo ${asset.name}`}
-                                className="group grid min-h-[122px] gap-2 rounded-[7px] border border-[#978E9C] bg-white p-2 text-left outline-none transition hover:border-[#21162D] hover:bg-[#F8F6FA] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:opacity-60"
-                                disabled={disabled}
-                                key={asset.id}
-                                onClick={() => onAddAsset(asset)}
-                                type="button"
-                            >
-                                <span className="flex aspect-square items-center justify-center rounded-[5px] bg-[#FBFAF6] p-2 transition group-hover:bg-[#EFEBF3]">
-                                    <AssetVisual asset={asset} theme={normalizedTheme} />
-                                </span>
-                                <span className="min-w-0">
-                                    <span className="block truncate text-xs font-bold text-[#21162D]">
-                                        {asset.name}
-                                    </span>
-                                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-[#746D78]">
-                                        {asset.isThemeAsset
-                                            ? 'Do tema'
-                                            : (asset.category?.name ?? assetTypeLabel(asset.type))}
-                                    </span>
-                                </span>
-                            </button>
-                        ))}
+                {status === 'loading' ? (
+                    <div
+                        className="flex min-h-32 items-center justify-center gap-2 border-y border-dashed border-[#C9C1CD] text-sm font-semibold text-[#342E38]"
+                        role="status"
+                    >
+                        <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
+                        Carregando adesivos...
                     </div>
-                    {hasMoreAssets ? (
+                ) : null}
+
+                {status === 'error' ? (
+                    <div
+                        className="grid gap-3 rounded-[6px] border border-[#DFA69B] bg-[#FFF2EF] p-4 text-sm font-semibold text-[#7C3024]"
+                        role="alert"
+                    >
+                        <p>{error ?? 'Não foi possível carregar os adesivos.'}</p>
                         <button
-                            className="min-h-10 rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
-                            onClick={() => setVisibleLimit((current) => current + ASSET_PREVIEW_BATCH_SIZE)}
+                            className="inline-flex h-11 w-fit items-center rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
+                            onClick={onRetry}
                             type="button"
                         >
-                            Mostrar mais adesivos
+                            Tentar novamente
                         </button>
-                    ) : null}
-                </>
-            ) : null}
+                    </div>
+                ) : null}
+
+                {status === 'ready' && filteredAssets.length === 0 ? (
+                    <div className="grid min-h-32 place-content-center gap-3 border-y border-dashed border-[#C9C1CD] px-3 py-5 text-center text-sm font-semibold text-[#342E38]">
+                        <p>{emptyMessage(assets.length, query, categorySlug)}</p>
+                        {query.trim() !== '' || categorySlug ? (
+                            <button
+                                className="mx-auto h-11 w-fit rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#F8F6FA] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
+                                onClick={() => {
+                                    setQuery('');
+                                    setCategorySlug(null);
+                                    setVisibleLimit(ASSET_PREVIEW_BATCH_SIZE);
+                                }}
+                                type="button"
+                            >
+                                Limpar filtros
+                            </button>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                {status === 'ready' && filteredAssets.length > 0 ? (
+                    <>
+                        <div className="gift-editor-asset-grid grid grid-cols-3 gap-x-2 gap-y-4">
+                            {visibleAssets.map((asset) => (
+                                <button
+                                    aria-label={`Adicionar adesivo ${asset.name}`}
+                                    className="gift-editor-asset-tile group min-w-0 text-left outline-none disabled:cursor-not-allowed disabled:opacity-45"
+                                    disabled={disabled}
+                                    key={asset.id}
+                                    onClick={() => onAddAsset(asset)}
+                                    type="button"
+                                >
+                                    <span className="relative grid aspect-square place-items-center rounded-[4px] bg-[#F4F1F5] p-2.5 ring-1 ring-[#DDD7E0] ring-inset transition duration-150 group-hover:-translate-y-0.5 group-hover:bg-[#EFEBF3] group-hover:ring-[#978E9C] group-focus-visible:ring-[#21162D] motion-reduce:transform-none">
+                                        <AssetVisual asset={asset} theme={normalizedTheme} />
+                                    </span>
+                                    <span className="mt-1.5 block min-w-0 px-0.5">
+                                        <span className="block truncate text-xs font-bold text-[#21162D]">
+                                            {asset.name}
+                                        </span>
+                                        <span className="mt-0.5 block truncate text-[11px] font-semibold text-[#746D78]">
+                                            {asset.isThemeAsset
+                                                ? 'Do tema'
+                                                : (asset.category?.name ?? assetTypeLabel(asset.type))}
+                                        </span>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        {hasMoreAssets ? (
+                            <button
+                                className="mt-4 h-11 w-full rounded-[5px] border border-[#978E9C] bg-white px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#EFEBF3] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2"
+                                onClick={() => setVisibleLimit((current) => current + ASSET_PREVIEW_BATCH_SIZE)}
+                                type="button"
+                            >
+                                Mostrar mais adesivos
+                            </button>
+                        ) : null}
+                    </>
+                ) : null}
+            </div>
         </section>
     );
 }
@@ -203,10 +243,10 @@ function CategoryButton({ active, label, onClick }: CategoryButtonProps) {
     return (
         <button
             aria-pressed={active}
-            className={`h-10 shrink-0 rounded-[5px] border px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 ${
+            className={`h-11 shrink-0 border-x-0 border-t-0 border-b-2 px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-[-2px] ${
                 active
-                    ? 'border-[#C94F39] bg-[#FF765B] text-[#21162D]'
-                    : 'border-[#978E9C] bg-white text-[#342E38] hover:border-[#21162D] hover:bg-[#EFEBF3]'
+                    ? 'border-[#FF765B] bg-[#FFF7F4] text-[#21162D]'
+                    : 'border-transparent bg-white text-[#645D68] hover:border-[#978E9C] hover:bg-[#F8F6FA] hover:text-[#21162D]'
             }`}
             onClick={onClick}
             type="button"
@@ -214,6 +254,10 @@ function CategoryButton({ active, label, onClick }: CategoryButtonProps) {
             {label}
         </button>
     );
+}
+
+function assetCountLabel(count: number): string {
+    return count === 1 ? '1 resultado' : `${count} resultados`;
 }
 
 function searchableText(asset: EditorAsset): string {

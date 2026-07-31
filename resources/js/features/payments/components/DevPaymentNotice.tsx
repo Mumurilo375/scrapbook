@@ -8,7 +8,7 @@ type DevPaymentNoticeProps = {
 
 export function DevPaymentNotice({ showApproveButton = false, approving = false, onApprove }: DevPaymentNoticeProps) {
     return (
-        <section className="rounded-[8px] border border-[#7E8F68] bg-[#F2F5E8] p-4 text-sm text-[#48573A] shadow-sm">
+        <section className="border border-[#73A58E] bg-[#EEF7F2] p-4 text-sm text-[#2E6856] shadow-[4px_5px_0_#B8D3C6] [clip-path:polygon(0_0,calc(100%_-_9px)_0,100%_9px,100%_100%,0_100%)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="flex items-start gap-3 font-semibold">
                     <FlaskConical aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
@@ -17,7 +17,7 @@ export function DevPaymentNotice({ showApproveButton = false, approving = false,
                 </p>
                 {showApproveButton ? (
                     <button
-                        className="inline-flex min-h-10 items-center rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-10 items-center rounded-[4px] border border-[#73A58E] bg-white px-3 text-sm font-bold text-[#2E6856] hover:bg-[#E8F2ED] disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={approving}
                         onClick={onApprove}
                         type="button"

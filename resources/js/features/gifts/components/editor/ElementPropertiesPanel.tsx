@@ -41,7 +41,7 @@ export function ElementPropertiesPanel({
 }: ElementPropertiesPanelProps) {
     if (!element) {
         return (
-            <section className="mb-5 rounded-[6px] border border-dashed border-[#C9C1CD] bg-[#EFEBF3] p-4 text-sm text-[#342E38]">
+            <section className="gift-editor-inspector-section mb-5 border-b border-[#D8D2DE] py-5 text-sm text-[#645D68]">
                 Selecione um texto, imagem ou adesivo na página.
             </section>
         );
@@ -53,27 +53,29 @@ export function ElementPropertiesPanel({
     const label = elementLabel(element);
 
     return (
-        <section className="mb-5 grid min-w-0 gap-4 overflow-hidden border-b border-[#C9C1CD] pb-5 text-[#342E38]">
-            <div className="flex items-start justify-between gap-3 rounded-[7px] bg-[#21162D] px-3 py-2.5 text-white">
+        <section className="gift-editor-inspector-section mb-5 grid min-w-0 gap-4 overflow-hidden border-b border-[#C9C1CD] pb-5 text-[#342E38]">
+            <header className="flex items-start justify-between gap-3 border-b border-[#D8D2DE] pb-4">
                 <div className="min-w-0">
-                    <p className="text-[11px] font-bold tracking-[0.04em] text-[#FF9A86] uppercase">Item selecionado</p>
-                    <h2 className="font-display mt-1 truncate text-base font-bold tracking-[-0.02em]">{label}</h2>
-                    <p className="mt-0.5 text-xs font-semibold text-[#D8D2DE]">{typeLabel(element.type)}</p>
+                    <p className="text-[11px] font-bold tracking-[0.04em] text-[#C94F39] uppercase">Item selecionado</p>
+                    <h2 className="font-display mt-1 truncate text-base font-bold tracking-[-0.02em] text-[#21162D]">
+                        {label}
+                    </h2>
+                    <p className="mt-0.5 text-xs font-semibold text-[#746D78]">{typeLabel(element.type)}</p>
                 </div>
-                <div className="mt-1 flex shrink-0 items-center gap-2 text-[#D8D2DE]">
+                <div className="mt-1 flex shrink-0 items-center gap-2 text-[#746D78]">
                     {hidden ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : null}
                     {disabled || elementLocked ? <Lock aria-hidden="true" className="h-4 w-4" /> : null}
                 </div>
-            </div>
+            </header>
 
             {hidden ? (
-                <p className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] px-3 py-2 text-sm font-semibold text-[#342E38]">
+                <p className="border-b border-[#D8D2DE] bg-[#EFEBF3] px-3 py-2.5 text-sm font-semibold text-[#342E38]">
                     Item oculto.
                 </p>
             ) : null}
 
             {elementLocked ? (
-                <p className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] px-3 py-2 text-sm font-semibold text-[#342E38]">
+                <p className="border-b border-[#D8D2DE] bg-[#EFEBF3] px-3 py-2.5 text-sm font-semibold text-[#342E38]">
                     Item bloqueado. Desbloqueie em Camadas para editar.
                 </p>
             ) : null}
@@ -125,7 +127,7 @@ export function ElementPropertiesPanel({
                         </FieldGroup>
                     </div>
 
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 border-t border-[#D8D2DE] pt-3">
                         <p className="text-xs font-bold text-[#21162D]">Ordem da camada</p>
                         <LayerControls disabled={locked} onAction={onLayerAction} />
                     </div>
@@ -154,7 +156,7 @@ export function ElementPropertiesPanel({
                     ) : null}
                 </>
             ) : (
-                <p className="rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] px-3 py-2 text-sm font-semibold text-[#342E38]">
+                <p className="border-b border-[#D8D2DE] bg-[#EFEBF3] px-3 py-2.5 text-sm font-semibold text-[#342E38]">
                     Item preservado.
                 </p>
             )}
@@ -180,14 +182,14 @@ function EnvelopeControls({ disabled, element, onPatchElement }: EnvelopeControl
     const variant = typeof elementStyle.variant === 'string' ? elementStyle.variant : 'kraft';
 
     return (
-        <div className="grid min-w-0 gap-3">
+        <div className="grid min-w-0 gap-3 border-t border-[#D8D2DE] pt-4">
             <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span className="inline-flex items-center gap-2">
                     <Mail aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
                     Título do envelope
                 </span>
                 <input
-                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
+                    className="h-11 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={120}
                     onChange={(event) => onPatchElement({ title: event.target.value })}
@@ -211,7 +213,7 @@ function EnvelopeControls({ disabled, element, onPatchElement }: EnvelopeControl
             <label className="grid gap-1.5 text-xs font-bold text-[#342E38]">
                 <span>Estilo</span>
                 <select
-                    className="h-10 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-semibold text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
+                    className="h-11 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-semibold text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     onChange={(event) => onPatchElement({ style: { ...elementStyle, variant: event.target.value } })}
                     value={variant}
@@ -242,8 +244,8 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
     const hasPhoto = typeof front.mediaItemId === 'string' && front.mediaItemId.trim() !== '';
 
     return (
-        <div className="grid min-w-0 gap-3">
-            <div className="grid gap-2 rounded-[6px] border border-[#C9C1CD] bg-[#EFEBF3] p-3">
+        <div className="grid min-w-0 gap-3 border-t border-[#D8D2DE] pt-4">
+            <div className="grid gap-2 border-b border-[#D8D2DE] pb-3">
                 <div className="flex items-center justify-between gap-3">
                     <span className="inline-flex items-center gap-2 text-sm font-bold text-[#21162D]">
                         <ImageIcon aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
@@ -255,7 +257,7 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
                 </div>
                 {onReplacePhoto ? (
                     <button
-                        className="min-h-10 rounded-[6px] border border-[#C94F39] bg-[#FF765B] px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#FF8B74] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#E1DCE5] disabled:text-[#746D78]"
+                        className="min-h-11 rounded-[6px] border border-[#C94F39] bg-[#FF765B] px-3 text-sm font-bold text-[#21162D] outline-none transition hover:border-[#21162D] hover:bg-[#FF8B74] focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#E1DCE5] disabled:text-[#746D78]"
                         disabled={disabled}
                         onClick={() => onReplacePhoto(element)}
                         type="button"
@@ -268,7 +270,7 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
             <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span>Legenda da frente</span>
                 <input
-                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
+                    className="h-11 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={120}
                     onChange={(event) => onPatchElement({ front: { ...front, caption: event.target.value } })}
@@ -280,7 +282,7 @@ function PolaroidControls({ disabled, element, onPatchElement, onReplacePhoto }:
             <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span>Placeholder sem foto</span>
                 <input
-                    className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
+                    className="h-11 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-3 text-sm font-normal text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                     disabled={disabled}
                     maxLength={120}
                     onChange={(event) => onPatchElement({ front: { ...front, placeholderLabel: event.target.value } })}
@@ -321,7 +323,7 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
     const align = styleString(element, 'align') ?? 'left';
 
     return (
-        <div className="grid min-w-0 gap-3">
+        <div className="grid min-w-0 gap-3 border-t border-[#D8D2DE] pt-4">
             <label className="grid gap-2 text-sm font-semibold text-[#342E38]">
                 <span className="inline-flex items-center gap-2">
                     <Type aria-hidden="true" className="h-4 w-4 text-[#FF765B]" />
@@ -349,7 +351,7 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
                 />
                 <label className="grid min-w-0 gap-1.5 text-xs font-bold text-[#342E38]">
                     <span>Cor</span>
-                    <span className="inline-flex h-10 items-center justify-center rounded-[6px] border border-[#978E9C] bg-white px-2">
+                    <span className="inline-flex h-11 items-center justify-center rounded-[6px] border border-[#978E9C] bg-white px-2">
                         <Palette aria-hidden="true" className="mr-2 h-4 w-4 text-[#FF765B]" />
                         <input
                             aria-label="Cor do texto"
@@ -366,7 +368,7 @@ function TextControls({ disabled, element, maxTextLength, onChangeText, onPatchS
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
                 {(['left', 'center', 'right'] as const).map((value) => (
                     <button
-                        className={`min-h-10 rounded-[5px] border px-2 text-sm font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#EFEBF3] disabled:text-[#746D78] disabled:opacity-60 ${
+                        className={`min-h-11 rounded-[5px] border px-2 text-sm font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#21162D] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:border-[#C9C1CD] disabled:bg-[#EFEBF3] disabled:text-[#746D78] disabled:opacity-60 ${
                             align === value
                                 ? 'border-[#C94F39] bg-[#FF765B] text-[#21162D]'
                                 : 'border-[#978E9C] bg-white text-[#342E38] hover:border-[#21162D] hover:bg-[#EFEBF3]'
@@ -397,7 +399,7 @@ function NumberInput({ disabled, label, min, onChange, value }: NumberInputProps
         <label className="grid min-w-0 gap-1.5 text-xs font-bold text-[#342E38]">
             <span>{label}</span>
             <input
-                className="h-10 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-2 text-sm font-semibold text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
+                className="h-11 w-full min-w-0 rounded-[6px] border border-[#978E9C] bg-white px-2 text-sm font-semibold text-[#342E38] outline-none transition focus:border-[#21162D] focus:ring-2 focus:ring-[#FF765B66] disabled:cursor-not-allowed disabled:bg-[#EFEBF3] disabled:text-[#746D78]"
                 disabled={disabled}
                 inputMode="decimal"
                 min={min}

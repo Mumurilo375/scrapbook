@@ -12,12 +12,27 @@ export function GiftEditorLayout({ center, left, right }: GiftEditorLayoutProps)
     const [toolsExpanded, setToolsExpanded] = useState(false);
 
     return (
-        <section className="gift-editor-workspace">
-            <aside className="gift-editor-page-rail" aria-label="Páginas do presente">
+        <section className="gift-editor-workspace scrapbook-editor-workspace" data-editor-layout="scrapbook">
+            <aside
+                aria-label="Sequência de páginas do presente"
+                className="gift-editor-page-rail scrapbook-editor-filmstrip-slot"
+                data-editor-slot="filmstrip"
+            >
                 {left}
             </aside>
-            <section className="gift-editor-stage-column">{center}</section>
-            <aside className="gift-editor-tool-dock" aria-label="Ferramentas de edição" data-expanded={toolsExpanded}>
+            <section
+                aria-label="Página do scrapbook em edição"
+                className="gift-editor-stage-column scrapbook-editor-stage-slot"
+                data-editor-slot="stage"
+            >
+                {center}
+            </section>
+            <aside
+                aria-label="Ferramentas de edição"
+                className="gift-editor-tool-dock scrapbook-editor-inspector scrapbook-editor-inspector-slot"
+                data-editor-slot="inspector"
+                data-expanded={toolsExpanded}
+            >
                 <button
                     aria-controls="gift-editor-tools"
                     aria-expanded={toolsExpanded}

@@ -13,20 +13,33 @@ export function OrderStatusCard({ order, publicUrl = null }: OrderStatusCardProp
     const paid = order.status === 'paid' || order.payment_status === 'approved';
 
     return (
-        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 shadow-sm">
+        <section
+            className="relative overflow-hidden rounded-[10px] border border-[#C9BAD8] bg-[#FBF7ED] p-5 shadow-[0_9px_0_#CFC1AE,0_20px_38px_#18102418]"
+            style={{
+                backgroundImage:
+                    "linear-gradient(rgba(251,247,237,.88),rgba(251,247,237,.88)),url('/materials/cotton-paper.webp')",
+                backgroundSize: 'auto, 460px 460px',
+            }}
+        >
+            <span
+                aria-hidden="true"
+                className="absolute left-0 right-0 top-16 border-t border-dashed border-[#C9BAD8]"
+            />
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Pedido</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-[#1F150A]">{humanOrderStatus(order.status)}</h2>
-                    <p className="mt-2 text-sm text-[#6F5A4A]">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#D95045]">Pedido</p>
+                    <h2 className="mt-3 font-display text-2xl font-bold text-[#181024]">
+                        {humanOrderStatus(order.status)}
+                    </h2>
+                    <p className="mt-2 text-sm text-[#6F6877]">
                         Pagamento: <strong>{humanPaymentStatus(order.payment_status)}</strong>
                     </p>
                 </div>
                 <span
                     className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
                         paid
-                            ? 'border-[#7E8F68] bg-[#E7EBD8] text-[#48573A]'
-                            : 'border-[#BD8558] bg-[#EBC493] text-[#42291D]'
+                            ? 'border-[#73A58E] bg-[#E8F2ED] text-[#2E6856]'
+                            : 'border-[#B8792E] bg-[#F2E1C8] text-[#6F6877]'
                     }`}
                 >
                     {paid ? (
@@ -38,7 +51,7 @@ export function OrderStatusCard({ order, publicUrl = null }: OrderStatusCardProp
                 </span>
             </div>
 
-            <dl className="mt-5 grid gap-3 text-sm text-[#42291D] sm:grid-cols-3">
+            <dl className="mt-5 grid gap-3 text-sm text-[#6F6877] sm:grid-cols-3">
                 <Info label="Valor" value={formatPrice(order.amount_cents, order.currency)} />
                 <Info label="Forma de confirmação" value={paymentProviderLabel(order.provider)} />
                 <Info label="Expira em" value={formatDate(order.expires_at)} />
@@ -46,14 +59,14 @@ export function OrderStatusCard({ order, publicUrl = null }: OrderStatusCardProp
 
             {publicUrl ? (
                 <Link
-                    className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-3 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                    className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#73A58E] bg-[#E8F2ED] px-3 text-sm font-semibold text-[#2E6856] hover:bg-[#DCE4CB]"
                     href={publicUrl}
                 >
                     <ExternalLink aria-hidden="true" className="h-4 w-4" />
                     Abrir link público
                 </Link>
             ) : (
-                <p className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6F5A4A]">
+                <p className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6F6877]">
                     <Receipt aria-hidden="true" className="h-4 w-4" />O link público aparece automaticamente depois do
                     pagamento aprovado.
                 </p>
@@ -69,8 +82,8 @@ type InfoProps = {
 
 function Info({ label, value }: InfoProps) {
     return (
-        <div className="rounded-[6px] border border-[#E5D0B8] bg-white px-3 py-3">
-            <dt className="font-semibold text-[#1F150A]">{label}</dt>
+        <div className="border-b border-[#D6CFDD] bg-white/65 px-3 py-3 last:border-b-0">
+            <dt className="font-semibold text-[#181024]">{label}</dt>
             <dd className="mt-0.5">{value}</dd>
         </div>
     );

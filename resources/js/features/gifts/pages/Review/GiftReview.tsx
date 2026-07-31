@@ -86,32 +86,39 @@ export default function GiftReview({ gift }: GiftReviewProps) {
     return (
         <>
             <Head title={`Revisar ${gift.title}`} />
-            <main className="scrapbook-background min-h-screen bg-[#F4E8D9] text-[#221C19]">
-                <header className="border-b border-[#D8B991] bg-[#F4E8D9]/95 backdrop-blur">
+            <main className="min-h-screen bg-[#E5DDED] font-sans text-[#292331]">
+                <header
+                    className="border-b border-[#4B3D59] bg-[#181024] text-white shadow-[0_4px_18px_#18102438]"
+                    style={{
+                        backgroundImage: "url('/materials/bookcloth-aubergine.webp')",
+                        backgroundPosition: 'center',
+                        backgroundSize: '520px 520px',
+                    }}
+                >
                     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-                        <Link className="flex items-center gap-3 text-[#1F150A]" href="/">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#B78D5C] bg-[#FFF7EE] text-[#D93632]">
+                        <Link className="flex items-center gap-3 text-white" href="/">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-[4px] border border-[#675578] bg-[#281D36] text-[#A98BC4]">
                                 <Gift aria-hidden="true" className="h-5 w-5" />
                             </span>
-                            <span className="font-editorial text-xl font-semibold">Scrapbook</span>
+                            <span className="font-display text-xl font-bold">Scrapbook</span>
                         </Link>
                         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
                             <Link
-                                className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#42291D]"
+                                className="inline-flex min-h-10 items-center gap-2 text-sm font-bold text-[#D8CFDF] hover:text-white"
                                 href={gift.urls.dashboard}
                             >
                                 <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                                 Meus presentes
                             </Link>
                             <Link
-                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-[#FFF7EE] px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                                className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#675578] bg-[#281D36] px-3 text-sm font-bold text-white hover:bg-[#3A2A48]"
                                 href={gift.urls.preview}
                             >
                                 <Eye aria-hidden="true" className="h-4 w-4" />
                                 Preview
                             </Link>
                             <Link
-                                className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-3 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                                className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#675578] bg-transparent px-3 text-sm font-bold text-white hover:bg-[#281D36]"
                                 href={gift.urls.edit}
                             >
                                 <PenLine aria-hidden="true" className="h-4 w-4" />
@@ -124,18 +131,20 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                 <section className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
                     <div className="grid content-start gap-5">
                         <div>
-                            <p className="font-editorial text-xs font-semibold uppercase text-[#D93632]">Revisão</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#D95045]">Revisão</p>
                             <div className="mt-4 flex flex-wrap items-center gap-3">
-                                <h1 className="text-4xl font-semibold text-[#1F150A]">{gift.title}</h1>
+                                <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-[#181024]">
+                                    {gift.title}
+                                </h1>
                                 <GiftStatusBadge status={gift.status} />
                             </div>
-                            <p className="mt-3 text-sm font-semibold text-[#6F5A4A]">
+                            <p className="mt-3 text-sm font-semibold text-[#6F6877]">
                                 {gift.recipient_name ? `Para ${gift.recipient_name}` : 'Sem destinatário'}
                                 {gift.sender_name ? `, de ${gift.sender_name}` : ''}
                             </p>
                         </div>
 
-                        <dl className="grid gap-3 rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-4 text-sm text-[#42291D] shadow-sm">
+                        <dl className="grid gap-3 border border-[#C9BAD8] bg-[#FBF7ED] p-4 text-sm text-[#6F6877] shadow-[0_7px_0_#CFC1AE]">
                             <Info label="Páginas visíveis" value={`${gift.visible_page_count} de ${gift.page_count}`} />
                             <Info label="Fotos processadas" value={`${gift.media_count}`} />
                             <Info label="Publicado em" value={formatDate(gift.published_at)} />
@@ -143,11 +152,11 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                         </dl>
 
                         {gift.public_url ? (
-                            <div className="rounded-[8px] border border-[#7E8F68] bg-[#F2F5E8] p-4 shadow-sm">
-                                <p className="text-sm font-semibold text-[#48573A]">Link público disponível</p>
-                                <p className="mt-2 break-all text-sm text-[#42291D]">{gift.public_url}</p>
+                            <div className="border border-[#73A58E] bg-[#EEF7F2] p-4 shadow-[4px_5px_0_#B8D3C6]">
+                                <p className="text-sm font-semibold text-[#2E6856]">Link público disponível</p>
+                                <p className="mt-2 break-all text-sm text-[#6F6877]">{gift.public_url}</p>
                                 {gift.urls.qr_code ? (
-                                    <div className="mt-4 flex justify-center rounded-[8px] border border-[#E5D0B8] bg-white p-3">
+                                    <div className="mt-4 flex justify-center border border-[#D6CFDD] bg-white p-3 shadow-[0_8px_16px_#18102418]">
                                         <img
                                             alt="QR Code do presente publicado"
                                             className="h-32 w-32"
@@ -157,14 +166,14 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                 ) : null}
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     <Link
-                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#73A58E] bg-white px-3 text-sm font-semibold text-[#2E6856] hover:bg-[#E8F2ED]"
                                         href={gift.public_url}
                                     >
                                         <ExternalLink aria-hidden="true" className="h-4 w-4" />
                                         Abrir link
                                     </Link>
                                     <button
-                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                        className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#73A58E] bg-white px-3 text-sm font-semibold text-[#2E6856] hover:bg-[#E8F2ED]"
                                         onClick={copyPublicUrl}
                                         type="button"
                                     >
@@ -173,7 +182,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     </button>
                                     {gift.urls.share ? (
                                         <Link
-                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-3 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                            className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-3 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273]"
                                             href={gift.urls.share}
                                         >
                                             <Share2 aria-hidden="true" className="h-4 w-4" />
@@ -182,7 +191,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     ) : null}
                                     {gift.urls.qr_code_download ? (
                                         <a
-                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#73A58E] bg-white px-3 text-sm font-semibold text-[#2E6856] hover:bg-[#E8F2ED]"
                                             download
                                             href={gift.urls.qr_code_download}
                                         >
@@ -192,7 +201,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     ) : null}
                                     {gift.urls.share_card ? (
                                         <Link
-                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-white px-3 text-sm font-semibold text-[#48573A] hover:bg-[#E7EBD8]"
+                                            className="inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-[#73A58E] bg-white px-3 text-sm font-semibold text-[#2E6856] hover:bg-[#E8F2ED]"
                                             href={gift.urls.share_card}
                                         >
                                             <Printer aria-hidden="true" className="h-4 w-4" />
@@ -205,11 +214,13 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                     </div>
 
                     <div className="grid content-start gap-5">
-                        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 shadow-sm">
+                        <section className="rounded-[10px] border border-[#C9BAD8] bg-[#FBF7ED] p-5 shadow-[0_9px_0_#CFC1AE,0_20px_38px_#18102418]">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[#1F150A]">Checklist de publicação</h2>
-                                    <p className="mt-1 text-sm text-[#6F5A4A]">
+                                    <h2 className="font-display text-lg font-bold text-[#181024]">
+                                        Checklist de publicação
+                                    </h2>
+                                    <p className="mt-1 text-sm text-[#6F6877]">
                                         {failedErrors.length === 0
                                             ? 'O gift atende aos requisitos obrigatórios.'
                                             : 'Resolva os itens obrigatórios antes de publicar.'}
@@ -225,9 +236,9 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                             </div>
                         </section>
 
-                        <section className="rounded-[8px] border border-[#D8B991] bg-[#FFF7EE] p-5 shadow-sm">
-                            <h2 className="text-lg font-semibold text-[#1F150A]">Próximo passo</h2>
-                            <p className="mt-2 text-sm text-[#6F5A4A]">
+                        <section className="rounded-[10px] border border-[#C9BAD8] bg-[#FBF7ED] p-5 shadow-[0_9px_0_#CFC1AE,0_20px_38px_#18102418]">
+                            <h2 className="font-display text-lg font-bold text-[#181024]">Próximo passo</h2>
+                            <p className="mt-2 text-sm text-[#6F6877]">
                                 A publicação pública agora depende de um pedido com pagamento aprovado. Nesta fase o
                                 pagamento real ainda não está integrado; o fluxo manual/dev aprova o pedido em ambiente
                                 controlado.
@@ -238,7 +249,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     <>
                                         {gift.urls.share ? (
                                             <Link
-                                                className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                                className="inline-flex min-h-11 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-4 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273]"
                                                 href={gift.urls.share}
                                             >
                                                 <Share2 aria-hidden="true" className="h-4 w-4" />
@@ -246,7 +257,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                             </Link>
                                         ) : null}
                                         <Link
-                                            className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#7E8F68] bg-[#E7EBD8] px-4 text-sm font-semibold text-[#48573A] hover:bg-[#DCE4CB]"
+                                            className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#73A58E] bg-[#E8F2ED] px-4 text-sm font-semibold text-[#2E6856] hover:bg-[#DCE4CB]"
                                             href={gift.public_url}
                                         >
                                             <ExternalLink aria-hidden="true" className="h-4 w-4" />
@@ -255,7 +266,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     </>
                                 ) : gift.order ? (
                                     <Link
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-4 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273]"
                                         href={gift.order.url}
                                     >
                                         <CreditCard aria-hidden="true" className="h-4 w-4" />
@@ -263,7 +274,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     </Link>
                                 ) : gift.can_checkout ? (
                                     <Link
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827]"
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-4 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273]"
                                         href={gift.urls.checkout}
                                     >
                                         <CreditCard aria-hidden="true" className="h-4 w-4" />
@@ -271,7 +282,7 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     </Link>
                                 ) : (
                                     <button
-                                        className="inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] opacity-50"
+                                        className="inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-4 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] opacity-50"
                                         disabled
                                         type="button"
                                     >
@@ -280,14 +291,14 @@ export default function GiftReview({ gift }: GiftReviewProps) {
                                     </button>
                                 )}
                                 <Link
-                                    className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#8F211F] bg-[#D93632] px-4 text-sm font-semibold text-[#FFF7EE] hover:bg-[#B92827] disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex min-h-11 items-center gap-2 rounded-[4px] border border-[#FF8E80] bg-[#FF705F] px-4 text-sm font-semibold text-[#181024] shadow-[inset_0_-2px_0_#D95045] hover:bg-[#FF8273] disabled:cursor-not-allowed disabled:opacity-50"
                                     href={gift.urls.preview}
                                 >
                                     <Eye aria-hidden="true" className="h-4 w-4" />
                                     Conferir preview
                                 </Link>
                                 <Link
-                                    className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#CBA980] bg-white px-4 text-sm font-semibold text-[#42291D] hover:bg-[#EAD2B8]"
+                                    className="inline-flex min-h-11 items-center gap-2 rounded-[6px] border border-[#A98BC4] bg-white px-4 text-sm font-semibold text-[#6F6877] hover:bg-[#EFE9F3]"
                                     href={gift.urls.edit}
                                 >
                                     Ajustar no editor
@@ -309,7 +320,7 @@ type InfoProps = {
 function Info({ label, value }: InfoProps) {
     return (
         <div>
-            <dt className="font-semibold text-[#1F150A]">{label}</dt>
+            <dt className="font-semibold text-[#181024]">{label}</dt>
             <dd className="mt-1">{value}</dd>
         </div>
     );
@@ -323,7 +334,7 @@ type StatusPillProps = {
 function StatusPill({ errors, warnings }: StatusPillProps) {
     if (errors > 0) {
         return (
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#D93632] bg-[#F8D8D3] px-3 py-1 text-xs font-semibold text-[#8F211F]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#FF705F] bg-[#FFF0ED] px-3 py-1 text-xs font-semibold text-[#D95045]">
                 <XCircle aria-hidden="true" className="h-4 w-4" />
                 {errors} pendente{errors > 1 ? 's' : ''}
             </span>
@@ -332,7 +343,7 @@ function StatusPill({ errors, warnings }: StatusPillProps) {
 
     if (warnings > 0) {
         return (
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#BD8558] bg-[#EBC493] px-3 py-1 text-xs font-semibold text-[#42291D]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#B8792E] bg-[#F2E1C8] px-3 py-1 text-xs font-semibold text-[#6F6877]">
                 <AlertTriangle aria-hidden="true" className="h-4 w-4" />
                 {warnings} aviso{warnings > 1 ? 's' : ''}
             </span>
@@ -340,7 +351,7 @@ function StatusPill({ errors, warnings }: StatusPillProps) {
     }
 
     return (
-        <span className="inline-flex items-center gap-2 rounded-full border border-[#7E8F68] bg-[#E7EBD8] px-3 py-1 text-xs font-semibold text-[#48573A]">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#73A58E] bg-[#E8F2ED] px-3 py-1 text-xs font-semibold text-[#2E6856]">
             <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
             Pronto
         </span>
@@ -354,19 +365,19 @@ type CheckRowProps = {
 function CheckRow({ check }: CheckRowProps) {
     const failed = !check.passed;
     const icon = check.passed ? (
-        <CheckCircle2 aria-hidden="true" className="h-5 w-5 text-[#48573A]" />
+        <CheckCircle2 aria-hidden="true" className="h-5 w-5 text-[#2E6856]" />
     ) : check.severity === 'warning' ? (
         <AlertTriangle aria-hidden="true" className="h-5 w-5 text-[#8A5A1F]" />
     ) : (
-        <XCircle aria-hidden="true" className="h-5 w-5 text-[#D93632]" />
+        <XCircle aria-hidden="true" className="h-5 w-5 text-[#FF705F]" />
     );
 
     return (
-        <div className="grid grid-cols-[auto_1fr] gap-3 rounded-[6px] border border-[#E5D0B8] bg-white px-3 py-3">
+        <div className="grid grid-cols-[auto_1fr] gap-3 border-b border-[#D6CFDD] bg-white/70 px-3 py-3 last:border-b-0">
             <div className="pt-0.5">{icon}</div>
             <div>
-                <p className="text-sm font-semibold text-[#1F150A]">{check.label}</p>
-                {failed && check.message ? <p className="mt-1 text-sm text-[#6F5A4A]">{check.message}</p> : null}
+                <p className="text-sm font-semibold text-[#181024]">{check.label}</p>
+                {failed && check.message ? <p className="mt-1 text-sm text-[#6F6877]">{check.message}</p> : null}
             </div>
         </div>
     );

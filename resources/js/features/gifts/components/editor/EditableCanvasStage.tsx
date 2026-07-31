@@ -13,6 +13,7 @@ type EditableCanvasStageProps = {
     canvas: Canvas;
     assets?: RendererAssetMap;
     disabled: boolean;
+    framed?: boolean;
     imageReplacing?: boolean;
     onChangeElement: (elementId: string, nextElement: CanvasElement) => void;
     onChangeText: (element: CanvasElement, value: string) => void;
@@ -32,6 +33,7 @@ export function EditableCanvasStage({
     assets,
     canvas,
     disabled,
+    framed = true,
     imageReplacing = false,
     onChangeElement,
     onChangeText,
@@ -69,6 +71,7 @@ export function EditableCanvasStage({
             assets={assets}
             canvas={canvas}
             context="editor"
+            framed={framed}
             selectedElementId={selectedElementId}
             theme={theme}
         >

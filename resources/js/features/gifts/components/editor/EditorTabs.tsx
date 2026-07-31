@@ -1,5 +1,5 @@
 import { Code2, FileImage, Gift, Images, Layers, Shapes, Sparkles, Type } from 'lucide-react';
-import type { KeyboardEvent } from 'react';
+import { useSyncExternalStore, type KeyboardEvent } from 'react';
 
 import type { EditorTab } from './editorTypes';
 
@@ -21,10 +21,16 @@ const TABS: Array<{ id: EditorTab; label: string; icon: typeof Type }> = [
 ];
 
 export function EditorTabs({ activeTab, onChange, showDebug }: EditorTabsProps) {
+    const orientation = useSyncExternalStore(subscribeToDesktopViewport, desktopViewportSnapshot, () => false)
+        ? 'vertical'
+        : 'horizontal';
+
     return (
         <div
             aria-label="Painéis do editor"
-            className="grid grid-cols-4 gap-1 border-y border-[#C9C1CD] bg-[#EFEBF3] p-1.5 text-[11px] font-bold text-[#342E38] sm:text-xs"
+            aria-orientation={orientation}
+            className="gift-editor-tabs scrapbook-editor-tabs flex min-w-0 gap-1 overflow-x-auto border-y border-[#C9C1CD] bg-[#EFEBF3] p-1.5 text-[11px] font-bold text-[#342E38] [scrollbar-color:#746D78_transparent] [scrollbar-width:thin] lg:w-[4.75rem] lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-x lg:border-y-0 lg:p-1 sm:text-xs"
+            data-orientation={orientation}
             role="tablist"
         >
             {TABS.filter((tab) => showDebug || tab.id !== 'debug').map((tab) => {
@@ -35,7 +41,7 @@ export function EditorTabs({ activeTab, onChange, showDebug }: EditorTabsProps) 
                     <button
                         aria-controls="editor-active-panel"
                         aria-selected={selected}
-                        className={`relative inline-flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 border px-1.5 py-1.5 [clip-path:polygon(0_0,calc(100%_-_8px)_0,100%_8px,100%_100%,0_100%)] transition-[background-color,border-color,color] duration-150 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF765B] motion-reduce:transition-none ${
+                        className={`gift-editor-tab scrapbook-editor-tab relative inline-flex min-h-12 w-[4.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-1.5 py-1.5 [clip-path:polygon(0_0,calc(100%_-_8px)_0,100%_8px,100%_100%,0_100%)] transition-[background-color,border-color,color] duration-150 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF765B] motion-reduce:transition-none lg:min-h-[4.5rem] lg:w-full ${
                             selected
                                 ? 'z-10 border-[#21162D] bg-[#21162D] text-[#FBFAF6] shadow-[inset_0_-3px_0_#FF765B]'
                                 : 'border-[#C9C1CD] bg-[#FBFAF6] text-[#5B5360] hover:border-[#746D78] hover:bg-white hover:text-[#21162D]'
@@ -59,7 +65,7 @@ export function EditorTabs({ activeTab, onChange, showDebug }: EditorTabsProps) 
 }
 
 function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, onChange: (tab: EditorTab) => void) {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+    if (!['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
         return;
     }
 
@@ -79,7 +85,10 @@ function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, onChange: (ta
             ? 0
             : event.key === 'End'
               ? tabButtons.length - 1
-              : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabButtons.length) % tabButtons.length;
+              : (currentIndex +
+                    (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) +
+                    tabButtons.length) %
+                tabButtons.length;
     const nextTab = tabButtons[nextIndex];
     const nextTabId = nextTab.dataset.tab as EditorTab | undefined;
 
@@ -88,5 +97,25 @@ function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, onChange: (ta
     }
 
     nextTab.focus();
+    nextTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     onChange(nextTabId);
+}
+
+function subscribeToDesktopViewport(onStoreChange: () => void): () => void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return () => undefined;
+    }
+
+    const query = window.matchMedia('(min-width: 1024px)');
+    query.addEventListener('change', onStoreChange);
+
+    return () => query.removeEventListener('change', onStoreChange);
+}
+
+function desktopViewportSnapshot(): boolean {
+    return typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(min-width: 1024px)').matches
+        ? true
+        : false;
 }

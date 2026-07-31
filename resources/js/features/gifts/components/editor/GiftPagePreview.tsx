@@ -1,18 +1,23 @@
 import { ChevronLeft, ChevronRight, LockKeyhole, MousePointer2 } from 'lucide-react';
 
-import { ScrapbookStage } from '../../../../components/renderer';
+import { PageRenderer } from '../../../../components/renderer';
 import type { RendererAssetMap } from '../../../../components/renderer';
 import type { Canvas, CanvasElement } from '../../../../domain/canvas/schema';
 import type { ThemeConfigInput } from '../../../../components/renderer';
 import { EditableCanvasStage } from './EditableCanvasStage';
+import { EditorOpenBookSpread } from './EditorOpenBookSpread';
 import type { EditorPage } from './editorTypes';
 import type { TransformMode } from './useElementTransform';
 
 type GiftPagePreviewProps = {
+    activeSide: 'left' | 'right';
     canGoNext: boolean;
     canGoPrevious: boolean;
     assets?: RendererAssetMap;
     canvas: Canvas | null;
+    companionCanvas?: Canvas | null;
+    companionPage?: EditorPage | null;
+    companionPageNumber?: number;
     direction: 'next' | 'previous';
     disabled: boolean;
     imageReplacing?: boolean;
@@ -23,6 +28,7 @@ type GiftPagePreviewProps = {
     onElementClick?: (element: CanvasElement) => void;
     onNext: () => void;
     onPrevious: () => void;
+    onSelectCompanion?: () => void;
     onReplaceImage?: (element: CanvasElement) => void;
     onSelectElement: (elementId: string) => void;
     onTransformEnd?: (elementId: string, mode: TransformMode) => void;
@@ -35,10 +41,14 @@ type GiftPagePreviewProps = {
 };
 
 export function GiftPagePreview({
+    activeSide,
     assets,
     canGoNext,
     canGoPrevious,
     canvas,
+    companionCanvas = null,
+    companionPage,
+    companionPageNumber,
     direction,
     disabled,
     imageReplacing = false,
@@ -50,6 +60,7 @@ export function GiftPagePreview({
     maxTextLength,
     onNext,
     onPrevious,
+    onSelectCompanion,
     onReplaceImage,
     onSelectElement,
     onTransformEnd,
@@ -114,38 +125,53 @@ export function GiftPagePreview({
                     aria-hidden="true"
                 />
                 <div className="gift-editor-page-motion" data-direction={direction} key={page?.id ?? 'empty'}>
-                    <ScrapbookStage
-                        assets={assets}
-                        className="gift-editor-scrapbook-stage"
-                        context="editor"
-                        theme={theme}
-                    >
-                        {canvas ? (
-                            <EditableCanvasStage
-                                canvas={canvas}
-                                assets={assets}
-                                disabled={disabled}
-                                imageReplacing={imageReplacing}
-                                onChangeElement={onChangeElement}
-                                onChangeText={onChangeText}
-                                onClearSelection={onClearSelection}
-                                onElementDoubleClick={onElementDoubleClick}
-                                onElementClick={onElementClick}
-                                onReplaceImage={onReplaceImage}
-                                onSelectElement={onSelectElement}
-                                onTransformEnd={onTransformEnd}
-                                onTransformStart={onTransformStart}
-                                maxTextLength={maxTextLength}
-                                selectedElementId={selectedElementId}
-                                theme={theme}
-                            />
-                        ) : (
-                            <div className="grid aspect-[3/4] place-items-center border border-dashed border-[#C9C1CD] bg-[#FBFAF6] p-6 text-center text-sm font-semibold text-[#746D78]">
-                                Nenhuma página disponível para edição.
-                            </div>
-                        )}
-                    </ScrapbookStage>
-                    {canvas ? <span aria-hidden="true" className="gift-editor-page-curl" /> : null}
+                    {canvas ? (
+                        <EditorOpenBookSpread
+                            activeCanvas={canvas}
+                            activePage={
+                                <EditableCanvasStage
+                                    assets={assets}
+                                    canvas={canvas}
+                                    disabled={disabled}
+                                    framed={false}
+                                    imageReplacing={imageReplacing}
+                                    maxTextLength={maxTextLength}
+                                    onChangeElement={onChangeElement}
+                                    onChangeText={onChangeText}
+                                    onClearSelection={onClearSelection}
+                                    onElementClick={onElementClick}
+                                    onElementDoubleClick={onElementDoubleClick}
+                                    onReplaceImage={onReplaceImage}
+                                    onSelectElement={onSelectElement}
+                                    onTransformEnd={onTransformEnd}
+                                    onTransformStart={onTransformStart}
+                                    selectedElementId={selectedElementId}
+                                    theme={theme}
+                                />
+                            }
+                            activePageNumber={pageNumber}
+                            activeSide={activeSide}
+                            companionCanvas={companionCanvas}
+                            companionPage={
+                                companionCanvas ? (
+                                    <PageRenderer
+                                        assets={assets}
+                                        canvas={companionCanvas}
+                                        context="editor"
+                                        framed={false}
+                                        theme={theme}
+                                    />
+                                ) : undefined
+                            }
+                            companionPageNumber={companionPage ? companionPageNumber : undefined}
+                            direction={direction}
+                            onSelectCompanion={onSelectCompanion}
+                        />
+                    ) : (
+                        <div className="grid aspect-[3/4] place-items-center border border-dashed border-[#C9C1CD] bg-[#FBFAF6] p-6 text-center text-sm font-semibold text-[#746D78]">
+                            Nenhuma página disponível para edição.
+                        </div>
+                    )}
                 </div>
             </div>
             <footer className="gift-editor-canvas-footer">
