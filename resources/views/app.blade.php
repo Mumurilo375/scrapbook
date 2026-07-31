@@ -14,8 +14,8 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
-    <!-- impeccable-live-start -->
-<script src="http://localhost:8400/live.js?token=e31e93fc-4560-4720-ae1e-e8bf7cedf66d"></script>
+<!-- impeccable-live-start -->
+<script src="http://localhost:8400/live.js?token=5acecaa9-ce22-436b-842a-1ed309617dea"></script>
 <!-- impeccable-live-end -->
 </body>
 </html>
